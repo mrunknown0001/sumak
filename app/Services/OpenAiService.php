@@ -42,7 +42,7 @@ class OpenAiService
                     'content' => $prompt
                 ]
             ],
-            'temperature' => 0.3,
+            // 'temperature' => 0.3,
             'response_format' => ['type' => 'json_object']
         ], 'content_analysis');
 
@@ -67,7 +67,7 @@ class OpenAiService
                     'content' => $prompt
                 ]
             ],
-            'temperature' => 0.4,
+            // 'temperature' => 0.4,
             'response_format' => ['type' => 'json_object']
         ], 'tos_generation');
 
@@ -92,7 +92,7 @@ class OpenAiService
                     'content' => $prompt
                 ]
             ],
-            'temperature' => 0.5,
+            // 'temperature' => 0.5,
             'response_format' => ['type' => 'json_object']
         ], 'quiz_generation');
 
@@ -117,7 +117,7 @@ class OpenAiService
                     'content' => $prompt
                 ]
             ],
-            'temperature' => 0.6,
+            // 'temperature' => 0.6,
             'response_format' => ['type' => 'json_object']
         ], 'question_reword');
 
@@ -142,7 +142,7 @@ class OpenAiService
                     'content' => $prompt
                 ]
             ],
-            'temperature' => 0.7,
+            // 'temperature' => 0.7,
             'response_format' => ['type' => 'json_object']
         ], 'feedback_generation');
 
@@ -167,7 +167,7 @@ class OpenAiService
                     'content' => $prompt
                 ]
             ],
-            'temperature' => 0.2,
+            // 'temperature' => 0.2,
             'response_format' => ['type' => 'json_object']
         ], 'obtl_parsing');
 
