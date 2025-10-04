@@ -9,6 +9,29 @@ use Illuminate\Cache\RateLimiting\Limit;
 
 class OpenAiServiceProvider extends ServiceProvider
 {
+    protected $listen = [
+        \App\Events\OpenAi\ContentAnalyzed::class => [
+            \App\Listeners\OpenAi\ProcessAnalyzedContent::class,
+        ],
+        \App\Events\OpenAi\TosGenerated::class => [
+            \App\Listeners\OpenAi\TriggerQuizGeneration::class,
+        ],
+        \App\Events\OpenAi\QuizGenerated::class => [
+            \App\Listeners\OpenAi\NotifyQuizReady::class,
+        ],
+        \App\Events\OpenAi\QuestionRegenerated::class => [
+            \App\Listeners\OpenAi\UpdateItemBank::class,
+        ],
+        \App\Events\OpenAi\FeedbackGenerated::class => [
+            \App\Listeners\OpenAi\NotifyFeedbackReady::class,
+        ],
+        \App\Events\OpenAi\OpenAiRequestFailed::class => [
+            \App\Listeners\OpenAi\HandleFailedRequest::class,
+        ],
+        \App\Events\OpenAi\SpendingLimitWarning::class => [
+            \App\Listeners\OpenAi\SendSpendingAlert::class,
+        ],
+    ];
     /**
      * Register services.
      */
