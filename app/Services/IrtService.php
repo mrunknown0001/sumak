@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Course;
+use App\Models\QuizAttempt;
+use App\Models\User;
 /**
  * Item Response Theory (IRT) Service
  * Implements 1PL (Rasch) Model for ability estimation
@@ -216,5 +219,53 @@ class IrtService
         } else {
             return 'Advanced';
         }
+    }
+
+
+
+
+    /**
+     * Calculate student ability using 1PL IRT model
+     */
+    public function calculateStudentAbility(User $student, Course $course)
+    {
+        // Implement 1PL IRT calculation
+        // This is a simplified example
+        $attempts = QuizAttempt::where('student_id', $student->id)
+            ->whereHas('quiz', function($q) use ($course) {
+                $q->where('course_id', $course->id);
+            })
+            ->get();
+
+        if ($attempts->isEmpty()) {
+            return 0.5; // Default neutral ability
+        }
+
+        $totalCorrect = $attempts->sum('correct_answers');
+        $totalQuestions = $attempts->sum('total_questions');
+
+        return $totalQuestions > 0 ? $totalCorrect / $totalQuestions : 0.5;
+    }
+
+    public function calculateOverallAbility(User $student)
+    {
+        // Calculate overall ability across all courses
+        $allAttempts = QuizAttempt::where('student_id', $student->id)->get();
+        
+        if ($allAttempts->isEmpty()) {
+            return 0.5;
+        }
+
+        $totalCorrect = $allAttempts->sum('correct_answers');
+        $totalQuestions = $allAttempts->sum('total_questions');
+
+        return $totalQuestions > 0 ? $totalCorrect / $totalQuestions : 0.5;
+    }
+
+    public function estimateAbilityFromAttempt(QuizAttempt $attempt)
+    {
+        return $attempt->total_questions > 0 
+            ? $attempt->correct_answers / $attempt->total_questions 
+            : 0.5;
     }
 }

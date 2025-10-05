@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Services\Examples\OpenAiServiceExamples;
 use App\Services\OpenAiService;
+use App\Http\Livewire\StudentDashboard;
 
 Route::get('/', function () {
     return view('welcome');
@@ -27,4 +28,12 @@ Route::group(['middleware' => ['auth']], function () {
     })->name('dashboard');
 
     Route::get('/logout', [LoginController::class, 'logout'])->name('logout.get');
+});
+
+
+Route::middleware(['auth', 'student'])->prefix('student')->name('student.')->group(function () {
+    
+    // Dashboard
+    Route::get('/dashboard', StudentDashboard::class)->name('dashboard');
+    
 });
