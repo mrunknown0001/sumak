@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Livewire;
+namespace App\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
@@ -211,6 +211,7 @@ class StudentDashboard extends Component
 
     public function render()
     {
-        return view('livewire.student-dashboard');
+        return view('livewire.student-dashboard')
+            ->layout('layouts.app');
     }
 }

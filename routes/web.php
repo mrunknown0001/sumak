@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Services\Examples\OpenAiServiceExamples;
 use App\Services\OpenAiService;
-use App\Http\Livewire\StudentDashboard;
+use App\Livewire\StudentDashboard;
 
 Route::get('/', function () {
     return view('welcome');

@@ -8,7 +8,7 @@ use App\Models\Student;
 use App\Models\Course;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
-use App\Services\IRTService;
+use App\Services\IrtService;
 use App\Services\AIFeedbackService;
 
 class StudentDashboardController extends Controller
@@ -16,7 +16,7 @@ class StudentDashboardController extends Controller
     protected $irtService;
     protected $aiFeedbackService;
 
-    public function __construct(IRTService $irtService, AIFeedbackService $aiFeedbackService)
+    public function __construct(IrtService $irtService, AIFeedbackService $aiFeedbackService)
     {
         $this->irtService = $irtService;
         $this->aiFeedbackService = $aiFeedbackService;
