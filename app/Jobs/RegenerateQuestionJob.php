@@ -2,9 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\QuizQuestion;
-use App\Models\QuestionRegeneration;
 use App\Models\ItemBank;
+use App\Models\QuizRegeneration;
 use App\Services\OpenAiService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,135 +11,85 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 
 class RegenerateQuestionJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 2;
-    public $timeout = 120;
+    public $timeout = 300; // 5 minutes
 
-    /**
-     * Create a new job instance.
-     */
-    public function __construct(
-        public int $questionId,
-        public int $userId
-    ) {}
+    protected int $questionId;
+    protected int $userId;
 
-    /**
-     * Execute the job.
-     */
+    public function __construct(int $questionId, int $userId)
+    {
+        $this->questionId = $questionId;
+        $this->userId = $userId;
+    }
+
     public function handle(OpenAiService $openAiService): void
     {
         try {
-            DB::beginTransaction();
-
-            $originalQuestion = QuizQuestion::with('options')->findOrFail($this->questionId);
-
-            // Check regeneration limit (max 3 times)
-            $regenerationCount = QuestionRegeneration::where('original_question_id', $this->questionId)
+            $originalItem = ItemBank::findOrFail($this->questionId);
+            
+            // Check regeneration limit
+            $regenerationCount = QuizRegeneration::where('original_item_id', $originalItem->id)
                 ->count();
-
+                
             if ($regenerationCount >= 3) {
-                throw new \Exception("Maximum regeneration limit (3) reached for question {$this->questionId}");
+                Log::warning("Regeneration limit reached", ['item_id' => $originalItem->id]);
+                return;
             }
-
-            Log::info("Regenerating question {$this->questionId}, attempt #{(int)$regenerationCount + 1}");
-
-            // Prepare original question data
-            $originalOptions = $originalQuestion->options->map(function ($option) {
-                return [
-                    'option_text' => $option->option_text,
-                    'is_correct' => $option->is_correct,
-                ];
-            })->toArray();
-
+            
             // Generate reworded question
             $rewordedData = $openAiService->rewordQuestion(
-                $originalQuestion->question_text,
-                $originalOptions,
+                $originalItem->question,
+                $originalItem->options,
                 $regenerationCount + 1
             );
-
+            
             $rewordedQuestion = $rewordedData['reworded_question'];
-
-            // Create new question
-            $newQuestion = QuizQuestion::create([
-                'quiz_id' => $originalQuestion->quiz_id,
-                'question_text' => $rewordedQuestion['question_text'],
-                'cognitive_level' => $originalQuestion->cognitive_level,
-                'subtopic' => $originalQuestion->subtopic,
-                'difficulty' => $originalQuestion->difficulty,
+            
+            // Create new item in item bank
+            $newItem = ItemBank::create([
+                'tos_item_id' => $originalItem->tos_item_id,
+                'subtopic_id' => $originalItem->subtopic_id,
+                'learning_outcome_id' => $originalItem->learning_outcome_id,
+                'question' => $rewordedQuestion['question_text'],
+                'options' => $rewordedQuestion['options'],
+                'correct_answer' => collect($rewordedQuestion['options'])
+                    ->firstWhere('is_correct', true)['option_letter'],
                 'explanation' => $rewordedQuestion['explanation'],
-                'order' => $originalQuestion->order,
-                'is_regenerated' => true,
+                'cognitive_level' => $originalItem->cognitive_level,
+                'difficulty_b' => $originalItem->difficulty_b,
+                'time_estimate_seconds' => $originalItem->time_estimate_seconds,
+                'created_at' => now(),
             ]);
-
-            // Create new options
-            foreach ($rewordedQuestion['options'] as $optionData) {
-                $newQuestion->options()->create([
-                    'option_letter' => $optionData['option_letter'],
-                    'option_text' => $optionData['option_text'],
-                    'is_correct' => $optionData['is_correct'],
-                    'rationale' => $optionData['rationale'] ?? null,
-                ]);
-            }
-
+            
             // Record regeneration
-            QuestionRegeneration::create([
-                'original_question_id' => $originalQuestion->id,
-                'regenerated_question_id' => $newQuestion->id,
+            QuizRegeneration::create([
+                'original_item_id' => $originalItem->id,
+                'regenerated_item_id' => $newItem->id,
+                'subtopic_id' => $originalItem->subtopic_id,
                 'regeneration_count' => $regenerationCount + 1,
-                'user_id' => $this->userId,
-                'regeneration_date' => now(),
                 'maintains_equivalence' => $rewordedQuestion['maintains_equivalence'] ?? true,
-                'notes' => $rewordedQuestion['regeneration_notes'] ?? null,
+                'regenerated_at' => now(),
             ]);
-
-            // Update item bank
-            ItemBank::create([
-                'material_id' => $originalQuestion->quiz->material_id,
-                'question_text' => $newQuestion->question_text,
-                'cognitive_level' => $newQuestion->cognitive_level,
-                'subtopic' => $newQuestion->subtopic,
-                'difficulty' => $newQuestion->difficulty,
-                'version_number' => $regenerationCount + 2,
-                'reword_count' => $regenerationCount + 1,
-                'original_question_id' => $originalQuestion->id,
-            ]);
-
-            // Deactivate original question (soft delete or flag)
-            $originalQuestion->update(['is_active' => false]);
-
-            DB::commit();
-
-            Log::info("Question {$this->questionId} regenerated successfully", [
-                'new_question_id' => $newQuestion->id,
+            
+            Log::info("Question regenerated successfully", [
+                'original_item_id' => $originalItem->id,
+                'new_item_id' => $newItem->id,
                 'regeneration_count' => $regenerationCount + 1
             ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
             
-            Log::error("Failed to regenerate question {$this->questionId}", [
+        } catch (\Exception $e) {
+            Log::error("Failed to regenerate question", [
+                'question_id' => $this->questionId,
                 'error' => $e->getMessage(),
-                'user_id' => $this->userId
+                'trace' => $e->getTraceAsString()
             ]);
-
+            
             throw $e;
         }
-    }
-
-    /**
-     * Handle a job failure.
-     */
-    public function failed(\Throwable $exception): void
-    {
-        Log::error("RegenerateQuestionJob failed for question {$this->questionId}", [
-            'error' => $exception->getMessage(),
-            'user_id' => $this->userId
-        ]);
     }
 }

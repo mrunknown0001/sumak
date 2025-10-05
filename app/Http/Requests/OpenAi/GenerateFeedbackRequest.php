@@ -9,8 +9,6 @@ class GenerateFeedbackRequest extends FormRequest
     public function authorize(): bool
     {
         $attempt = $this->route('quizAttempt');
-        
-        // User can only generate feedback for their own attempts
         return $this->user()->id === $attempt->user_id;
     }
 
@@ -24,9 +22,6 @@ class GenerateFeedbackRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get validated data with defaults
-     */
     public function validated($key = null, $default = null)
     {
         $validated = parent::validated($key, $default);
