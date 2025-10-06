@@ -15,7 +15,7 @@ use App\Http\Controllers\OpenAi\ApiUsageController;
 
 // Public routes
 Route::post('/login', [\App\Http\Controllers\LoginController::class, 'login']);
-Route::post('/register', [\App\Http\Controllers\RegisterController::class, 'register']);
+// Route::post('/register', [\App\Http\Controllers\RegisterController::class, 'register']);
 
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {

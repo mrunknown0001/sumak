@@ -7,15 +7,7 @@ use App\Services\OpenAiService;
 use App\Livewire\StudentDashboard;
 
 Route::get('/', function () {
-    return view('welcome');
-});
-
-Route::get('/test-ai', function (){
-    // call instance of service
-    $ai = new OpenAiService();
-    $instance = new OpenAiServiceExamples($ai);
-    $instance->analyzeContentExample();
-    return "done";
+    return view('home');
 });
 
 Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
