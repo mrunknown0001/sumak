@@ -24,7 +24,12 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 
 Route::group(['middleware' => ['auth']], function () {
     Route::get('/dashboard', function () {
-        return view('dashboard');
+        if (auth()->user()->role === 'student') {
+            return redirect()->route('student.dashboard');
+        }
+        else {
+            return redirect('/admin');
+        }
     })->name('dashboard');
 
     Route::get('/logout', [LoginController::class, 'logout'])->name('logout.get');
