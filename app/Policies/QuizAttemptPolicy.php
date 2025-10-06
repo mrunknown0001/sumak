@@ -2,8 +2,6 @@
 
 namespace App\Policies;
 
-namespace App\Policies;
-
 use App\Models\User;
 use App\Models\QuizAttempt;
 use Illuminate\Auth\Access\HandlesAuthorization;

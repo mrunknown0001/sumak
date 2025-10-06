@@ -10,13 +10,16 @@
         "filament/filament": "^3.0",
         "flowframe/laravel-trend": "^0.4.0",
         "guzzlehttp/guzzle": "^7.10",
+        "joaopaulolndev/filament-edit-profile": "^1.0",
         "laravel/fortify": "^1.31",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^3.6",
         "openai-php/laravel": "^0.16.0",
-        "spatie/laravel-pdf": "^1.8"
+        "smalot/pdfparser": "^2.12",
+        "spatie/laravel-pdf": "^1.8",
+        "spatie/pdf-to-text": "^1.54"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.16",
