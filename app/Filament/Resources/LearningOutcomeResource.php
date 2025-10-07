@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ObtlDocumentResource\Pages;
-use App\Filament\Resources\ObtlDocumentResource\RelationManagers;
-use App\Models\ObtlDocument;
+use App\Filament\Resources\LearningOutcomeResource\Pages;
+use App\Filament\Resources\LearningOutcomeResource\RelationManagers;
+use App\Models\LearningOutcome;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,11 +12,10 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Tables\Columns\DateTimeColumn;
 
-class ObtlDocumentResource extends Resource
+class LearningOutcomeResource extends Resource
 {
-    protected static ?string $model = ObtlDocument::class;
+    protected static ?string $model = LearningOutcome::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -32,8 +31,11 @@ class ObtlDocumentResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('title'),
-                Tables\Columns\TextColumn::make('uploaded_at')->label('Uploaded At')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('outcome_code')->label('Outcome Code')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('description')->label('Description')->sortable()->searchable()
+                    ->limit(50),
+                Tables\Columns\TextColumn::make('bloom_level')->label('Bloom Level')->sortable()->searchable()
+                    ->formatStateUsing(fn ($state) => ucfirst($state)),
             ])
             ->filters([
                 //
@@ -58,9 +60,9 @@ class ObtlDocumentResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListObtlDocuments::route('/'),
-            'create' => Pages\CreateObtlDocument::route('/create'),
-            'edit' => Pages\EditObtlDocument::route('/{record}/edit'),
+            'index' => Pages\ListLearningOutcomes::route('/'),
+            'create' => Pages\CreateLearningOutcome::route('/create'),
+            'edit' => Pages\EditLearningOutcome::route('/{record}/edit'),
         ];
     }
 }

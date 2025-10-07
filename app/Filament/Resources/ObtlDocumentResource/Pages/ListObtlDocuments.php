@@ -6,14 +6,13 @@ use App\Filament\Resources\ObtlDocumentResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Forms;
-use Spatie\PdfToText\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use App\Jobs\ProcessDocumentJob;
 use App\Models\Course;
-use App\Models\Document;
+use App\Models\ObtlDocument;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use App\Jobs\ExtractObtlDocumentJob;
 
 
 class ListObtlDocuments extends ListRecords
@@ -25,7 +24,7 @@ class ListObtlDocuments extends ListRecords
         return [
             // Actions\CreateAction::make(),
             Actions\Action::make('uploadobtldocument')
-                ->label('Upload OBTL Document and Learning Materials')
+                ->label('Upload OBTL Document')
                 ->form([
                     Forms\Components\Select::make('course_id')
                         ->label('Select Course')
@@ -36,10 +35,6 @@ class ListObtlDocuments extends ListRecords
                         ->label('Upload OBTL Document')
                         ->acceptedFileTypes(['application/pdf'])
                         ->required(),
-                    Forms\Components\FileUpload::make('learning_materials')
-                        ->label('Upload Learning Materials')
-                        ->acceptedFileTypes(['application/pdf'])
-                        ->required(),
                 ])
                 // upload and extract information
                 ->modalHeading('Upload OBTL Document')
@@ -47,36 +42,29 @@ class ListObtlDocuments extends ListRecords
                 ->action(function (array $data) {
                     // handle the uploaded file
                     $obtlFile = $data['obtl_file'];
-                    $learningMaterials = $data['learning_materials'];
                     // get full path
                     $obtlFileFullPath = Storage::disk('public')->path($obtlFile);
-                    $learningMaterialsFullPaths = Storage::disk('public')->path($learningMaterials);
+
                     DB::beginTransaction();
                     try {
-                        $document = Document::create([
+
+                        $document = ObtlDocument::create([
                             'course_id' => $data['course_id'],
                             'user_id' => auth()->id(),
-                            'title' => 'OBTL Document',
+                            'title' => 'OBTL Document Title',
                             'file_path' => $obtlFileFullPath,
                             'file_type' => 'pdf',
                             'uploaded_at' => now(),
                         ]);
 
-                        $learningMaterialsDocument = Document::create([
-                            'course_id' => $data['course_id'],
-                            'user_id' => auth()->id(),
-                            'title' => 'Learning Materials',
-                            'file_path' => $learningMaterialsFullPaths,
-                            'file_type' => 'pdf',
-                            'uploaded_at' => now(),
-                        ]);
+                        // Dispatch job to extract title
+                        ExtractObtlDocumentJob::dispatch($document->id);
 
-                        // ProcessDocumentJob::dispatch($document->id);
-                        // ProcessDocumentJob::dispatch($learningMaterialsDocument->id);
                         Notification::make()
-                            ->title('Documents uploaded successfully. Processing in background.')
+                            ->title('Document uploaded successfully.')
                             ->success()
                             ->send();
+                        
                         DB::commit();
                     } catch (\Throwable $th) {
                         DB::rollBack();
@@ -86,7 +74,6 @@ class ListObtlDocuments extends ListRecords
                             ->send();
                         Log::error($th);
                     }
-                    // save documents
 
                 })
         ];

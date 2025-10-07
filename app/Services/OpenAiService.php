@@ -149,6 +149,61 @@ class OpenAiService
         return json_decode($response['content'], true);
     }
 
+
+    /**
+     * Extract title from OBTL document
+     */
+    public function extractObtlTitle(string $obtlContent): array
+    {
+        $prompt = $this->buildObtlTitlePrompt($obtlContent);
+        
+        $response = $this->sendRequest([
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'You are an expert in analyzing educational documents and extracting key information accurately and efficiently.'
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $prompt
+                ]
+            ],
+            // 'temperature' => 0.2,
+            'response_format' => ['type' => 'json_object']
+        ], 'obtl_title_extraction');
+
+        return json_decode($response['content'], true);
+    }
+
+    /**
+     * Build OBTL title extraction prompt
+     */
+    private function buildObtlTitlePrompt(string $obtlContent): string
+    {
+        return <<<PROMPT
+    Extract the course or document title from the following OBTL (Outcome-Based Teaching and Learning) document.
+
+    OBTL Document:
+    $obtlContent
+
+    Please extract the title information in the following JSON format:
+    {
+        "title": "the main course or document title",
+        "course_code": "course code if available (e.g., CS101, MATH201)",
+        "subtitle": "subtitle or additional title information if present",
+        "full_title": "complete title including code and subtitle if applicable",
+        "confidence": "high|medium|low",
+        "extraction_notes": "any relevant notes about the title extraction"
+    }
+
+    Instructions:
+    - Look for explicit title markers like "Course Title:", "Subject:", "Course Name:", etc.
+    - If a course code is present, include it separately
+    - If no clear title is found, use the most prominent heading or subject matter
+    - Indicate confidence level based on how explicit the title information is
+    PROMPT;
+    }
+
     /**
      * Parse OBTL document to extract learning outcomes
      */

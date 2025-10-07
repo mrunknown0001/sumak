@@ -39,8 +39,12 @@ class CourseResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('course_title'),
-                Tables\Columns\TextColumn::make('course_code'),
+                Tables\Columns\TextColumn::make('course_title')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('course_code')
+                    ->searchable()
+                    ->sortable(),
             ])
             ->filters([
                 //
