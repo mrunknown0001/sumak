@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\LearningOutcomeResource\Pages;
-use App\Filament\Resources\LearningOutcomeResource\RelationManagers;
-use App\Models\LearningOutcome;
+use App\Filament\Resources\ItemBankResource\Pages;
+use App\Filament\Resources\ItemBankResource\RelationManagers;
+use App\Models\ItemBank;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,9 +13,9 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class LearningOutcomeResource extends Resource
+class ItemBankResource extends Resource
 {
-    protected static ?string $model = LearningOutcome::class;
+    protected static ?string $model = ItemBank::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -31,17 +31,13 @@ class LearningOutcomeResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('outcome_code')->label('Outcome Code')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('description')->label('Description')->sortable()->searchable()
-                    ->limit(100),
-                Tables\Columns\TextColumn::make('bloom_level')->label('Bloom Level')->sortable()->searchable()
-                    ->formatStateUsing(fn ($state) => ucfirst($state)),
+                //
             ])
             ->filters([
                 //
             ])
             ->actions([
-                // Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -60,9 +56,9 @@ class LearningOutcomeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListLearningOutcomes::route('/'),
-            'create' => Pages\CreateLearningOutcome::route('/create'),
-            'edit' => Pages\EditLearningOutcome::route('/{record}/edit'),
+            'index' => Pages\ListItemBanks::route('/'),
+            'create' => Pages\CreateItemBank::route('/create'),
+            'edit' => Pages\EditItemBank::route('/{record}/edit'),
         ];
     }
 }

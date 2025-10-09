@@ -26,6 +26,30 @@ class Course extends Model
         'deleted_at' => 'datetime',
     ];
 
+    public static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($course) {
+            // Ensure a user_id is set, default to the authenticated user if available
+            if (empty($course->user_id) && auth()->check()) {
+                $course->user_id = auth()->id();
+            }
+        });
+
+        static::deleting(function ($course) {
+            // Delete related OBTL document
+            $course->obtlDocument()->delete();
+
+            // Delete related documents (which will cascade to topics, subtopics, and quiz attempts)
+            foreach ($course->documents as $document) {
+                $document->delete();
+            }
+        });
+    }
+
+
+
     /**
      * Get the user that owns the course
      */

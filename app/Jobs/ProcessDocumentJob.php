@@ -42,6 +42,9 @@ class ProcessDocumentJob implements ShouldQueue
             
             // Step 2: Analyze content with AI
             $analysis = $openAiService->analyzeContent($content);
+
+            // log analysis result for debugging
+            Log::debug('Document analysis result', ['analysis' => $analysis]);
             
             // Step 3: Create topics and subtopics
             $this->createTopicsAndSubtopics($document, $analysis);
@@ -67,15 +70,15 @@ class ProcessDocumentJob implements ShouldQueue
 
     protected function extractContent(Document $document): string
     {
-        $filePath = Storage::disk('private')->path($document->file_path);
+        // $filePath = Storage::disk('public')->path($document->file_path);
         
         if ($document->file_type === 'pdf') {
             $parser = new PdfParser();
-            $pdf = $parser->parseFile($filePath);
+            $pdf = $parser->parseFile($document->file_path);
             $content = $pdf->getText();
         } else {
             // For DOCX files, use a library like PHPWord
-            $content = file_get_contents($filePath);
+            $content = file_get_contents($document->file_path);
         }
         
         return $content;
@@ -83,12 +86,12 @@ class ProcessDocumentJob implements ShouldQueue
 
     protected function createTopicsAndSubtopics(Document $document, array $analysis): void
     {
-        $topics = $analysis['topics'] ?? [];
+        $topics = $analysis['main_topics'] ?? [];
         
         foreach ($topics as $index => $topicData) {
             $topic = Topic::create([
                 'document_id' => $document->id,
-                'name' => $topicData['name'],
+                'name' => $topicData['topic'],
                 'order_index' => $index,
             ]);
             
