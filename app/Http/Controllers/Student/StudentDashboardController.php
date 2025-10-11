@@ -52,29 +52,45 @@ class StudentDashboardController extends Controller
     }
 
     /**
-     * Get active courses with progress and ability levels
+     * Get enrolled courses with progress and ability levels
      */
     private function getActiveCourses($student)
     {
-        return $student->courses()
-            ->where('status', 'active')
+        return Course::whereHas('enrollments', function($q) use ($student) {
+                $q->where('user_id', $student->id);
+            })
+            ->with(['obtlDocument', 'documents'])
             ->get()
             ->map(function ($course) use ($student) {
-                $quizzesTaken = $this->getQuizzesTakenCount($student, $course);
-                $totalQuizzes = $course->quizzes()->count();
+                // Get total subtopics across all documents in this course
+                $totalSubtopics = $course->documents()
+                    ->with('topics.subtopics')
+                    ->get()
+                    ->flatMap(fn($doc) => $doc->topics)
+                    ->flatMap(fn($topic) => $topic->subtopics)
+                    ->count();
+                
+                // Get completed subtopics (where student has at least one attempt)
+                $completedSubtopics = \App\Models\QuizAttempt::where('user_id', $student->id)
+                    ->whereHas('subtopic.topic.document', function($q) use ($course) {
+                        $q->where('course_id', $course->id);
+                    })
+                    ->distinct('subtopic_id')
+                    ->count('subtopic_id');
+                
                 $avgScore = $this->getAverageScore($student, $course);
-                $abilityLevel = $this->irtService->calculateStudentAbility($student, $course);
+                $abilityLevel = $this->calculateAbilityForCourse($student, $course);
 
                 return [
                     'id' => $course->id,
-                    'name' => $course->name,
-                    'code' => $course->code,
-                    'progress' => $totalQuizzes > 0 ? round(($quizzesTaken / $totalQuizzes) * 100) : 0,
-                    'quizzes_taken' => $quizzesTaken,
-                    'total_quizzes' => $totalQuizzes,
+                    'name' => $course->course_title,
+                    'code' => $course->course_code,
+                    'progress' => $totalSubtopics > 0 ? round(($completedSubtopics / $totalSubtopics) * 100) : 0,
+                    'quizzes_taken' => $completedSubtopics,
+                    'total_quizzes' => $totalSubtopics,
                     'avg_score' => round($avgScore, 2),
                     'ability_level' => $abilityLevel,
-                    'status' => $course->pivot->status ?? 'active',
+                    'status' => 'active',
                 ];
             })
             ->toArray();
@@ -85,27 +101,28 @@ class StudentDashboardController extends Controller
      */
     private function getRecentQuizzes($student, $limit = 10)
     {
-        return QuizAttempt::where('student_id', $student->id)
-            ->with(['quiz.course'])
+        return QuizAttempt::where('user_id', $student->id)
+            ->with(['subtopic.topic.document.course'])
+            ->whereNotNull('completed_at')
             ->orderBy('completed_at', 'desc')
             ->limit($limit)
             ->get()
             ->map(function ($attempt) use ($student) {
-                $attemptsCount = QuizAttempt::where('student_id', $student->id)
-                    ->where('quiz_id', $attempt->quiz_id)
+                $attemptsCount = QuizAttempt::where('user_id', $student->id)
+                    ->where('subtopic_id', $attempt->subtopic_id)
                     ->count();
 
                 $abilityEstimate = $this->irtService->estimateAbilityFromAttempt($attempt);
 
                 return [
                     'id' => $attempt->id,
-                    'quiz_id' => $attempt->quiz_id,
-                    'course' => $attempt->quiz->course->name,
-                    'topic' => $attempt->quiz->topic,
+                    'quiz_id' => $attempt->subtopic_id,
+                    'course' => $attempt->subtopic->topic->document->course->course_title,
+                    'topic' => $attempt->subtopic->name,
                     'score' => $attempt->correct_answers,
                     'total' => $attempt->total_questions,
                     'date' => $attempt->completed_at->format('Y-m-d'),
-                    'duration' => $this->formatDuration($attempt->duration_seconds),
+                    'duration' => $this->formatDuration($attempt->time_spent_seconds),
                     'attempts_used' => $attemptsCount,
                     'attempts_remaining' => max(0, 3 - $attemptsCount),
                     'ability_estimate' => $abilityEstimate,
@@ -119,23 +136,22 @@ class StudentDashboardController extends Controller
      */
     private function getAIFeedback($student, $limit = 5)
     {
-        $recentAttempts = QuizAttempt::where('student_id', $student->id)
-            ->with(['quiz.course'])
+        $recentAttempts = QuizAttempt::where('user_id', $student->id)
+            ->with(['feedback', 'subtopic.topic.document.course'])
+            ->whereNotNull('completed_at')
             ->orderBy('completed_at', 'desc')
             ->limit($limit)
-            ->get();
+            ->get()
+            ->filter(fn($attempt) => $attempt->feedback);
 
         return $recentAttempts->map(function ($attempt) {
-            // Generate AI feedback using ChatGPT API
-            $feedback = $this->aiFeedbackService->generateFeedback($attempt);
-
             return [
-                'course' => $attempt->quiz->course->name,
-                'topic' => $attempt->quiz->topic,
-                'feedback' => $feedback['main_feedback'],
-                'recommendations' => $feedback['recommendations'],
-                'strengths' => $feedback['strengths'],
-                'areas_to_improve' => $feedback['areas_to_improve'],
+                'course' => $attempt->subtopic->topic->document->course->course_title,
+                'topic' => $attempt->subtopic->name,
+                'feedback' => $attempt->feedback->feedback_text ?? 'Feedback is being generated...',
+                'recommendations' => $attempt->feedback->recommendations ? json_decode($attempt->feedback->recommendations) : [],
+                'strengths' => $attempt->feedback->strengths ? json_decode($attempt->feedback->strengths) : [],
+                'areas_to_improve' => $attempt->feedback->areas_to_improve ? json_decode($attempt->feedback->areas_to_improve) : [],
             ];
         })->toArray();
     }
@@ -145,13 +161,18 @@ class StudentDashboardController extends Controller
      */
     private function getOverallStats($student)
     {
-        $totalQuizzes = QuizAttempt::where('student_id', $student->id)->count();
-        $avgAccuracy = QuizAttempt::where('student_id', $student->id)
+        $totalQuizzes = QuizAttempt::where('user_id', $student->id)
+            ->whereNotNull('completed_at')
+            ->count();
+        
+        $avgAccuracy = QuizAttempt::where('user_id', $student->id)
+            ->whereNotNull('completed_at')
             ->selectRaw('AVG(correct_answers * 100.0 / total_questions) as avg_accuracy')
-            ->value('avg_accuracy');
+            ->value('avg_accuracy') ?? 0;
 
-        $totalStudyTime = QuizAttempt::where('student_id', $student->id)
-            ->sum('duration_seconds');
+        $totalStudyTime = QuizAttempt::where('user_id', $student->id)
+            ->whereNotNull('completed_at')
+            ->sum('time_spent_seconds');
 
         $overallAbility = $this->irtService->calculateOverallAbility($student);
         $masteryLevel = $this->determineMasteryLevel($overallAbility);
@@ -166,29 +187,37 @@ class StudentDashboardController extends Controller
     }
 
     /**
-     * Helper: Get count of unique quizzes taken by student in a course
-     */
-    private function getQuizzesTakenCount($student, $course)
-    {
-        return QuizAttempt::where('student_id', $student->id)
-            ->whereHas('quiz', function ($query) use ($course) {
-                $query->where('course_id', $course->id);
-            })
-            ->distinct('quiz_id')
-            ->count('quiz_id');
-    }
-
-    /**
      * Helper: Calculate average score for a student in a course
      */
     private function getAverageScore($student, $course)
     {
-        return QuizAttempt::where('student_id', $student->id)
-            ->whereHas('quiz', function ($query) use ($course) {
+        return QuizAttempt::where('user_id', $student->id)
+            ->whereHas('subtopic.topic.document', function ($query) use ($course) {
                 $query->where('course_id', $course->id);
             })
             ->selectRaw('AVG(correct_answers * 100.0 / total_questions) as avg_score')
             ->value('avg_score') ?? 0;
+    }
+
+    /**
+     * Helper: Calculate ability level for a course
+     */
+    private function calculateAbilityForCourse($student, $course)
+    {
+        $attempts = QuizAttempt::where('user_id', $student->id)
+            ->whereHas('subtopic.topic.document', function ($query) use ($course) {
+                $query->where('course_id', $course->id);
+            })
+            ->get();
+
+        if ($attempts->isEmpty()) {
+            return 0.5;
+        }
+
+        $totalCorrect = $attempts->sum('correct_answers');
+        $totalQuestions = $attempts->sum('total_questions');
+
+        return $totalQuestions > 0 ? $totalCorrect / $totalQuestions : 0.5;
     }
 
     /**

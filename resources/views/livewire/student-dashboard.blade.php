@@ -1,9 +1,20 @@
 <div class="min-h-screen bg-gray-50 p-6">
     <div class="max-w-7xl mx-auto">
-        <!-- Header -->
+        <!-- Header with Navigation -->
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">Welcome back, {{ $studentData['name'] }}</h1>
-            <p class="text-gray-600 mt-1">Student ID: {{ $studentData['student_id'] }}</p>
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Welcome back, {{ $studentData['name'] }}</h1>
+                    <p class="text-gray-600 mt-1">Student ID: {{ $studentData['student_id'] }}</p>
+                </div>
+                <a href="{{ route('student.courses') }}"
+                   class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                    </svg>
+                    Browse Courses
+                </a>
+            </div>
         </div>
 
         <!-- Flash Messages -->
@@ -71,11 +82,16 @@
             </div>
         </div>
 
-        <!-- Active Courses -->
+        <!-- Enrolled Courses -->
         <div class="mb-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-4">Active Courses</h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-900">My Enrolled Courses</h2>
+                <a href="{{ route('student.courses') }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">
+                    Browse All Courses →
+                </a>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                @foreach($courses as $course)
+                @forelse($courses as $course)
                     @php
                         $abilityInfo = $this->getAbilityLabel($course['ability_level']);
                         $progressColor = $this->getProgressColor($course['progress']);
@@ -125,7 +141,22 @@
                             </button>
                         </div>
                     </div>
-                @endforeach
+                @empty
+                    <div class="col-span-3 text-center py-12 bg-white rounded-lg shadow">
+                        <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No Enrolled Courses</h3>
+                        <p class="text-gray-500 mb-4">Enroll in a course to start learning and taking quizzes</p>
+                        <a href="{{ route('student.courses') }}"
+                           class="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Browse Available Courses
+                        </a>
+                    </div>
+                @endforelse
             </div>
         </div>
 

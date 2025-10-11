@@ -16,6 +16,7 @@ class QuizAttempt extends Model
         'user_id',
         'subtopic_id',
         'attempt_number',
+        'is_adaptive',
         'total_questions',
         'correct_answers',
         'score_percentage',

@@ -250,7 +250,7 @@ class IrtService
     public function calculateOverallAbility(User $student)
     {
         // Calculate overall ability across all courses
-        $allAttempts = QuizAttempt::where('student_id', $student->id)->get();
+        $allAttempts = QuizAttempt::where('user_id', $student->id)->get();
         
         if ($allAttempts->isEmpty()) {
             return 0.5;

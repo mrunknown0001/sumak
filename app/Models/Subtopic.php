@@ -95,4 +95,18 @@ class Subtopic extends Model
     {
         return $this->studentAbilities()->avg('theta') ?? 0;
     }
+
+    /**
+     * Check if user has completed all initial quizzes for this subtopic
+     */
+    public function hasCompletedAllInitialQuizzes(int $userId): bool
+    {
+        $completedCount = QuizAttempt::where('user_id', $userId)
+            ->where('subtopic_id', $this->id)
+            ->where('is_adaptive', false)
+            ->whereNotNull('completed_at')
+            ->count();
+        
+        return $completedCount > 0;
+    }
 }

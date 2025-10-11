@@ -75,11 +75,37 @@ class Course extends Model
     }
 
     /**
+     * Get all enrollments for this course
+     */
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(CourseEnrollment::class);
+    }
+
+    /**
+     * Get enrolled students
+     */
+    public function students()
+    {
+        return $this->belongsToMany(User::class, 'course_enrollments')
+            ->withTimestamps()
+            ->withPivot('enrolled_at');
+    }
+
+    /**
      * Check if course has OBTL document
      */
     public function hasObtl(): bool
     {
         return $this->obtlDocument()->exists();
+    }
+
+    /**
+     * Check if user is enrolled in this course
+     */
+    public function isEnrolledBy(int $userId): bool
+    {
+        return $this->enrollments()->where('user_id', $userId)->exists();
     }
 
     /**
