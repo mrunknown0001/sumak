@@ -7,7 +7,7 @@
         </div>
         <a
             href="{{ route('student.courses') }}"
-            class="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:border-indigo-400/30 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:ring-offset-slate-900"
+            class="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 dark:border-emerald-400/30 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:focus-visible:ring-offset-slate-900"
         >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
@@ -74,7 +74,7 @@
                     <p class="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">{{ round($overallStats['overall_ability'] * 100) }}%</p>
                     <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">IRT Estimate</p>
                 </div>
-                <svg class="h-10 w-10 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="h-10 w-10 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                 </svg>
             </div>
@@ -85,7 +85,7 @@
     <div class="space-y-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">My Enrolled Courses</h2>
-            <a href="{{ route('student.courses') }}" class="text-sm font-semibold text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200">
+            <a href="{{ route('student.courses') }}" class="text-sm font-semibold text-emerald-600 transition hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200">
                 Browse All Courses →
             </a>
         </div>
@@ -95,7 +95,7 @@
                     $abilityInfo = $this->getAbilityLabel($course['ability_level']);
                     $progressColor = $this->getProgressColor($course['progress']);
                 @endphp
-                <div class="group rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl dark:border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-indigo-500/40">
+                <div class="group rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-sm transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl dark:border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
                     <div class="mb-5 flex items-start justify-between">
                         <div>
                             <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ $course['name'] }}</h3>
@@ -135,7 +135,7 @@
 
                     <button
                         wire:click="viewCourse({{ $course['id'] }})"
-                        class="mt-5 w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                        class="mt-5 w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                     >
                         View Course
                     </button>
@@ -149,7 +149,7 @@
                     <p class="mb-4 text-sm text-slate-500 dark:text-slate-400">Enroll in a course to start learning and taking quizzes</p>
                     <a
                         href="{{ route('student.courses') }}"
-                        class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow transition hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                        class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2 text-sm font-semibold text-white shadow transition hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                     >
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -205,7 +205,7 @@
                                     <div class="flex gap-2">
                                         <button
                                             wire:click="viewQuiz({{ $quiz['id'] }})"
-                                            class="text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
+                                            class="text-emerald-600 transition hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200"
                                         >
                                             View
                                         </button>
@@ -233,20 +233,20 @@
     <!-- AI-Powered Feedback -->
     <div class="space-y-4">
         <h2 class="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
-            <svg class="h-6 w-6 text-indigo-500 dark:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="h-6 w-6 text-emerald-500 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
             </svg>
             AI-Powered Personalized Feedback
         </h2>
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
             @foreach($aiFeedback as $feedback)
-                <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl dark:border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-indigo-500/40">
+                <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-sm transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl dark:border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
                     <div class="mb-4">
                         <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ $feedback['course'] }}</h3>
                         <p class="text-sm text-slate-500 dark:text-slate-400">{{ $feedback['topic'] }}</p>
                     </div>
 
-                    <div class="mb-4 rounded-2xl border border-indigo-200/50 bg-indigo-50/70 p-4 text-sm text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-900/30 dark:text-indigo-200">
+                    <div class="mb-4 rounded-2xl border border-emerald-200/50 bg-emerald-50/70 p-4 text-sm text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200">
                         {{ $feedback['feedback'] }}
                     </div>
 

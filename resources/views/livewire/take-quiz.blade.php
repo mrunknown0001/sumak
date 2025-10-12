@@ -44,7 +44,7 @@
 >
     @if(!$timerMode)
         <div class="mx-auto max-w-4xl">
-            <div class="rounded-3xl border border-indigo-200/70 bg-white/90 p-10 shadow-xl shadow-indigo-500/10 backdrop-blur dark:border-indigo-500/40 dark:bg-slate-900/70">
+            <div class="rounded-3xl border border-emerald-200/70 bg-white/90 p-10 shadow-xl shadow-emerald-500/10 backdrop-blur dark:border-emerald-500/40 dark:bg-slate-900/70">
                 <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</h1>
                 <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">{{ $subtopic->topic->name }}</p>
 
@@ -53,7 +53,7 @@
                 <div class="mt-6 grid gap-6 md:grid-cols-3">
                     <button
                         wire:click="selectTimerMode('pomodoro')"
-                        class="group rounded-2xl border-2 border-purple-300/60 bg-gradient-to-br from-purple-50 via-white to-indigo-50 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-purple-400 hover:shadow-xl dark:border-purple-500/40 dark:from-purple-900/30 dark:via-slate-900/50 dark:to-indigo-900/30 dark:hover:border-purple-400/60"
+                        class="group rounded-2xl border-2 border-purple-300/60 bg-gradient-to-br from-purple-50 via-white to-emerald-50 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-purple-400 hover:shadow-xl dark:border-purple-500/40 dark:from-purple-900/30 dark:via-slate-900/50 dark:to-emerald-900/30 dark:hover:border-purple-400/60"
                     >
                         <div class="mb-4 flex items-center gap-3">
                             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-200">
@@ -93,10 +93,10 @@
 
                     <button
                         wire:click="selectTimerMode('standard')"
-                        class="group rounded-2xl border-2 border-indigo-300/60 bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-indigo-400 hover:shadow-xl dark:border-indigo-500/40 dark:from-indigo-900/30 dark:via-slate-900/50 dark:to-blue-900/30 dark:hover:border-indigo-400/60"
+                        class="group rounded-2xl border-2 border-emerald-300/60 bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-emerald-400 hover:shadow-xl dark:border-emerald-500/40 dark:from-emerald-900/30 dark:via-slate-900/50 dark:to-blue-900/30 dark:hover:border-emerald-400/60"
                     >
                         <div class="mb-4 flex items-center gap-3">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-200">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-200">
                                 <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
@@ -115,13 +115,13 @@
         </div>
     @elseif(!$quizStarted)
         <div class="mx-auto max-w-2xl">
-            <div class="rounded-3xl border border-indigo-200/70 bg-white/90 p-8 shadow-xl shadow-indigo-500/10 backdrop-blur dark:border-indigo-500/40 dark:bg-slate-900/70">
+            <div class="rounded-3xl border border-emerald-200/70 bg-white/90 p-8 shadow-xl shadow-emerald-500/10 backdrop-blur dark:border-emerald-500/40 dark:bg-slate-900/70">
                 <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</h1>
                 <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">{{ $subtopic->topic->name }}</p>
 
-                <div class="mt-6 rounded-2xl border border-indigo-200/70 bg-indigo-50/80 p-6 text-sm text-indigo-900 dark:border-indigo-500/40 dark:bg-indigo-900/30 dark:text-indigo-100">
+                <div class="mt-6 rounded-2xl border border-emerald-200/70 bg-emerald-50/80 p-6 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-100">
                     <h2 class="mb-3 text-lg font-semibold flex items-center gap-2">
-                        <svg class="h-5 w-5 text-indigo-500 dark:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="h-5 w-5 text-emerald-500 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         Quiz Information
@@ -149,7 +149,7 @@
                     </button>
                     <button
                         wire:click="startQuiz"
-                        class="flex-1 rounded-xl bg-indigo-600 px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                        class="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                     >
                         Start Quiz
                     </button>
@@ -190,7 +190,7 @@
                     </a>
                     <a
                         href="{{ route('student.quiz.result', $attempt->id) }}"
-                        class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                        class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                     >
                         View Detailed Results
                     </a>
@@ -260,7 +260,7 @@
                 </div>
             @endif
 
-            <div class="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-lg shadow-indigo-500/5 dark:border-slate-800/70 dark:bg-slate-900/70">
+            <div class="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-lg shadow-emerald-500/5 dark:border-slate-800/70 dark:bg-slate-900/70">
                 @if($questions->count() > 0)
                     @php $question = $questions[$currentQuestionIndex]; @endphp
 
@@ -274,7 +274,7 @@
                                 @endphp
                                 <button
                                     wire:click="$set('selectedAnswer', '{{ $option['option_letter'] }}')"
-                                    class="w-full rounded-2xl border-2 px-4 py-4 text-left text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 {{ $isSelected ? 'border-indigo-400 bg-indigo-500/10 text-indigo-700 shadow-sm dark:border-indigo-500/70 dark:bg-indigo-500/20 dark:text-indigo-200' : 'border-slate-200/80 bg-white/70 hover:border-indigo-300 hover:bg-indigo-50 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/15' }}"
+                                    class="w-full rounded-2xl border-2 px-4 py-4 text-left text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 {{ $isSelected ? 'border-emerald-400 bg-emerald-500/10 text-emerald-700 shadow-sm dark:border-emerald-500/70 dark:bg-emerald-500/20 dark:text-emerald-200' : 'border-slate-200/80 bg-white/70 hover:border-emerald-300 hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/15' }}"
                                 >
                                     <span class="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-current text-sm font-bold">{{ $option['option_letter'] }}</span>
                                     <span>{{ $option['option_text'] }}</span>
@@ -285,7 +285,7 @@
                         <button
                             wire:click="submitAnswer"
                             :disabled="!$wire.selectedAnswer"
-                            class="mt-6 w-full rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:disabled:bg-slate-700"
+                            class="mt-6 w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:disabled:bg-slate-700"
                         >
                             Submit Answer
                         </button>
@@ -307,7 +307,7 @@
                         <button
                             wire:click="nextQuestion"
                             x-on:click="stopTimer()"
-                            class="mt-6 w-full rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                            class="mt-6 w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                         >
                             {{ $currentQuestionIndex + 1 < $questions->count() ? 'Next Question' : 'Complete Quiz' }}
                         </button>

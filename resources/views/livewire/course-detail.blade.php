@@ -1,6 +1,6 @@
 <div class="mx-auto max-w-5xl space-y-8 text-slate-900 dark:text-slate-100">
     <div class="flex items-center">
-        <a href="{{ route('student.courses') }}" class="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 text-sm font-semibold text-indigo-600 transition hover:border-indigo-200 hover:bg-indigo-50 dark:border-slate-700 dark:bg-slate-900/70 dark:text-indigo-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/20">
+        <a href="{{ route('student.courses') }}" class="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:border-emerald-200 hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-900/70 dark:text-emerald-300 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/20">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
@@ -8,7 +8,7 @@
         </a>
     </div>
 
-    <div class="rounded-3xl border border-indigo-100/70 bg-white/90 p-8 shadow-lg shadow-indigo-500/5 backdrop-blur dark:border-indigo-500/40 dark:bg-slate-900/70">
+    <div class="rounded-3xl border border-emerald-100/70 bg-white/90 p-8 shadow-lg shadow-emerald-500/5 backdrop-blur dark:border-emerald-500/40 dark:bg-slate-900/70">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div class="space-y-3">
                 <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $course->course_code }}</h1>
@@ -17,7 +17,7 @@
                     <p class="text-sm text-slate-500 dark:text-slate-400">{{ $course->description }}</p>
                 @endif
                 <div class="flex flex-wrap items-center gap-3 pt-1 text-sm font-semibold">
-                    <span class="inline-flex items-center gap-1 rounded-full bg-indigo-500/20 px-3 py-1 text-indigo-600 dark:bg-indigo-500/30 dark:text-indigo-200">
+                    <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-600 dark:bg-emerald-500/30 dark:text-emerald-200">
                         ✓ Enrolled
                     </span>
                     @if($course->obtlDocument)
@@ -35,7 +35,7 @@
 
     <div class="space-y-4">
         @forelse($documents as $document)
-            <article class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl dark:border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-indigo-500/40">
+            <article class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl dark:border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
                 <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div class="space-y-2">
                         <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100">{{ $document->title }}</h3>
@@ -71,7 +71,7 @@
                 @if($document->hasTos() && $document->topics->isNotEmpty())
                     <div class="mt-6 space-y-4">
                         <h4 class="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
-                            <svg class="h-5 w-5 text-indigo-500 dark:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-5 w-5 text-emerald-500 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                             </svg>
                             Available Quizzes
@@ -79,13 +79,13 @@
                         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                             @foreach($document->topics as $topic)
                                 @foreach($topic->subtopics as $subtopic)
-                                    <a href="{{ route('student.quiz.take', $subtopic->id) }}" class="group flex items-center justify-between rounded-2xl border border-indigo-200/70 bg-gradient-to-r from-indigo-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-indigo-100 hover:to-blue-100 hover:shadow-lg dark:border-indigo-500/40 dark:from-indigo-900/30 dark:to-blue-900/30 dark:hover:border-indigo-400/70">
+                                    <a href="{{ route('student.quiz.take', $subtopic->id) }}" class="group flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
                                         <div>
                                             <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</p>
                                             <p class="text-xs text-slate-500 dark:text-slate-400">📚 {{ $topic->name }}</p>
                                         </div>
-                                        <div class="rounded-xl border border-indigo-300/70 bg-white/80 px-3 py-2 text-center shadow-sm dark:border-indigo-500/40 dark:bg-slate-900/70">
-                                            <p class="text-lg font-bold text-indigo-600 dark:text-indigo-300">{{ $subtopic->items()->count() }}</p>
+                                        <div class="rounded-xl border border-emerald-300/70 bg-white/80 px-3 py-2 text-center shadow-sm dark:border-emerald-500/40 dark:bg-slate-900/70">
+                                            <p class="text-lg font-bold text-emerald-600 dark:text-emerald-300">{{ $subtopic->items()->count() }}</p>
                                             <span class="text-xs font-medium text-slate-500 dark:text-slate-400">questions</span>
                                         </div>
                                     </a>

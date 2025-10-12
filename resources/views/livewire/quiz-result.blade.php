@@ -2,7 +2,7 @@
     <div>
         <a
             href="{{ route('student.course.show', $attempt->subtopic->topic->document->course_id) }}"
-            class="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 text-sm font-semibold text-indigo-600 transition hover:border-indigo-200 hover:bg-indigo-50 dark:border-slate-700 dark:bg-slate-900/70 dark:text-indigo-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/20"
+            class="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:border-emerald-200 hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-900/70 dark:text-emerald-300 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/20"
         >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -12,7 +12,7 @@
     </div>
 
     <section class="mx-auto max-w-4xl space-y-6">
-        <div class="rounded-3xl border border-indigo-200/70 bg-white/90 p-8 shadow-xl shadow-indigo-500/10 backdrop-blur dark:border-indigo-500/40 dark:bg-slate-900/70">
+        <div class="rounded-3xl border border-emerald-200/70 bg-white/90 p-8 shadow-xl shadow-emerald-500/10 backdrop-blur dark:border-emerald-500/40 dark:bg-slate-900/70">
             <header class="text-center">
                 <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">🎯 Quiz Results</h1>
                 <p class="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{{ $attempt->subtopic->name }}</p>
@@ -20,7 +20,7 @@
             </header>
 
             <div class="mt-8 grid gap-6 md:grid-cols-3">
-                <article class="rounded-2xl border border-blue-200/60 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-5 text-center shadow-sm dark:border-blue-500/40 dark:from-blue-900/20 dark:via-slate-900/50 dark:to-indigo-900/30">
+                <article class="rounded-2xl border border-blue-200/60 bg-gradient-to-br from-blue-50 via-white to-emerald-50 p-5 text-center shadow-sm dark:border-blue-500/40 dark:from-blue-900/20 dark:via-slate-900/50 dark:to-emerald-900/30">
                     <p class="text-xs font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-300">Score</p>
                     <p class="mt-2 text-4xl font-black text-blue-700 dark:text-blue-200">{{ $attempt->score_percentage }}%</p>
                 </article>
@@ -37,7 +37,7 @@
             </div>
 
             @if($attempt->is_adaptive)
-                <div class="mt-6 rounded-2xl border-l-4 border-indigo-400/70 bg-indigo-500/10 px-4 py-3 text-sm font-semibold text-indigo-700 dark:border-indigo-400/60 dark:bg-indigo-500/20 dark:text-indigo-200">
+                <div class="mt-6 rounded-2xl border-l-4 border-emerald-400/70 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-700 dark:border-emerald-400/60 dark:bg-emerald-500/20 dark:text-emerald-200">
                     🎯 Adaptive Quiz: Questions were tailored to your ability level.
                 </div>
             @endif
@@ -98,7 +98,7 @@
                 @endif
 
                 @if($attempt->feedback->recommendations)
-                    <section class="rounded-2xl border border-indigo-200/70 bg-indigo-50/80 px-5 py-4 text-sm text-indigo-900 dark:border-indigo-500/40 dark:bg-indigo-500/20 dark:text-indigo-100">
+                    <section class="rounded-2xl border border-emerald-200/70 bg-emerald-50/80 px-5 py-4 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-100">
                         <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
                             <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM9 9a1 1 0 0 0 0 2v3a1 1 0 0 0 1 1h1a1 1 0 1 0 0-2v-3a1 1 0 0 0-1-1H9z" clip-rule="evenodd" />
@@ -126,7 +126,7 @@
 
         <section class="rounded-3xl border border-slate-200/80 bg-white/90 p-8 shadow-xl shadow-slate-500/10 dark:border-slate-800/70 dark:bg-slate-900/70">
             <h2 class="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
-                <svg class="h-6 w-6 text-indigo-500 dark:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="h-6 w-6 text-emerald-500 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 5.75h-3A1.75 1.75 0 003.75 7.5v9a1.75 1.75 0 001.75 1.75h3m7-12.5h2.25a2 2 0 012 2v8.5a2 2 0 01-2 2H15.5m-7-16h7a1 1 0 011 1v14a1 1 0 01-1 1h-7a1 1 0 01-1-1v-14a1 1 0 011-1z" />
                 </svg>
                 Question Review
@@ -164,8 +164,8 @@
                         </div>
 
                         @if($response->item->explanation)
-                            <p class="mt-4 rounded-xl border-l-4 border-indigo-400/70 bg-indigo-500/10 px-4 py-3 text-xs text-slate-700 dark:border-indigo-500/50 dark:bg-indigo-500/20 dark:text-indigo-100">
-                                <span class="font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-200">Explanation:</span>
+                            <p class="mt-4 rounded-xl border-l-4 border-emerald-400/70 bg-emerald-500/10 px-4 py-3 text-xs text-slate-700 dark:border-emerald-500/50 dark:bg-emerald-500/20 dark:text-emerald-100">
+                                <span class="font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-200">Explanation:</span>
                                 <span class="ml-1">{{ $response->item->explanation }}</span>
                             </p>
                         @endif
@@ -187,7 +187,7 @@
             </a>
             <a
                 href="{{ route('student.quiz.take', $attempt->subtopic_id) }}"
-                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-indigo-500 hover:to-blue-500 dark:from-indigo-500 dark:to-blue-500 dark:hover:from-indigo-400 dark:hover:to-blue-400"
+                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-emerald-500 hover:to-blue-500 dark:from-emerald-500 dark:to-blue-500 dark:hover:from-emerald-400 dark:hover:to-blue-400"
             >
                 🔄 Retake Quiz
             </a>

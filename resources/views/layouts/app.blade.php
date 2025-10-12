@@ -119,7 +119,7 @@
         <aside data-student-sidebar data-sidebar-collapsed="false" class="fixed inset-y-0 left-0 z-40 flex w-[var(--student-sidebar-width)] flex-col overflow-y-auto border-r border-slate-200 bg-white shadow-xl transition-transform duration-300 ease-in-out transform -translate-x-full dark:border-slate-800 dark:bg-slate-900 lg:h-screen lg:flex-shrink-0 lg:translate-x-0">
             <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
                 <div class="flex items-center gap-3">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 text-lg font-bold text-white">SP</span>
+                    <span class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-lg font-bold text-white">SP</span>
                     <div data-sidebar-text>
                         <p class="text-sm font-semibold text-slate-600 dark:text-slate-200">Student Portal</p>
                         <p class="text-xs text-slate-400 dark:text-slate-500">Personalized learning hub</p>
@@ -147,11 +147,11 @@
                     @foreach ($navItems as $item)
                         @php
                             $linkBase = $item['isActive']
-                                ? 'bg-indigo-50 text-indigo-600 shadow-inner shadow-indigo-100 dark:bg-indigo-500/20 dark:text-indigo-300 dark:shadow-none'
-                                : 'text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 dark:text-slate-300 dark:hover:text-indigo-300 dark:hover:bg-indigo-500/10';
+                                ? 'bg-emerald-50 text-emerald-600 shadow-inner shadow-emerald-100 dark:bg-emerald-500/20 dark:text-emerald-300 dark:shadow-none'
+                                : 'text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-300 dark:hover:bg-emerald-500/10';
                             $iconBase = $item['isActive']
-                                ? 'border-indigo-200 text-indigo-600 dark:border-indigo-400/60 dark:text-indigo-300'
-                                : 'border-slate-200 text-slate-400 group-hover:border-indigo-200 group-hover:text-indigo-500 dark:border-slate-700 dark:text-slate-500 dark:group-hover:border-indigo-400/60 dark:group-hover:text-indigo-300';
+                                ? 'border-emerald-200 text-emerald-600 dark:border-emerald-400/60 dark:text-emerald-300'
+                                : 'border-slate-200 text-slate-400 group-hover:border-emerald-200 group-hover:text-emerald-500 dark:border-slate-700 dark:text-slate-500 dark:group-hover:border-emerald-400/60 dark:group-hover:text-emerald-300';
                         @endphp
                         <li>
                             <a href="{{ $item['href'] }}"
@@ -185,10 +185,10 @@
                     @endforeach
                 </ul>
 
-                <div data-sidebar-text class="mt-8 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-700 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-200">
-                    <h3 class="font-semibold text-indigo-800 dark:text-indigo-200">Need help?</h3>
-                    <p class="mt-1 text-xs text-indigo-600 dark:text-indigo-300">Check the quick start guide or contact your instructor for support.</p>
-                    <a href="{{ route('student.courses') }}#faq" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200">
+                <div data-sidebar-text class="mt-8 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+                    <h3 class="font-semibold text-emerald-800 dark:text-emerald-200">Need help?</h3>
+                    <p class="mt-1 text-xs text-emerald-600 dark:text-emerald-300">Check the quick start guide or contact your instructor for support.</p>
+                    <a href="{{ route('student.courses') }}#faq" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-300 dark:hover:text-emerald-200">
                         View FAQs
                         <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none">
                             <path d="M7 5h8v8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
@@ -200,7 +200,7 @@
 
             <div class="border-t border-slate-200 px-6 py-5 dark:border-slate-800">
                 <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 font-semibold dark:bg-indigo-500/20 dark:text-indigo-200">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 font-semibold dark:bg-emerald-500/20 dark:text-emerald-200">
                         {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 2)) }}
                     </div>
                     <div data-sidebar-text class="min-w-0">
@@ -211,7 +211,7 @@
                 <a href="{{ route('logout.get') }}"
                    data-sidebar-footer-action
                    data-sidebar-label="Sign out"
-                   class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-indigo-400/60 dark:hover:text-indigo-200"
+                   class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-emerald-200 hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-emerald-400/60 dark:hover:text-emerald-200"
                    aria-label="Sign out">
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
                         <path d="M15 3h4a1 1 0 011 1v16a1 1 0 01-1 1h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
@@ -225,7 +225,7 @@
             <header class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800/80 dark:bg-slate-900/80">
                 <div class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-0">
                     <div class="flex flex-1 items-center gap-3">
-                        <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-indigo-400/60 dark:hover:text-indigo-200 dark:focus-visible:ring-offset-slate-900 lg:hidden" data-sidebar-toggle aria-label="Open sidebar">
+                        <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-emerald-200 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-emerald-400/60 dark:hover:text-emerald-200 dark:focus-visible:ring-offset-slate-900 lg:hidden" data-sidebar-toggle aria-label="Open sidebar">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
                                 <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
@@ -244,7 +244,7 @@
                             {{ now()->format('M d, Y') }}
                         </div>
                         <span class="hidden text-sm text-slate-500 dark:text-slate-300 sm:inline">Level up your mastery today ✨</span>
-                        <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-indigo-400/60 dark:hover:text-indigo-200 dark:focus-visible:ring-offset-slate-900" data-theme-toggle aria-label="Toggle dark mode" aria-pressed="false">
+                        <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-emerald-200 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-emerald-400/60 dark:hover:text-emerald-200 dark:focus-visible:ring-offset-slate-900" data-theme-toggle aria-label="Toggle dark mode" aria-pressed="false">
                             <span class="sr-only">Toggle dark mode</span>
                             <svg data-theme-icon="sun" class="h-5 w-5" viewBox="0 0 24 24" fill="none">
                                 <path d="M12 4V2m0 20v-2m8-8h2M2 12h2m14.142 7.071l1.414 1.414M4.444 4.444l1.414 1.414m0 12.728l-1.414 1.414m14.142-14.142l1.414-1.414M12 18a6 6 0 100-12 6 6 0 000 12z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
@@ -267,9 +267,9 @@
                 <div class="mx-auto flex w-full max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p>&copy; {{ date('Y') }} SumakQuiz. All rights reserved.</p>
                     <div class="flex items-center gap-4">
-                        <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-300">Privacy</a>
-                        <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-300">Terms</a>
-                        <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-300">Support</a>
+                        <a href="#" class="hover:text-emerald-600 dark:hover:text-emerald-300">Privacy</a>
+                        <a href="#" class="hover:text-emerald-600 dark:hover:text-emerald-300">Terms</a>
+                        <a href="#" class="hover:text-emerald-600 dark:hover:text-emerald-300">Support</a>
                     </div>
                 </div>
             </footer>
