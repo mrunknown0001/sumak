@@ -31,7 +31,13 @@ class ItemBankResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('question')
+                    ->limit(80)
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('correct_answer')
+                    ->searchable()
+                    ->sortable(),
             ])
             ->filters([
                 //

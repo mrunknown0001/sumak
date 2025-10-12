@@ -226,7 +226,7 @@
             @if($timerMode !== 'free')
                 <div class="rounded-2xl border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
                     <div class="mb-2 flex items-center justify-between text-sm font-semibold text-slate-600 dark:text-slate-300">
-                        <span>Question {{ $currentQuestionIndex + 1 }} of {{ $questions->count() }}</span>
+                        <span>Question {{ $currentQuestionIndex + 1 }} of {{ $items->count() }}</span>
                         @if($timerMode === 'pomodoro')
                             <span class="text-purple-600 dark:text-purple-300" x-text="'Session: ' + formatTime(timeRemaining)"></span>
                         @else
@@ -249,7 +249,7 @@
             @else
                 <div class="rounded-2xl border border-emerald-300/50 bg-emerald-50/60 p-5 shadow-sm dark:border-emerald-400/30 dark:bg-emerald-900/20">
                     <div class="flex flex-wrap justify-between gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-200">
-                        <span>Question {{ $currentQuestionIndex + 1 }} of {{ $questions->count() }}</span>
+                        <span>Question {{ $currentQuestionIndex + 1 }} of {{ $items->count() }}</span>
                         <span class="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-emerald-600 ring-1 ring-emerald-200 dark:bg-slate-900/70 dark:text-emerald-200 dark:ring-emerald-500/40">
                             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -261,14 +261,14 @@
             @endif
 
             <div class="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-lg shadow-emerald-500/5 dark:border-slate-800/70 dark:bg-slate-900/70">
-                @if($questions->count() > 0)
-                    @php $question = $questions[$currentQuestionIndex]; @endphp
+                @if($items->count() > 0)
+                    @php $item = $items[$currentQuestionIndex]; @endphp
 
-                    <h2 class="text-xl font-semibold leading-relaxed text-slate-900 dark:text-slate-100">{{ $question->question }}</h2>
+                    <h2 class="text-xl font-semibold leading-relaxed text-slate-900 dark:text-slate-100">{{ $item['question'] }}</h2>
 
                     @if(!$showFeedback)
                         <div class="mt-6 space-y-3">
-                            @foreach($question->options as $option)
+                            @foreach($item['options'] as $option)
                                 @php
                                     $isSelected = $selectedAnswer === $option['option_letter'];
                                 @endphp
@@ -297,9 +297,9 @@
                             @unless($isCorrect)
                                 <p class="mt-2 text-sm font-medium">The correct answer is: <span class="font-bold">{{ $correctAnswer }}</span></p>
                             @endunless
-                            @if($question->explanation)
+                            @if($item['explanation'])
                                 <p class="mt-3 text-sm text-slate-700 dark:text-slate-300">
-                                    <span class="font-semibold">Explanation:</span> {{ $question->explanation }}
+                                    <span class="font-semibold">Explanation:</span> {{ $item['explanation'] }}
                                 </p>
                             @endif
                         </div>
@@ -309,7 +309,7 @@
                             x-on:click="stopTimer()"
                             class="mt-6 w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                         >
-                            {{ $currentQuestionIndex + 1 < $questions->count() ? 'Next Question' : 'Complete Quiz' }}
+                            {{ $currentQuestionIndex + 1 < $items->count() ? 'Next Question' : 'Complete Quiz' }}
                         </button>
                     @endif
                 @endif

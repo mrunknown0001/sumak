@@ -12,6 +12,11 @@ class Document extends Model
 {
     use HasFactory;
 
+    public const PROCESSING_PENDING = 'pending';
+    public const PROCESSING_IN_PROGRESS = 'processing';
+    public const PROCESSING_COMPLETED = 'completed';
+    public const PROCESSING_FAILED = 'failed';
+
     protected $fillable = [
         'course_id',
         'user_id',
@@ -21,10 +26,14 @@ class Document extends Model
         'file_size',
         'content_summary',
         'uploaded_at',
+        'processing_status',
+        'processed_at',
+        'processing_error',
     ];
 
     protected $casts = [
         'uploaded_at' => 'datetime',
+        'processed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

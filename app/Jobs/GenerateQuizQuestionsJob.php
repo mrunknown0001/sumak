@@ -41,9 +41,23 @@ class GenerateQuizQuestionsJob implements ShouldQueue
                 Log::error("No ToS found for document", ['document_id' => $document->id]);
                 return;
             }
-            
+
             // Get document content
             $materialContent = $document->content_summary ?? "Content from {$document->title}";
+
+            Log::debug('Preparing quiz generation from ToS', [
+                'document_id' => $document->id,
+                'tos_id' => $tos->id,
+                'tos_items_count' => $tos->tosItems->count(),
+            ]);
+
+            if ($tos->tosItems->isEmpty()) {
+                Log::warning('ToS contains no items; skipping quiz generation', [
+                    'document_id' => $document->id,
+                    'tos_id' => $tos->id,
+                ]);
+                return;
+            }
             
             // Process each ToS item
             foreach ($tos->tosItems as $tosItem) {
@@ -71,6 +85,12 @@ class GenerateQuizQuestionsJob implements ShouldQueue
     ): void {
         // Check if questions already exist
         $existingCount = $tosItem->items()->count();
+
+        Log::debug('Evaluating ToS item for question generation', [
+            'tos_item_id' => $tosItem->id,
+            'existing_questions' => $existingCount,
+            'required_questions' => $tosItem->num_items,
+        ]);
         
         if ($existingCount >= $tosItem->num_items) {
             Log::info("Questions already exist for ToS item", ['tos_item_id' => $tosItem->id]);
@@ -94,9 +114,20 @@ class GenerateQuizQuestionsJob implements ShouldQueue
             $materialContent,
             $questionsNeeded
         );
+
+        $generatedQuestions = $questionsData['questions'] ?? [];
+
+        if (empty($generatedQuestions)) {
+            Log::warning('AI returned no questions for ToS item', [
+                'tos_item_id' => $tosItem->id,
+                'questions_requested' => $questionsNeeded,
+                'openai_response_keys' => is_array($questionsData) ? array_keys($questionsData) : null,
+            ]);
+            return;
+        }
         
         // Save questions to item bank
-        foreach ($questionsData['questions'] as $questionData) {
+        foreach ($generatedQuestions as $questionData) {
             // Estimate initial difficulty (will be refined based on responses)
             $estimatedDifficulty = $questionData['estimated_difficulty'] ?? 0;
             

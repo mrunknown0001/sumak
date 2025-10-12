@@ -13,17 +13,26 @@ class Course extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const WORKFLOW_STAGE_DRAFT = 'draft';
+    public const WORKFLOW_STAGE_OBTL_UPLOADED = 'obtl_uploaded';
+    public const WORKFLOW_STAGE_MATERIALS_UPLOADED = 'materials_uploaded';
+
     protected $fillable = [
         'user_id',
         'course_code',
         'course_title',
         'description',
+        'workflow_stage',
+        'obtl_uploaded_at',
+        'materials_uploaded_at',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
+        'obtl_uploaded_at' => 'datetime',
+        'materials_uploaded_at' => 'datetime',
     ];
 
     public static function boot()

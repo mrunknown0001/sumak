@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Str;
 
 class CourseResource extends Resource
 {
@@ -23,15 +24,37 @@ class CourseResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('course_title')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('course_code')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Textarea::make('description')
-                    ->rows(3)
-                    ->maxLength(65535),
+                Forms\Components\Section::make('Course Details')
+                    ->columns(2)
+                    ->schema([
+                        Forms\Components\TextInput::make('course_title')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('course_code')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\Textarea::make('description')
+                            ->columnSpanFull()
+                            ->rows(3)
+                            ->maxLength(65535),
+                    ]),
+                Forms\Components\Section::make('Workflow Status')
+                    ->description('OBTL extraction must complete before course materials can be uploaded.')
+                    ->columns(2)
+                    ->schema([
+                        Forms\Components\Placeholder::make('workflow_stage_badge')
+                            ->label('Workflow Stage')
+                            ->content(fn (?Course $record) => $record
+                                ? Str::headline($record->workflow_stage)
+                                : Str::headline(Course::WORKFLOW_STAGE_DRAFT)),
+                        Forms\Components\Placeholder::make('obtl_uploaded_at')
+                            ->label('OBTL Uploaded At')
+                            ->content(fn (?Course $record) => $record?->obtl_uploaded_at?->toDayDateTimeString() ?? 'Not yet uploaded'),
+                        Forms\Components\Placeholder::make('materials_uploaded_at')
+                            ->label('Materials Uploaded At')
+                            ->content(fn (?Course $record) => $record?->materials_uploaded_at?->toDayDateTimeString() ?? 'Not yet uploaded'),
+                    ])
+                    ->visible(fn (?Course $record) => filled($record)),
             ]);
     }
 
@@ -44,6 +67,25 @@ class CourseResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('course_code')
                     ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('workflow_stage')
+                    ->label('Workflow')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        Course::WORKFLOW_STAGE_DRAFT => 'warning',
+                        Course::WORKFLOW_STAGE_OBTL_UPLOADED => 'info',
+                        Course::WORKFLOW_STAGE_MATERIALS_UPLOADED => 'success',
+                        default => 'secondary',
+                    })
+                    ->formatStateUsing(fn (string $state): string => Str::headline($state))
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('obtl_uploaded_at')
+                    ->label('OBTL Uploaded')
+                    ->dateTime()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('materials_uploaded_at')
+                    ->label('Materials Uploaded')
+                    ->dateTime()
                     ->sortable(),
             ])
             ->filters([
