@@ -221,6 +221,10 @@ class TakeQuiz extends Component
 
     public function render()
     {
-        return view('livewire.take-quiz')->layout('layouts.app');
+        return view('livewire.take-quiz')->layout('layouts.app', [
+            'title' => 'SumakQuiz | Take Quiz',
+            'pageTitle' => $this->subtopic->name,
+            'pageSubtitle' => $this->subtopic->topic->name . ' • Select a timer mode and track your progress question by question.',
+        ]);
     }
 }

@@ -108,6 +108,10 @@ class StudentDashboard extends Component
     public function render()
     {
         return view('livewire.student-dashboard')
-            ->layout('layouts.app');
+            ->layout('layouts.app', [
+                'title' => 'SumakQuiz | Student Dashboard',
+                'pageTitle' => 'Dashboard',
+                'pageSubtitle' => 'Monitor your mastery, courses, and recent quiz performance.',
+            ]);
     }
 }

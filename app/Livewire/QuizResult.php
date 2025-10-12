@@ -21,6 +21,10 @@ class QuizResult extends Component
 
     public function render()
     {
-        return view('livewire.quiz-result')->layout('layouts.app');
+        return view('livewire.quiz-result')->layout('layouts.app', [
+            'title' => 'SumakQuiz | Quiz Result',
+            'pageTitle' => 'Quiz Results',
+            'pageSubtitle' => $this->attempt->subtopic->name . ' • Review performance insights and feedback.',
+        ]);
     }
 }

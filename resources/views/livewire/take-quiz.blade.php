@@ -1,229 +1,258 @@
-<div class="container mx-auto px-4 py-8" x-data="{ 
-    timeRemaining: @entangle('timeRemaining'),
-    timerMode: @entangle('timerMode'),
-    isBreakTime: @entangle('isBreakTime'),
-    timerInterval: null,
-    startTimer() {
-        this.timerInterval = setInterval(() => {
-            if (this.timeRemaining > 0 && this.timerMode !== 'free') {
-                this.timeRemaining--;
-            } else if (this.timeRemaining === 0 && this.timerMode !== 'free') {
-                clearInterval(this.timerInterval);
-                if (this.timerMode === 'standard') {
-                    @this.call('submitAnswer');
-                } else if (this.timerMode === 'pomodoro' && !this.isBreakTime) {
-                    @this.call('startBreak');
+<div
+    class="mx-auto max-w-5xl px-4 py-8 text-slate-900 dark:text-slate-100"
+    x-data="{
+        timeRemaining: @entangle('timeRemaining'),
+        timerMode: @entangle('timerMode'),
+        isBreakTime: @entangle('isBreakTime'),
+        timerInterval: null,
+        startTimer() {
+            this.timerInterval = setInterval(() => {
+                if (this.timeRemaining > 0 && this.timerMode !== 'free') {
+                    this.timeRemaining--;
+                } else if (this.timeRemaining === 0 && this.timerMode !== 'free') {
+                    clearInterval(this.timerInterval);
+                    if (this.timerMode === 'standard') {
+                        @this.call('submitAnswer');
+                    } else if (this.timerMode === 'pomodoro' && !this.isBreakTime) {
+                        @this.call('startBreak');
+                    }
                 }
-            }
-        }, 1000);
-    },
-    stopTimer() {
-        clearInterval(this.timerInterval);
-    },
-    getTimerColor() {
-        if (this.timerMode === 'free') return 'bg-gray-400';
-        if (this.timerMode === 'pomodoro') return 'bg-purple-500';
-        if (this.timeRemaining > 30) return 'bg-green-500';
-        if (this.timeRemaining > 10) return 'bg-yellow-500';
-        return 'bg-red-500';
-    },
-    formatTime(seconds) {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return mins + ':' + (secs < 10 ? '0' : '') + secs;
-    }
-}" x-init="$watch('timeRemaining', value => {
-    if ((value === 60 || value === 1500) && $wire.quizStarted && !$wire.showFeedback) {
-        stopTimer();
-        startTimer();
-    }
-})">
-
+            }, 1000);
+        },
+        stopTimer() {
+            clearInterval(this.timerInterval);
+        },
+        getTimerColor() {
+            if (this.timerMode === 'free') return 'bg-slate-400 dark:bg-slate-600';
+            if (this.timerMode === 'pomodoro') return 'bg-purple-500 dark:bg-purple-400';
+            if (this.timeRemaining > 30) return 'bg-emerald-500 dark:bg-emerald-400';
+            if (this.timeRemaining > 10) return 'bg-amber-500 dark:bg-amber-400';
+            return 'bg-rose-500 dark:bg-rose-400';
+        },
+        formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return mins + ':' + (secs < 10 ? '0' : '') + secs;
+        }
+    }"
+    x-init="$watch('timeRemaining', value => {
+        if ((value === 60 || value === 1500) && $wire.quizStarted && !$wire.showFeedback) {
+            stopTimer();
+            startTimer();
+        }
+    })"
+>
     @if(!$timerMode)
-        <!-- Timer Mode Selection Screen -->
-        <div class="max-w-4xl mx-auto">
-            <div class="bg-white rounded-lg shadow-lg p-8">
-                <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ $subtopic->name }}</h1>
-                <p class="text-gray-600 mb-8">{{ $subtopic->topic->name }}</p>
-                
-                <h2 class="text-xl font-semibold text-gray-900 mb-6">Choose Your Quiz Timer Mode:</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Pomodoro Mode -->
-                    <button wire:click="selectTimerMode('pomodoro')" 
-                            class="p-6 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition text-left">
-                        <div class="flex items-center mb-4">
-                            <svg class="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span class="ml-3 text-lg font-semibold text-gray-900">Pomodoro</span>
+        <div class="mx-auto max-w-4xl">
+            <div class="rounded-3xl border border-indigo-200/70 bg-white/90 p-10 shadow-xl shadow-indigo-500/10 backdrop-blur dark:border-indigo-500/40 dark:bg-slate-900/70">
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</h1>
+                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">{{ $subtopic->topic->name }}</p>
+
+                <h2 class="mt-8 text-2xl font-semibold text-slate-900 dark:text-slate-100">Choose Your Quiz Timer Mode</h2>
+
+                <div class="mt-6 grid gap-6 md:grid-cols-3">
+                    <button
+                        wire:click="selectTimerMode('pomodoro')"
+                        class="group rounded-2xl border-2 border-purple-300/60 bg-gradient-to-br from-purple-50 via-white to-indigo-50 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-purple-400 hover:shadow-xl dark:border-purple-500/40 dark:from-purple-900/30 dark:via-slate-900/50 dark:to-indigo-900/30 dark:hover:border-purple-400/60"
+                    >
+                        <div class="mb-4 flex items-center gap-3">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-200">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <span class="text-lg font-semibold text-slate-900 dark:text-slate-100">Pomodoro</span>
                         </div>
-                        <p class="text-sm text-gray-600 mb-3">Focused 25-minute study sessions with 5-minute breaks</p>
-                        <ul class="text-xs text-gray-500 space-y-1">
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-300">Focused 25-minute sessions with 5-minute breaks.</p>
+                        <ul class="mt-4 space-y-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
                             <li>✓ 25 min work sessions</li>
                             <li>✓ 5 min breaks</li>
-                            <li>✓ Best for focused study</li>
+                            <li>✓ Best for deep focus</li>
                         </ul>
                     </button>
 
-                    <!-- Free Time Mode -->
-                    <button wire:click="selectTimerMode('free')" 
-                            class="p-6 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition text-left">
-                        <div class="flex items-center mb-4">
-                            <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span class="ml-3 text-lg font-semibold text-gray-900">Free Time</span>
+                    <button
+                        wire:click="selectTimerMode('free')"
+                        class="group rounded-2xl border-2 border-emerald-300/60 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-emerald-400 hover:shadow-xl dark:border-emerald-500/40 dark:from-emerald-900/30 dark:via-slate-900/50 dark:to-slate-900/30 dark:hover:border-emerald-400/60"
+                    >
+                        <div class="mb-4 flex items-center gap-3">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-200">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <span class="text-lg font-semibold text-slate-900 dark:text-slate-100">Free Time</span>
                         </div>
-                        <p class="text-sm text-gray-600 mb-3">No time pressure - study at your own pace</p>
-                        <ul class="text-xs text-gray-500 space-y-1">
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-300">No time pressure—review at your own pace.</p>
+                        <ul class="mt-4 space-y-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
                             <li>✓ No timer</li>
-                            <li>✓ Take your time</li>
-                            <li>✓ Best for deep learning</li>
+                            <li>✓ Unlimited review time</li>
+                            <li>✓ Ideal for mastery</li>
                         </ul>
                     </button>
 
-                    <!-- Standard Mode -->
-                    <button wire:click="selectTimerMode('standard')" 
-                            class="p-6 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition text-left">
-                        <div class="flex items-center mb-4">
-                            <svg class="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                            <span class="ml-3 text-lg font-semibold text-gray-900">Standard</span>
+                    <button
+                        wire:click="selectTimerMode('standard')"
+                        class="group rounded-2xl border-2 border-indigo-300/60 bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-indigo-400 hover:shadow-xl dark:border-indigo-500/40 dark:from-indigo-900/30 dark:via-slate-900/50 dark:to-blue-900/30 dark:hover:border-indigo-400/60"
+                    >
+                        <div class="mb-4 flex items-center gap-3">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-200">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                            </div>
+                            <span class="text-lg font-semibold text-slate-900 dark:text-slate-100">Standard</span>
                         </div>
-                        <p class="text-sm text-gray-600 mb-3">60 seconds per question with auto-submit</p>
-                        <ul class="text-xs text-gray-500 space-y-1">
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-300">Timed challenge with 60 seconds per question.</p>
+                        <ul class="mt-4 space-y-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
                             <li>✓ 60s per question</li>
-                            <li>✓ Color-coded timer</li>
-                            <li>✓ Tests quick recall</li>
+                            <li>✓ Auto-submit when time ends</li>
+                            <li>✓ Boost rapid recall</li>
                         </ul>
                     </button>
                 </div>
             </div>
         </div>
-
     @elseif(!$quizStarted)
-        <!-- Quiz Start Screen -->
-        <div class="max-w-2xl mx-auto">
-            <div class="bg-white rounded-lg shadow-lg p-8">
-                <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ $subtopic->name }}</h1>
-                <p class="text-gray-600 mb-6">{{ $subtopic->topic->name }}</p>
-                
-                <div class="bg-indigo-50 rounded-lg p-6 mb-6">
-                    <h2 class="font-semibold text-indigo-900 mb-3">Quiz Information:</h2>
-                    <ul class="space-y-2 text-indigo-800">
+        <div class="mx-auto max-w-2xl">
+            <div class="rounded-3xl border border-indigo-200/70 bg-white/90 p-8 shadow-xl shadow-indigo-500/10 backdrop-blur dark:border-indigo-500/40 dark:bg-slate-900/70">
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</h1>
+                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">{{ $subtopic->topic->name }}</p>
+
+                <div class="mt-6 rounded-2xl border border-indigo-200/70 bg-indigo-50/80 p-6 text-sm text-indigo-900 dark:border-indigo-500/40 dark:bg-indigo-900/30 dark:text-indigo-100">
+                    <h2 class="mb-3 text-lg font-semibold flex items-center gap-2">
+                        <svg class="h-5 w-5 text-indigo-500 dark:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Quiz Information
+                    </h2>
+                    <ul class="space-y-2 font-medium">
                         <li>• 20 multiple-choice questions</li>
                         <li>• Timer Mode: <strong class="capitalize">{{ $timerMode }}</strong></li>
                         @if($timerMode === 'pomodoro')
-                            <li>• 25-minute work sessions with 5-minute breaks</li>
+                            <li>• 25-minute focus sessions with 5-minute breaks</li>
                         @elseif($timerMode === 'free')
-                            <li>• No time limit - study at your own pace</li>
+                            <li>• No time limit for each question</li>
                         @else
-                            <li>• 60 seconds per question with color-coded timer</li>
+                            <li>• 60 seconds per question with automated submission</li>
                         @endif
-                        <li>• Immediate feedback after each answer</li>
+                        <li>• Immediate feedback after submission</li>
                     </ul>
                 </div>
 
-                <div class="flex gap-3">
-                    <button wire:click="$set('timerMode', null)" 
-                            class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300">
+                <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+                    <button
+                        wire:click="$set('timerMode', null)"
+                        class="flex-1 rounded-xl border border-slate-300/70 bg-slate-100/70 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                    >
                         Change Timer Mode
                     </button>
-                    <button wire:click="startQuiz" 
-                            class="flex-1 bg-indigo-600 text-white py-3 rounded-lg text-lg font-semibold hover:bg-indigo-700">
+                    <button
+                        wire:click="startQuiz"
+                        class="flex-1 rounded-xl bg-indigo-600 px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                    >
                         Start Quiz
                     </button>
                 </div>
             </div>
         </div>
-
     @elseif($quizCompleted)
-        <!-- Quiz Completed Screen -->
-        <div class="max-w-2xl mx-auto">
-            <div class="bg-white rounded-lg shadow-lg p-8 text-center">
-                <div class="mb-6">
+        <div class="mx-auto max-w-2xl">
+            <div class="rounded-3xl border border-slate-200/70 bg-white/90 p-10 text-center shadow-xl shadow-emerald-500/10 dark:border-slate-800/70 dark:bg-slate-900/70">
+                <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border-4 border-emerald-400/50 bg-emerald-500/20 text-emerald-600 dark:border-emerald-400/40 dark:bg-emerald-500/15 dark:text-emerald-200">
                     @if($attempt->score_percentage >= 70)
-                        <svg class="w-20 h-20 mx-auto text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        <svg class="h-10 w-10" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 0 1 0 1.414l-7.071 7.071a1 1 0 0 1-1.414 0l-3.536-3.536a1 1 0 0 1 1.414-1.414l2.829 2.828 6.364-6.364a1 1 0 0 1 1.414 0z" clip-rule="evenodd" />
                         </svg>
-                        <h2 class="text-2xl font-bold text-green-600 mt-4">Great Job!</h2>
                     @else
-                        <svg class="w-20 h-20 mx-auto text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        <svg class="h-10 w-10" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 4a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1zm0 10a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" clip-rule="evenodd" />
                         </svg>
-                        <h2 class="text-2xl font-bold text-yellow-600 mt-4">Keep Practicing!</h2>
                     @endif
                 </div>
 
-                <div class="text-center mb-8">
-                    <p class="text-5xl font-bold text-gray-900">{{ $attempt->score_percentage }}%</p>
-                    <p class="text-gray-600 mt-2">{{ $attempt->correct_answers }} out of {{ $attempt->total_questions }} correct</p>
+                <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                    {{ $attempt->score_percentage >= 70 ? 'Great Job!' : 'Keep Practicing!' }}
+                </h2>
+                <p class="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">You completed the quiz.</p>
+
+                <div class="mt-6 text-center">
+                    <p class="text-5xl font-black text-slate-900 dark:text-slate-100">{{ $attempt->score_percentage }}%</p>
+                    <p class="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">{{ $attempt->correct_answers }} out of {{ $attempt->total_questions }} correct</p>
                 </div>
 
-                <div class="flex justify-center space-x-4">
-                    <a href="{{ route('student.course.show', $subtopic->topic->document->course_id) }}" 
-                       class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-                        Back to Course
+                <div class="mt-8 flex flex-wrap justify-center gap-3">
+                    <a
+                        href="{{ route('student.course.show', $subtopic->topic->document->course_id) }}"
+                        class="inline-flex items-center gap-2 rounded-xl border border-slate-300/70 bg-slate-100/70 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                    >
+                        ← Back to Course
                     </a>
-                    <a href="{{ route('student.quiz.result', $attempt->id) }}" 
-                       class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <a
+                        href="{{ route('student.quiz.result', $attempt->id) }}"
+                        class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                    >
                         View Detailed Results
                     </a>
                 </div>
             </div>
         </div>
-
     @elseif($isBreakTime)
-        <!-- Pomodoro Break Screen -->
-        <div class="max-w-2xl mx-auto">
-            <div class="bg-white rounded-lg shadow-lg p-8 text-center">
-                <svg class="w-20 h-20 mx-auto text-purple-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <h2 class="text-2xl font-bold text-purple-600 mb-2">Break Time!</h2>
-                <p class="text-gray-600 mb-6">Take a 5-minute break. Stretch, hydrate, relax!</p>
-                
-                <div class="mb-6">
-                    <p class="text-4xl font-bold text-gray-900" x-text="formatTime(timeRemaining)"></p>
-                    <p class="text-sm text-gray-500 mt-2">Time remaining in break</p>
+        <div class="mx-auto max-w-2xl">
+            <div class="rounded-3xl border border-purple-200/70 bg-white/90 p-8 text-center shadow-xl shadow-purple-500/10 dark:border-purple-500/40 dark:bg-slate-900/70">
+                <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border-4 border-purple-400/60 bg-purple-500/15 text-purple-600 dark:border-purple-400/50 dark:bg-purple-500/20 dark:text-purple-200">
+                    <svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                 </div>
-                
-                <button wire:click="endBreak" 
-                        class="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700">
+                <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Break Time!</h2>
+                <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Take a moment to recharge before the next session.</p>
+
+                <div class="mt-6">
+                    <p class="text-4xl font-semibold text-slate-900 dark:text-slate-100" x-text="formatTime(timeRemaining)"></p>
+                    <p class="mt-1 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Time remaining in break</p>
+                </div>
+
+                <button
+                    wire:click="endBreak"
+                    class="mt-6 inline-flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-500 dark:bg-purple-500 dark:hover:bg-purple-400"
+                >
                     Skip Break & Continue
                 </button>
             </div>
         </div>
-
     @else
-        <!-- Quiz Question Screen -->
-        <div class="max-w-3xl mx-auto">
-            <!-- Timer Bar -->
+        <div class="mx-auto max-w-3xl space-y-6">
             @if($timerMode !== 'free')
-                <div class="mb-4">
-                    <div class="flex justify-between text-sm text-gray-600 mb-2">
+                <div class="rounded-2xl border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
+                    <div class="mb-2 flex items-center justify-between text-sm font-semibold text-slate-600 dark:text-slate-300">
                         <span>Question {{ $currentQuestionIndex + 1 }} of {{ $questions->count() }}</span>
                         @if($timerMode === 'pomodoro')
-                            <span class="font-medium text-purple-600" x-text="'Session: ' + formatTime(timeRemaining)"></span>
+                            <span class="text-purple-600 dark:text-purple-300" x-text="'Session: ' + formatTime(timeRemaining)"></span>
                         @else
-                            <span x-text="timeRemaining + 's'"></span>
+                            <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
+                                </svg>
+                                <span x-text="timeRemaining + 's'"></span>
+                            </span>
                         @endif
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="h-2 rounded-full transition-all duration-1000" 
-                             :class="getTimerColor()"
-                             :style="`width: ${timerMode === 'pomodoro' ? (timeRemaining / {{ $pomodoroSessionTime }}) * 100 : (timeRemaining / 60) * 100}%`"></div>
+                    <div class="h-2 w-full rounded-full bg-slate-200/80 dark:bg-slate-800">
+                        <div
+                            class="h-2 rounded-full transition-all duration-1000"
+                            :class="getTimerColor()"
+                            :style="`width: ${timerMode === 'pomodoro' ? (timeRemaining / {{ $pomodoroSessionTime }}) * 100 : (timeRemaining / 60) * 100}%`"
+                        ></div>
                     </div>
                 </div>
             @else
-                <div class="mb-4">
-                    <div class="flex justify-between text-sm text-gray-600 mb-2">
+                <div class="rounded-2xl border border-emerald-300/50 bg-emerald-50/60 p-5 shadow-sm dark:border-emerald-400/30 dark:bg-emerald-900/20">
+                    <div class="flex flex-wrap justify-between gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-200">
                         <span>Question {{ $currentQuestionIndex + 1 }} of {{ $questions->count() }}</span>
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        <span class="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-emerald-600 ring-1 ring-emerald-200 dark:bg-slate-900/70 dark:text-emerald-200 dark:ring-emerald-500/40">
+                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             Free Time Mode - No Rush!
                         </span>
@@ -231,45 +260,55 @@
                 </div>
             @endif
 
-            <div class="bg-white rounded-lg shadow-lg p-8">
+            <div class="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-lg shadow-indigo-500/5 dark:border-slate-800/70 dark:bg-slate-900/70">
                 @if($questions->count() > 0)
                     @php $question = $questions[$currentQuestionIndex]; @endphp
-                    
-                    <h2 class="text-xl font-semibold text-gray-900 mb-6">{{ $question->question }}</h2>
+
+                    <h2 class="text-xl font-semibold leading-relaxed text-slate-900 dark:text-slate-100">{{ $question->question }}</h2>
 
                     @if(!$showFeedback)
-                        <div class="space-y-3">
+                        <div class="mt-6 space-y-3">
                             @foreach($question->options as $option)
-                                <button wire:click="$set('selectedAnswer', '{{ $option['option_letter'] }}')" 
-                                        class="w-full text-left p-4 rounded-lg border-2 transition
-                                               {{ $selectedAnswer === $option['option_letter'] ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300' }}">
-                                    <span class="font-semibold">{{ $option['option_letter'] }}.</span>
-                                    {{ $option['option_text'] }}
+                                @php
+                                    $isSelected = $selectedAnswer === $option['option_letter'];
+                                @endphp
+                                <button
+                                    wire:click="$set('selectedAnswer', '{{ $option['option_letter'] }}')"
+                                    class="w-full rounded-2xl border-2 px-4 py-4 text-left text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 {{ $isSelected ? 'border-indigo-400 bg-indigo-500/10 text-indigo-700 shadow-sm dark:border-indigo-500/70 dark:bg-indigo-500/20 dark:text-indigo-200' : 'border-slate-200/80 bg-white/70 hover:border-indigo-300 hover:bg-indigo-50 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/15' }}"
+                                >
+                                    <span class="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-current text-sm font-bold">{{ $option['option_letter'] }}</span>
+                                    <span>{{ $option['option_text'] }}</span>
                                 </button>
                             @endforeach
                         </div>
 
-                        <button wire:click="submitAnswer" 
-                                :disabled="!$wire.selectedAnswer"
-                                class="mt-6 w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                        <button
+                            wire:click="submitAnswer"
+                            :disabled="!$wire.selectedAnswer"
+                            class="mt-6 w-full rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:disabled:bg-slate-700"
+                        >
                             Submit Answer
                         </button>
                     @else
-                        <!-- Feedback -->
-                        <div class="mb-6 p-4 rounded-lg {{ $isCorrect ? 'bg-green-50 border-2 border-green-200' : 'bg-red-50 border-2 border-red-200' }}">
-                            <p class="font-semibold {{ $isCorrect ? 'text-green-800' : 'text-red-800' }}">
+                        <div class="mt-6 rounded-2xl border-2 p-5 shadow-sm {{ $isCorrect ? 'border-emerald-300 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/60 dark:bg-emerald-900/20 dark:text-emerald-200' : 'border-rose-300 bg-rose-50/80 text-rose-700 dark:border-rose-500/60 dark:bg-rose-900/20 dark:text-rose-200' }}">
+                            <p class="text-lg font-semibold">
                                 {{ $isCorrect ? '✓ Correct!' : '✗ Incorrect' }}
                             </p>
-                            @if(!$isCorrect)
-                                <p class="text-red-700 mt-2">The correct answer is: <strong>{{ $correctAnswer }}</strong></p>
-                            @endif
+                            @unless($isCorrect)
+                                <p class="mt-2 text-sm font-medium">The correct answer is: <span class="font-bold">{{ $correctAnswer }}</span></p>
+                            @endunless
                             @if($question->explanation)
-                                <p class="text-gray-700 mt-3"><strong>Explanation:</strong> {{ $question->explanation }}</p>
+                                <p class="mt-3 text-sm text-slate-700 dark:text-slate-300">
+                                    <span class="font-semibold">Explanation:</span> {{ $question->explanation }}
+                                </p>
                             @endif
                         </div>
 
-                        <button wire:click="nextQuestion" x-on:click="stopTimer()"
-                                class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700">
+                        <button
+                            wire:click="nextQuestion"
+                            x-on:click="stopTimer()"
+                            class="mt-6 w-full rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                        >
                             {{ $currentQuestionIndex + 1 < $questions->count() ? 'Next Question' : 'Complete Quiz' }}
                         </button>
                     @endif

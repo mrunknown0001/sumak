@@ -29,6 +29,10 @@ class CourseDetail extends Component
                 ->with(['topics.subtopics.items'])
                 ->latest()
                 ->get()
-        ])->layout('layouts.app');
+        ])->layout('layouts.app', [
+            'title' => 'SumakQuiz | ' . $this->course->course_code,
+            'pageTitle' => $this->course->course_title,
+            'pageSubtitle' => $this->course->course_code . ' • Lecture materials and quiz readiness status.',
+        ]);
     }
 }

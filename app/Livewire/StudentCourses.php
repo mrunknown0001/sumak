@@ -79,6 +79,12 @@ class StudentCourses extends Component
     public function render()
     {
         return view('livewire.student-courses')
-            ->layout('layouts.app');
+            ->layout('layouts.app', [
+                'title' => 'SumakQuiz | Courses',
+                'pageTitle' => 'Courses',
+                'pageSubtitle' => $this->activeTab === 'enrolled'
+                    ? 'Access and manage courses you are currently enrolled in.'
+                    : 'Discover new courses and expand your learning journey.',
+            ]);
     }
 }
