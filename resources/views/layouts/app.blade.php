@@ -9,6 +9,47 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
     @livewireStyles
+    <style data-student-layout>
+        :root {
+            --student-sidebar-width: 18rem;
+        }
+
+        [data-layout-root] {
+            min-height: 100vh;
+        }
+
+        [data-layout-root][data-sidebar-collapsed="true"] {
+            --student-sidebar-width: 5rem;
+        }
+
+        [data-main-wrapper] {
+            min-width: 0;
+            width: 100%;
+            margin-left: 0;
+            transition: margin-left 0.3s ease, padding 0.3s ease;
+        }
+
+        [data-main-wrapper] > * {
+            width: 100%;
+        }
+
+        [data-student-content] {
+            min-width: 0;
+        }
+
+        @media (min-width: 1024px) {
+            [data-main-wrapper] {
+                margin-left: var(--student-sidebar-width);
+            }
+        }
+
+        @media (max-width: 1023px) {
+            [data-student-sidebar] {
+                width: min(20rem, 92vw);
+                max-width: 92vw;
+            }
+        }
+    </style>
     <script>
         (() => {
             const storageKey = 'studentPortalTheme';
@@ -72,23 +113,33 @@
             });
     @endphp
 
-    <div class="relative min-h-screen lg:flex">
+    <div data-layout-root class="relative min-h-screen lg:flex">
         <div data-sidebar-overlay class="fixed inset-0 z-30 hidden bg-slate-900/60 backdrop-blur-sm transition-opacity dark:bg-slate-950/70 lg:hidden"></div>
 
-        <aside data-student-sidebar class="fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-white shadow-xl transition-transform duration-300 ease-in-out transform -translate-x-full dark:border-slate-800 dark:bg-slate-900 lg:translate-x-0 lg:static lg:flex-shrink-0">
+        <aside data-student-sidebar data-sidebar-collapsed="false" class="fixed inset-y-0 left-0 z-40 flex w-[var(--student-sidebar-width)] flex-col overflow-y-auto border-r border-slate-200 bg-white shadow-xl transition-transform duration-300 ease-in-out transform -translate-x-full dark:border-slate-800 dark:bg-slate-900 lg:h-screen lg:flex-shrink-0 lg:translate-x-0">
             <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
                 <div class="flex items-center gap-3">
                     <span class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 text-lg font-bold text-white">SP</span>
-                    <div>
+                    <div data-sidebar-text>
                         <p class="text-sm font-semibold text-slate-600 dark:text-slate-200">Student Portal</p>
                         <p class="text-xs text-slate-400 dark:text-slate-500">Personalized learning hub</p>
                     </div>
                 </div>
-                <button type="button" class="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200 lg:hidden" data-sidebar-close aria-label="Close sidebar">
-                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none">
-                        <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200 lg:hidden" data-sidebar-close aria-label="Close sidebar">
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none">
+                            <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                    <button type="button" class="hidden rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200 lg:flex" data-sidebar-collapse-toggle aria-label="Collapse sidebar" aria-pressed="false">
+                        <svg data-icon="collapse" class="h-5 w-5" viewBox="0 0 20 20" fill="none">
+                            <path d="M11.5 5l-4 5 4 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <svg data-icon="expand" class="hidden h-5 w-5" viewBox="0 0 20 20" fill="none">
+                            <path d="M8.5 5l4 5-4 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <nav class="flex-1 overflow-y-auto px-4 py-6">
@@ -104,9 +155,12 @@
                         @endphp
                         <li>
                             <a href="{{ $item['href'] }}"
+                               data-nav-link
+                               data-sidebar-label="{{ $item['label'] }}"
                                class="group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors {{ $linkBase }}"
+                               aria-label="{{ $item['label'] }}"
                                aria-current="{{ $item['isActive'] ? 'page' : 'false' }}">
-                                <span class="flex h-9 w-9 items-center justify-center rounded-lg border bg-white transition-colors dark:border-slate-700 dark:bg-slate-800 {{ $iconBase }}">
+                                <span data-sidebar-icon class="flex h-9 w-9 items-center justify-center rounded-lg border bg-white transition-colors dark:border-slate-700 dark:bg-slate-800 {{ $iconBase }}">
                                     @switch($item['icon'])
                                         @case('home')
                                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
@@ -125,13 +179,13 @@
                                             @break
                                     @endswitch
                                 </span>
-                                <span>{{ $item['label'] }}</span>
+                                <span data-sidebar-text>{{ $item['label'] }}</span>
                             </a>
                         </li>
                     @endforeach
                 </ul>
 
-                <div class="mt-8 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-700 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-200">
+                <div data-sidebar-text class="mt-8 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-700 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-200">
                     <h3 class="font-semibold text-indigo-800 dark:text-indigo-200">Need help?</h3>
                     <p class="mt-1 text-xs text-indigo-600 dark:text-indigo-300">Check the quick start guide or contact your instructor for support.</p>
                     <a href="{{ route('student.courses') }}#faq" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200">
@@ -149,23 +203,27 @@
                     <div class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 font-semibold dark:bg-indigo-500/20 dark:text-indigo-200">
                         {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 2)) }}
                     </div>
-                    <div class="min-w-0">
+                    <div data-sidebar-text class="min-w-0">
                         <p class="truncate text-sm font-semibold text-slate-700 dark:text-slate-200">{{ auth()->user()->name ?? 'Student' }}</p>
                         <p class="truncate text-xs text-slate-400 dark:text-slate-500">{{ auth()->user()->email ?? '' }}</p>
                     </div>
                 </div>
-                <a href="{{ route('logout.get') }}" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-indigo-400/60 dark:hover:text-indigo-200">
+                <a href="{{ route('logout.get') }}"
+                   data-sidebar-footer-action
+                   data-sidebar-label="Sign out"
+                   class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-indigo-400/60 dark:hover:text-indigo-200"
+                   aria-label="Sign out">
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
                         <path d="M15 3h4a1 1 0 011 1v16a1 1 0 01-1 1h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
-                    Sign out
+                    <span data-sidebar-text>Sign out</span>
                 </a>
             </div>
         </aside>
 
-        <div class="flex min-h-screen flex-col transition-[margin] duration-300 ease-in-out lg:ml-72">
+        <div data-main-wrapper class="flex min-h-screen flex-col transition-[margin,padding] duration-300 ease-in-out lg:px-6 xl:px-10 2xl:px-16">
             <header class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800/80 dark:bg-slate-900/80">
-                <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
+                <div class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-0">
                     <div class="flex flex-1 items-center gap-3">
                         <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-indigo-400/60 dark:hover:text-indigo-200 dark:focus-visible:ring-offset-slate-900 lg:hidden" data-sidebar-toggle aria-label="Open sidebar">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
@@ -199,12 +257,14 @@
                 </div>
             </header>
 
-            <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-                {{ $slot }}
+            <main class="flex-1 px-4 py-6 sm:px-6 lg:px-0">
+                <div data-student-content class="mx-auto flex w-full max-w-7xl flex-col gap-6">
+                    {{ $slot }}
+                </div>
             </main>
 
-            <footer class="border-t border-slate-200/80 bg-white/60 px-4 py-4 text-xs text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/60 dark:text-slate-400 sm:px-6 lg:px-8">
-                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <footer class="border-t border-slate-200/80 bg-white/60 px-4 py-4 text-xs text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/60 dark:text-slate-400 sm:px-6 lg:px-0">
+                <div class="mx-auto flex w-full max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p>&copy; {{ date('Y') }} SumakQuiz. All rights reserved.</p>
                     <div class="flex items-center gap-4">
                         <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-300">Privacy</a>
@@ -257,6 +317,25 @@
                 const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches;
                 const isOpen = () => !sidebar.classList.contains('-translate-x-full');
 
+                const layoutRoot = document.querySelector('[data-layout-root]');
+                const mainWrapper = document.querySelector('[data-main-wrapper]');
+                const collapseToggle = sidebar.querySelector('[data-sidebar-collapse-toggle]');
+                const sidebarTexts = sidebar.querySelectorAll('[data-sidebar-text]');
+                const navLinks = sidebar.querySelectorAll('[data-nav-link]');
+                const iconWrappers = sidebar.querySelectorAll('[data-sidebar-icon]');
+                const footerActions = sidebar.querySelectorAll('[data-sidebar-footer-action]');
+                const collapseStorageKey = 'studentSidebarCollapsed';
+                const sidebarWidthVariable = '--student-sidebar-width';
+                const expandedSidebarWidth = '18rem';
+                const collapsedSidebarWidth = '5rem';
+
+                const setSidebarWidthVariable = (value) => {
+                    const target = layoutRoot ?? document.documentElement;
+                    target.style.setProperty(sidebarWidthVariable, value);
+                };
+
+                setSidebarWidthVariable(expandedSidebarWidth);
+
                 console.debug('[StudentPortal] sidebar detected', {
                     initialClassList: sidebar.className,
                     initialIsDesktop: isDesktop(),
@@ -282,6 +361,71 @@
                     document.body.classList.toggle('overflow-hidden', open);
                 };
 
+                const applyCollapsedState = (collapsed, persist = true) => {
+                    const resolvedCollapsed = collapsed && isDesktop();
+                    const widthValue = resolvedCollapsed ? collapsedSidebarWidth : expandedSidebarWidth;
+
+                    sidebar.dataset.sidebarCollapsed = resolvedCollapsed ? 'true' : 'false';
+                    layoutRoot?.setAttribute('data-sidebar-collapsed', resolvedCollapsed ? 'true' : 'false');
+                    mainWrapper?.setAttribute('data-sidebar-collapsed', resolvedCollapsed ? 'true' : 'false');
+
+                    collapseToggle?.setAttribute('aria-pressed', resolvedCollapsed ? 'true' : 'false');
+                    collapseToggle?.setAttribute('aria-label', resolvedCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
+                    collapseToggle?.querySelector('[data-icon="collapse"]')?.classList.toggle('hidden', resolvedCollapsed);
+                    collapseToggle?.querySelector('[data-icon="expand"]')?.classList.toggle('hidden', !resolvedCollapsed);
+
+                    sidebarTexts.forEach((element) => {
+                        element.classList.toggle('hidden', resolvedCollapsed);
+                    });
+
+                    navLinks.forEach((link) => {
+                        link.classList.toggle('justify-center', resolvedCollapsed);
+                        link.classList.toggle('px-3', resolvedCollapsed);
+                        link.classList.toggle('px-4', !resolvedCollapsed);
+                        link.classList.toggle('gap-0', resolvedCollapsed);
+                        link.classList.toggle('gap-3', !resolvedCollapsed);
+
+                        if (resolvedCollapsed) {
+                            const label = link.dataset.sidebarLabel ?? link.getAttribute('aria-label') ?? '';
+                            if (label) {
+                                link.setAttribute('title', label);
+                            }
+                        } else {
+                            link.removeAttribute('title');
+                        }
+                    });
+
+                    iconWrappers.forEach((icon) => {
+                        icon.classList.toggle('h-11', resolvedCollapsed);
+                        icon.classList.toggle('w-11', resolvedCollapsed);
+                        icon.classList.toggle('rounded-xl', resolvedCollapsed);
+                        icon.classList.toggle('h-9', !resolvedCollapsed);
+                        icon.classList.toggle('w-9', !resolvedCollapsed);
+                        icon.classList.toggle('rounded-lg', !resolvedCollapsed);
+                    });
+
+                    footerActions.forEach((action) => {
+                        if (resolvedCollapsed) {
+                            const label = action.dataset.sidebarLabel ?? action.getAttribute('aria-label') ?? '';
+                            if (label) {
+                                action.setAttribute('title', label);
+                            }
+                        } else {
+                            action.removeAttribute('title');
+                        }
+                    });
+
+                    setSidebarWidthVariable(widthValue);
+
+                    if (persist && isDesktop()) {
+                        try {
+                            localStorage.setItem(collapseStorageKey, resolvedCollapsed ? 'true' : 'false');
+                        } catch (error) {
+                            console.warn('[StudentPortal] collapse persistence failed', error);
+                        }
+                    }
+                };
+
                 const setSidebar = (open, persist = true) => {
                     console.debug('[StudentPortal] setSidebar', {
                         open,
@@ -292,24 +436,47 @@
 
                     sidebar.classList.toggle('-translate-x-full', !open);
                     sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
+                    sidebar.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    sidebar.dataset.sidebarExpanded = open ? 'true' : 'false';
                     applyOverlayState(open);
 
                     if (persist && isDesktop()) {
-                        localStorage.setItem(persistKey, open ? 'true' : 'false');
+                        try {
+                            localStorage.setItem(persistKey, open ? 'true' : 'false');
+                        } catch (error) {
+                            console.warn('[StudentPortal] sidebar persistence failed', error);
+                        }
+                    }
+
+                    if (!isDesktop()) {
+                        applyCollapsedState(false, false);
                     }
                 };
 
                 const initializeSidebar = () => {
-                    const stored = localStorage.getItem(persistKey);
-                    const shouldOpen = isDesktop() ? stored !== 'false' : false;
+                    let storedOpen = null;
+                    let storedCollapsed = null;
+
+                    try {
+                        storedOpen = localStorage.getItem(persistKey);
+                        storedCollapsed = localStorage.getItem(collapseStorageKey);
+                    } catch (error) {
+                        console.warn('[StudentPortal] sidebar storage read failed', error);
+                    }
+
+                    const shouldOpen = isDesktop() ? storedOpen !== 'false' : false;
+                    const shouldCollapse = isDesktop() ? storedCollapsed === 'true' : false;
 
                     console.debug('[StudentPortal] initializeSidebar', {
-                        stored,
+                        storedOpen,
+                        storedCollapsed,
                         shouldOpen,
+                        shouldCollapse,
                         isDesktop: isDesktop(),
                     });
 
                     setSidebar(shouldOpen, false);
+                    applyCollapsedState(shouldCollapse, false);
                 };
 
                 toggleButtons.forEach((btn) => {
@@ -317,6 +484,19 @@
                         console.debug('[StudentPortal] sidebar toggle clicked');
                         setSidebar(!isOpen());
                     });
+                });
+
+                collapseToggle?.addEventListener('click', () => {
+                    if (!isDesktop()) {
+                        return;
+                    }
+
+                    const nextState = sidebar.dataset.sidebarCollapsed !== 'true';
+                    console.debug('[StudentPortal] sidebar collapse toggled', {
+                        previousState: sidebar.dataset.sidebarCollapsed === 'true',
+                        nextState,
+                    });
+                    applyCollapsedState(nextState);
                 });
 
                 closeButtons.forEach((btn) => {
@@ -340,12 +520,29 @@
 
                 window.addEventListener('resize', () => {
                     if (isDesktop()) {
-                        const stored = localStorage.getItem(persistKey);
-                        console.debug('[StudentPortal] resize desktop mode', { stored });
-                        setSidebar(stored !== 'false', false);
-                    } else if (isOpen()) {
-                        console.debug('[StudentPortal] resize mobile collapse sidebar');
-                        setSidebar(false, false);
+                        let storedOpen = 'true';
+                        let storedCollapsed = 'false';
+
+                        try {
+                            storedOpen = localStorage.getItem(persistKey) ?? 'true';
+                            storedCollapsed = localStorage.getItem(collapseStorageKey) ?? 'false';
+                        } catch (error) {
+                            console.warn('[StudentPortal] resize storage read failed', error);
+                        }
+
+                        console.debug('[StudentPortal] resize desktop mode', {
+                            storedOpen,
+                            storedCollapsed,
+                        });
+
+                        setSidebar(storedOpen !== 'false', false);
+                        applyCollapsedState(storedCollapsed === 'true', false);
+                    } else {
+                        if (isOpen()) {
+                            console.debug('[StudentPortal] resize mobile collapse sidebar');
+                            setSidebar(false, false);
+                        }
+                        applyCollapsedState(false, false);
                     }
                 });
 
