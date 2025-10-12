@@ -19,7 +19,7 @@
         }
 
         [data-layout-root][data-sidebar-collapsed="true"] {
-            --student-sidebar-width: 5rem;
+            --student-sidebar-width: 6rem;
         }
 
         [data-main-wrapper] {
@@ -48,6 +48,26 @@
                 width: min(20rem, 92vw);
                 max-width: 92vw;
             }
+        }
+
+        [data-layout-root][data-sidebar-collapsed="true"] [data-student-sidebar] {
+            overflow-x: hidden;
+        }
+
+        [data-layout-root][data-sidebar-collapsed="true"] [data-student-sidebar] [data-sidebar-header] {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+
+        [data-layout-root][data-sidebar-collapsed="true"] [data-student-sidebar] [data-sidebar-controls] {
+            gap: 0.375rem;
+        }
+
+        [data-layout-root][data-sidebar-collapsed="true"] [data-student-sidebar] [data-sidebar-footer-action] {
+            justify-content: center;
+            gap: 0.25rem;
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
         }
     </style>
     <script>
@@ -116,16 +136,16 @@
     <div data-layout-root class="relative min-h-screen lg:flex">
         <div data-sidebar-overlay class="fixed inset-0 z-30 hidden bg-slate-900/60 backdrop-blur-sm transition-opacity dark:bg-slate-950/70 lg:hidden"></div>
 
-        <aside data-student-sidebar data-sidebar-collapsed="false" class="fixed inset-y-0 left-0 z-40 flex w-[var(--student-sidebar-width)] flex-col overflow-y-auto border-r border-slate-200 bg-white shadow-xl transition-transform duration-300 ease-in-out transform -translate-x-full dark:border-slate-800 dark:bg-slate-900 lg:h-screen lg:flex-shrink-0 lg:translate-x-0">
-            <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
-                <div class="flex items-center gap-3">
+        <aside data-student-sidebar data-sidebar-collapsed="false" class="fixed inset-y-0 left-0 z-40 flex w-[var(--student-sidebar-width)] flex-col overflow-y-auto overflow-x-hidden border-r border-slate-200 bg-white shadow-xl transition-transform duration-300 ease-in-out transform -translate-x-full dark:border-slate-800 dark:bg-slate-900 lg:h-screen lg:flex-shrink-0 lg:translate-x-0">
+            <div data-sidebar-header class="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+                <div data-sidebar-brand class="flex items-center gap-3">
                     <span class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-lg font-bold text-white">SP</span>
                     <div data-sidebar-text>
                         <p class="text-sm font-semibold text-slate-600 dark:text-slate-200">Student Portal</p>
                         <p class="text-xs text-slate-400 dark:text-slate-500">Personalized learning hub</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
+                <div data-sidebar-controls class="flex items-center gap-2">
                     <button type="button" class="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200 lg:hidden" data-sidebar-close aria-label="Close sidebar">
                         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none">
                             <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
@@ -211,19 +231,21 @@
                 <a href="{{ route('logout.get') }}"
                    data-sidebar-footer-action
                    data-sidebar-label="Sign out"
-                   class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-emerald-200 hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-emerald-400/60 dark:hover:text-emerald-200"
+                   class="mt-4 group flex w-full items-center justify-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-emerald-200 hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-emerald-400/60 dark:hover:text-emerald-200"
                    aria-label="Sign out">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M15 3h4a1 1 0 011 1v16a1 1 0 01-1 1h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
+                    <span data-sidebar-icon class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition-colors group-hover:border-emerald-200 group-hover:text-emerald-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500 dark:group-hover:border-emerald-400/60 dark:group-hover:text-emerald-300">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                            <path d="M15 3h4a1 1 0 011 1v16a1 1 0 01-1 1h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </span>
                     <span data-sidebar-text>Sign out</span>
                 </a>
             </div>
         </aside>
 
-        <div data-main-wrapper class="flex min-h-screen flex-col transition-[margin,padding] duration-300 ease-in-out lg:px-6 xl:px-10 2xl:px-16">
+        <div data-main-wrapper class="flex min-h-screen flex-col transition-[margin,padding] duration-300 ease-in-out">
             <header class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800/80 dark:bg-slate-900/80">
-                <div class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-0">
+                <div class="flex w-full items-center justify-between px-4 py-4 sm:px-6 lg:px-8 xl:px-12">
                     <div class="flex flex-1 items-center gap-3">
                         <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-emerald-200 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-emerald-400/60 dark:hover:text-emerald-200 dark:focus-visible:ring-offset-slate-900 lg:hidden" data-sidebar-toggle aria-label="Open sidebar">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
@@ -257,14 +279,14 @@
                 </div>
             </header>
 
-            <main class="flex-1 px-4 py-6 sm:px-6 lg:px-0">
+            <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8">
                 <div data-student-content class="mx-auto flex w-full max-w-7xl flex-col gap-6">
                     {{ $slot }}
                 </div>
             </main>
 
-            <footer class="border-t border-slate-200/80 bg-white/60 px-4 py-4 text-xs text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/60 dark:text-slate-400 sm:px-6 lg:px-0">
-                <div class="mx-auto flex w-full max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <footer class="border-t border-slate-200/80 bg-white/60 px-4 py-4 text-xs text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/60 dark:text-slate-400 sm:px-6 lg:px-8">
+                <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p>&copy; {{ date('Y') }} SumakQuiz. All rights reserved.</p>
                     <div class="flex items-center gap-4">
                         <a href="#" class="hover:text-emerald-600 dark:hover:text-emerald-300">Privacy</a>
@@ -327,7 +349,7 @@
                 const collapseStorageKey = 'studentSidebarCollapsed';
                 const sidebarWidthVariable = '--student-sidebar-width';
                 const expandedSidebarWidth = '18rem';
-                const collapsedSidebarWidth = '5rem';
+                const collapsedSidebarWidth = '6rem';
 
                 const setSidebarWidthVariable = (value) => {
                     const target = layoutRoot ?? document.documentElement;
