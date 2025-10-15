@@ -153,7 +153,7 @@
                         Quiz Information
                     </h2>
                     <ul class="space-y-2 font-medium">
-                        <li>• 20 multiple-choice questions</li>
+                        {{-- <li>• 20 multiple-choice questions</li> --}}
                         <li>• Timer Mode: <strong class="capitalize">{{ $timerMode }}</strong></li>
                         @if($timerMode === 'pomodoro')
                             <li>• 25-minute focus sessions with 5-minute breaks</li>
