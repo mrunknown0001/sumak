@@ -231,8 +231,7 @@ class StudentDashboardController extends Controller
      */
     private function formatDuration($seconds)
     {
-        $minutes = floor($seconds / 60);
-        return $minutes . ' mins';
+        return $this->formatStudyTime($seconds);
     }
 
     /**
@@ -240,8 +239,32 @@ class StudentDashboardController extends Controller
      */
     private function formatStudyTime($seconds)
     {
-        $hours = floor($seconds / 3600);
-        return $hours . ' hours';
+        if($seconds < 0) {
+            $seconds = -($seconds);
+        }
+        $seconds = max(0, (int) $seconds);
+
+        if ($seconds === 0) {
+            return '0 mins';
+        }
+
+        if ($seconds < 3600) {
+            $minutes = (int) max(1, round($seconds / 60));
+            return $minutes === 1 ? '1 min' : $minutes . ' mins';
+        }
+
+        $hours = intdiv($seconds, 3600);
+        $minutes = (int) floor(($seconds % 3600) / 60);
+
+        $hourLabel = $hours === 1 ? '1 hr' : $hours . ' hrs';
+
+        if ($minutes <= 0) {
+            return $hourLabel;
+        }
+
+        $minuteLabel = $minutes === 1 ? '1 min' : $minutes . ' mins';
+
+        return $hourLabel . ' ' . $minuteLabel;
     }
 
     /**

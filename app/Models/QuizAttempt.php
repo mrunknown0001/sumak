@@ -87,7 +87,14 @@ class QuizAttempt extends Model
      */
     public function getTimeSpentMinutesAttribute(): float
     {
-        return round($this->time_spent_seconds / 60, 2);
+        // if negative value
+        if($this->time_spent_seconds < 0) {
+            $totalSeconds = -($this->time_spent_seconds);
+        }
+        $totalSeconds = max(0, (int) ($totalSeconds ?? 0));
+
+
+        return round($totalSeconds / 60, 2);
     }
 
     /**
@@ -95,11 +102,15 @@ class QuizAttempt extends Model
      */
     public function getAverageTimePerQuestionAttribute(): float
     {
-        if ($this->total_questions === 0) {
+        $totalQuestions = (int) ($this->total_questions ?? 0);
+
+        if ($totalQuestions === 0) {
             return 0;
         }
+
+        $totalSeconds = max(0, (int) ($this->time_spent_seconds ?? 0));
         
-        return round($this->time_spent_seconds / $this->total_questions, 2);
+        return round($totalSeconds / $totalQuestions, 2);
     }
 
     /**

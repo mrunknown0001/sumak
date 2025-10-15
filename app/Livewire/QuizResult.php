@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\QuizAttempt;
+use Illuminate\Support\Facades\Log;
 
 class QuizResult extends Component
 {
@@ -16,6 +17,14 @@ class QuizResult extends Component
             'responses.item',
             'feedback',
             'subtopic.topic.document.course'
+        ]);
+
+        Log::debug('QuizResult attempt timing snapshot', [
+            'attempt_id' => $this->attempt->id,
+            'started_at' => optional($this->attempt->started_at)->toIso8601String(),
+            'completed_at' => optional($this->attempt->completed_at)->toIso8601String(),
+            'time_spent_seconds' => $this->attempt->time_spent_seconds,
+            'time_spent_minutes_accessor' => $this->attempt->time_spent_minutes,
         ]);
     }
 
