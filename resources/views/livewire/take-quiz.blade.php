@@ -42,7 +42,33 @@
         }
     })"
 >
-    @if(!$timerMode)
+    @if($hasReachedAttemptLimit && !$quizStarted && !$attempt)
+        <div class="mx-auto max-w-3xl">
+            <div class="rounded-3xl border border-rose-200/70 bg-white/90 p-10 text-center shadow-xl shadow-rose-500/10 backdrop-blur dark:border-rose-500/40 dark:bg-slate-900/70">
+                <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border-4 border-rose-400/60 bg-rose-500/15 text-rose-600 dark:border-rose-400/50 dark:bg-rose-500/20 dark:text-rose-200">
+                    <svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2 2 2m-2-2V6m8 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Quiz Attempt Limit Reached</h2>
+                <p class="mt-3 text-sm font-medium text-slate-600 dark:text-slate-300">
+                    You have completed the maximum of {{ $maxAttemptsAllowed }} attempts for this quiz.
+                    Review your results and continue with other course materials.
+                </p>
+                <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Completed Attempts: {{ $completedAttemptsCount }} / {{ $maxAttemptsAllowed }}
+                </p>
+                <div class="mt-8 flex justify-center">
+                    <a
+                        href="{{ route('student.course.show', $subtopic->topic->document->course_id) }}"
+                        class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+                    >
+                        ← Back to Course
+                    </a>
+                </div>
+            </div>
+        </div>
+    @elseif(!$timerMode)
         <div class="mx-auto max-w-4xl">
             <div class="rounded-3xl border border-emerald-200/70 bg-white/90 p-10 shadow-xl shadow-emerald-500/10 backdrop-blur dark:border-emerald-500/40 dark:bg-slate-900/70">
                 <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</h1>

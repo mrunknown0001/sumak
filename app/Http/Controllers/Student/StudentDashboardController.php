@@ -69,15 +69,21 @@ class StudentDashboardController extends Controller
                     ->flatMap(fn($doc) => $doc->topics)
                     ->flatMap(fn($topic) => $topic->subtopics)
                     ->count();
-                
+
+                // Display constraint: Only 20 quizzes are generated per course
+                $maxQuizzesPerCourse = 20;
+                $displayTotalQuizzes = min($totalSubtopics, $maxQuizzesPerCourse);
+
                 // Get completed subtopics (where student has at least one attempt)
-                $completedSubtopics = \App\Models\QuizAttempt::where('user_id', $student->id)
+                $completedSubtopics = QuizAttempt::where('user_id', $student->id)
                     ->whereHas('subtopic.topic.document', function($q) use ($course) {
                         $q->where('course_id', $course->id);
                     })
                     ->distinct('subtopic_id')
                     ->count('subtopic_id');
-                
+
+                $displayQuizzesTaken = min($completedSubtopics, $displayTotalQuizzes);
+
                 $avgScore = $this->getAverageScore($student, $course);
                 $abilityLevel = $this->calculateAbilityForCourse($student, $course);
 
@@ -85,9 +91,9 @@ class StudentDashboardController extends Controller
                     'id' => $course->id,
                     'name' => $course->course_title,
                     'code' => $course->course_code,
-                    'progress' => $totalSubtopics > 0 ? round(($completedSubtopics / $totalSubtopics) * 100) : 0,
-                    'quizzes_taken' => $completedSubtopics,
-                    'total_quizzes' => $totalSubtopics,
+                    'progress' => $displayTotalQuizzes > 0 ? round(($displayQuizzesTaken / $displayTotalQuizzes) * 100) : 0,
+                    'quizzes_taken' => $displayQuizzesTaken,
+                    'total_quizzes' => $displayTotalQuizzes,
                     'avg_score' => round($avgScore, 2),
                     'ability_level' => $abilityLevel,
                     'status' => 'active',
@@ -149,9 +155,9 @@ class StudentDashboardController extends Controller
                 'course' => $attempt->subtopic->topic->document->course->course_title,
                 'topic' => $attempt->subtopic->name,
                 'feedback' => $attempt->feedback->feedback_text ?? 'Feedback is being generated...',
-                'recommendations' => $attempt->feedback->recommendations ? json_decode($attempt->feedback->recommendations) : [],
-                'strengths' => $attempt->feedback->strengths ? json_decode($attempt->feedback->strengths) : [],
-                'areas_to_improve' => $attempt->feedback->areas_to_improve ? json_decode($attempt->feedback->areas_to_improve) : [],
+                'recommendations' => $this->normalizeFeedbackField($attempt->feedback->recommendations ?? null),
+                'strengths' => $this->normalizeFeedbackField($attempt->feedback->strengths ?? null),
+                'areas_to_improve' => $this->normalizeFeedbackField($attempt->feedback->areas_to_improve ?? null),
             ];
         })->toArray();
     }
@@ -248,5 +254,74 @@ class StudentDashboardController extends Controller
         if ($ability >= 0.4) return 'Intermediate';
         if ($ability >= 0.2) return 'Advanced Beginner';
         return 'Beginner';
+    }
+
+    /**
+     * Normalize stored feedback fields that may be JSON, arrays, or collections.
+     */
+    private function normalizeFeedbackField($value): array
+    {
+        if (is_null($value)) {
+            return [];
+        }
+
+        if ($value instanceof \Illuminate\Contracts\Support\Arrayable) {
+            $value = $value->toArray();
+        } elseif ($value instanceof \Illuminate\Support\Collection) {
+            $value = $value->all();
+        } elseif ($value instanceof \JsonSerializable) {
+            $value = $value->jsonSerialize();
+        }
+
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $value = $decoded;
+            } else {
+                $value = [$value];
+            }
+        }
+
+        if (!is_array($value)) {
+            $value = [$value];
+        }
+
+        $normalized = array_map(fn ($entry) => $this->stringifyFeedbackEntry($entry), $value);
+
+        return array_values(array_filter($normalized, fn ($entry) => $entry !== ''));
+    }
+
+    /**
+     * Ensure each feedback entry is rendered as a human-readable string.
+     */
+    private function stringifyFeedbackEntry($entry): string
+    {
+        if ($entry instanceof \Illuminate\Contracts\Support\Arrayable) {
+            $entry = $entry->toArray();
+        } elseif ($entry instanceof \Illuminate\Support\Collection) {
+            $entry = $entry->all();
+        } elseif ($entry instanceof \JsonSerializable) {
+            $entry = $entry->jsonSerialize();
+        }
+
+        if (is_array($entry)) {
+            $flattened = array_map(fn ($item) => $this->stringifyFeedbackEntry($item), $entry);
+            $flattened = array_filter($flattened, fn ($item) => $item !== '');
+            return implode(', ', $flattened);
+        }
+
+        if (is_string($entry)) {
+            return trim($entry);
+        }
+
+        if (is_bool($entry)) {
+            return $entry ? 'Yes' : 'No';
+        }
+
+        if (is_scalar($entry)) {
+            return (string) $entry;
+        }
+
+        return '';
     }
 }

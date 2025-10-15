@@ -1,3 +1,4 @@
+@php($documentCount = $documents->count())
 <div class="mx-auto max-w-5xl space-y-8 text-slate-900 dark:text-slate-100">
     <div class="flex items-center">
         <a href="{{ route('student.courses') }}" class="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:border-emerald-200 hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-900/70 dark:text-emerald-300 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/20">
@@ -26,7 +27,7 @@
                         </span>
                     @endif
                     <span class="inline-flex items-center gap-1 rounded-full border border-slate-200/70 px-3 py-1 text-slate-600 dark:border-slate-700 dark:text-slate-300">
-                        {{ $course->documents->count() }} lectures
+                        {{ $documentCount }} {{ \Illuminate\Support\Str::plural('lecture', $documentCount) }}
                     </span>
                 </div>
             </div>
@@ -85,7 +86,7 @@
                                             <p class="text-xs text-slate-500 dark:text-slate-400">📚 {{ $topic->name }}</p>
                                         </div>
                                         <div class="rounded-xl border border-emerald-300/70 bg-white/80 px-3 py-2 text-center shadow-sm dark:border-emerald-500/40 dark:bg-slate-900/70">
-                                            <p class="text-lg font-bold text-emerald-600 dark:text-emerald-300">{{ $subtopic->items()->count() }}</p>
+                                            <p class="text-lg font-bold text-emerald-600 dark:text-emerald-300">{{ $subtopic->items_count ?? $subtopic->items()->count() }}</p>
                                             <span class="text-xs font-medium text-slate-500 dark:text-slate-400">questions</span>
                                         </div>
                                     </a>

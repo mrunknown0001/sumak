@@ -24,11 +24,26 @@ class CourseDetail extends Component
 
     public function render()
     {
+        $documents = $this->course->documents()
+            ->whereHas('tableOfSpecification')
+            ->whereHas('topics.subtopics.items')
+            ->with([
+                'tableOfSpecification',
+                'topics' => function ($topicQuery) {
+                    $topicQuery->whereHas('subtopics.items')
+                        ->with([
+                            'subtopics' => function ($subtopicQuery) {
+                                $subtopicQuery->whereHas('items')
+                                    ->withCount('items');
+                            },
+                        ]);
+                },
+            ])
+            ->latest()
+            ->get();
+
         return view('livewire.course-detail', [
-            'documents' => $this->course->documents()
-                ->with(['topics.subtopics.items'])
-                ->latest()
-                ->get()
+            'documents' => $documents,
         ])->layout('layouts.app', [
             'title' => 'SumakQuiz | ' . $this->course->course_code,
             'pageTitle' => $this->course->course_title,

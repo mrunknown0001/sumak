@@ -65,7 +65,26 @@
                     {{ $attempt->feedback->feedback_text }}
                 </p>
 
-                @if($attempt->feedback->strengths)
+                @php
+                    $normalizeFeedbackList = static function ($value): array {
+                        if (is_string($value)) {
+                            $decoded = json_decode($value, true);
+                            $value = $decoded ?? [];
+                        }
+
+                        if ($value instanceof \Illuminate\Support\Collection) {
+                            $value = $value->toArray();
+                        }
+
+                        return array_values(array_filter(is_array($value) ? $value : []));
+                    };
+
+                    $strengths = $normalizeFeedbackList($attempt->feedback->strengths ?? []);
+                    $areasToImprove = $normalizeFeedbackList($attempt->feedback->areas_to_improve ?? $attempt->feedback->weaknesses ?? []);
+                    $recommendations = $normalizeFeedbackList($attempt->feedback->recommendations ?? []);
+                @endphp
+
+                @if(!empty($strengths))
                     <section class="rounded-2xl border border-emerald-200/60 bg-emerald-50/80 px-5 py-4 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-100">
                         <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
                             <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
@@ -74,14 +93,18 @@
                             Strengths
                         </h3>
                         <ul class="space-y-1 font-medium">
-                            @foreach(json_decode($attempt->feedback->strengths) as $strength)
-                                <li>• {{ $strength }}</li>
+                            @foreach($strengths as $strength)
+                                <li class="mt-3">
+                                    <strong>Area:</strong> {{ $strength['area'] }}<br/>
+                                    <strong>Evidence:</strong> {{ $strength['evidence'] }}<br/>
+                                    <strong>Description:</strong> {{ $strength['description'] }}
+                                </li>
                             @endforeach
                         </ul>
                     </section>
                 @endif
 
-                @if($attempt->feedback->areas_to_improve)
+                @if(!empty($areasToImprove))
                     <section class="rounded-2xl border border-amber-200/70 bg-amber-50/80 px-5 py-4 text-sm text-amber-900 dark:border-amber-500/50 dark:bg-amber-500/20 dark:text-amber-100">
                         <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
                             <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
@@ -90,14 +113,19 @@
                             Areas to Improve
                         </h3>
                         <ul class="space-y-1 font-medium">
-                            @foreach(json_decode($attempt->feedback->areas_to_improve) as $area)
-                                <li>• {{ $area }}</li>
+                            @foreach($areasToImprove as $area)
+                                <li class="mb-3">
+                                    <strong>Area:</strong> {{ $area['area'] }}<br/>
+                                    <strong>Priority:</strong> {{ $area['priority'] }}<br/>
+                                    <strong>Gap Analysis:</strong> {{ $area['gap_analysis'] }}<br/>
+                                    <strong>Current Level:</strong> {{ $area['current_level'] }}
+                                </li>
                             @endforeach
                         </ul>
                     </section>
                 @endif
 
-                @if($attempt->feedback->recommendations)
+                @if(!empty($recommendations))
                     <section class="rounded-2xl border border-emerald-200/70 bg-emerald-50/80 px-5 py-4 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-100">
                         <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
                             <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
@@ -106,8 +134,13 @@
                             Recommendations
                         </h3>
                         <ul class="space-y-1 font-medium">
-                            @foreach(json_decode($attempt->feedback->recommendations) as $recommendation)
-                                <li>• {{ $recommendation }}</li>
+                            @foreach($recommendations as $recommendation)
+                                <li class="mb-3">
+                                    <strong>Recommendation:</strong> {{ $recommendation['recommendation'] }}<br/>
+                                    <strong>Topic:</strong> {{ $recommendation['subtopic'] }}<br/>
+                                    <strong>Reference:</strong> <a href="{{ $recommendation['resources'][0] ?? "#" }}" target="_blank">{{ $recommendation['resources'][1] ?? "N/A"}}</a><br/>
+                                    <strong>Time:</strong> {{ $recommendation['estimated_time'] }}<br/>
+                                </li>
                             @endforeach
                         </ul>
                     </section>

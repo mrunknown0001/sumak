@@ -2,16 +2,21 @@
 
 namespace App\Livewire;
 
+use App\Facades\OpenAI;
 use App\Jobs\GenerateFeedbackJob;
 use App\Models\ItemBank;
 use App\Models\QuizAttempt;
+use App\Models\QuizRegeneration;
 use App\Models\Response;
 use App\Models\StudentAbility;
 use App\Models\Subtopic;
 use App\Services\IrtService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
+use Livewire\Features\SupportRedirects\Redirector;
 
 class TakeQuiz extends Component
 {
@@ -30,6 +35,9 @@ class TakeQuiz extends Component
     public int $pomodoroSessionTime = 1500;
     public int $pomodoroBreakTime = 300;
     public bool $isBreakTime = false;
+    public int $maxAttemptsAllowed = 3;
+    public int $completedAttemptsCount = 0;
+    public bool $hasReachedAttemptLimit = false;
 
     protected IrtService $irtService;
 
@@ -42,10 +50,16 @@ class TakeQuiz extends Component
     {
         $this->subtopic = $subtopic->load('topic.document.course');
         $this->items = collect();
+        $this->refreshAttemptLimitState();
     }
 
     public function selectTimerMode(string $mode): void
     {
+        if ($this->hasReachedAttemptLimit && !$this->quizStarted) {
+            session()->flash('error', 'You have reached the maximum number of quiz attempts allowed for this subtopic.');
+            return;
+        }
+
         $this->timerMode = $mode;
 
         if ($mode === 'pomodoro') {
@@ -65,40 +79,60 @@ class TakeQuiz extends Component
         }
 
         $existingAttempt = $this->getActiveAttempt();
-        $isAdaptive = $existingAttempt?->is_adaptive ?? $this->shouldUseAdaptiveMode();
 
-        $items = $this->loadItemsForAttempt($existingAttempt);
+        $nextAttemptNumber = $existingAttempt
+            ? $existingAttempt->attempt_number
+            : ((QuizAttempt::where('user_id', auth()->id())
+                ->where('subtopic_id', $this->subtopic->id)
+                ->max('attempt_number') ?? 0) + 1);
 
-        if ($items->isEmpty()) {
-            $selectedItemModels = $this->selectItemModelsForSubtopic($isAdaptive, 20);
-            $items = $this->transformItems($selectedItemModels);
+        if (!$existingAttempt) {
+            $this->refreshAttemptLimitState();
+
+            if ($this->hasReachedAttemptLimit || $nextAttemptNumber > $this->maxAttemptsAllowed) {
+                session()->flash('error', 'You have reached the maximum number of quiz attempts allowed for this subtopic.');
+                return;
+            }
         }
 
-        if ($items->isEmpty()) {
+        $isAdaptive = $existingAttempt?->is_adaptive ?? $this->shouldUseAdaptiveMode();
+
+        $assignedItemModels = $this->resolveAttemptItems($existingAttempt, $isAdaptive, $nextAttemptNumber);
+
+        if ($assignedItemModels->isEmpty()) {
             session()->flash('error', 'No questions available for this quiz yet. Please try again later.');
             return;
         }
 
         if (!$existingAttempt) {
-            $attemptNumber = QuizAttempt::where('user_id', auth()->id())
-                ->where('subtopic_id', $this->subtopic->id)
-                ->max('attempt_number') + 1;
-
             $this->attempt = QuizAttempt::create([
                 'user_id' => auth()->id(),
                 'subtopic_id' => $this->subtopic->id,
-                'attempt_number' => $attemptNumber,
+                'attempt_number' => $nextAttemptNumber,
                 'is_adaptive' => $isAdaptive,
-                'total_questions' => $items->count(),
+                'total_questions' => $assignedItemModels->count(),
+                'question_item_ids' => $assignedItemModels->pluck('id')->toArray(),
                 'started_at' => now(),
             ]);
         } else {
-            $this->attempt = $existingAttempt;
+            $existingAttempt->refresh();
 
-            if ((int) $this->attempt->total_questions === 0) {
-                $this->attempt->update(['total_questions' => $items->count()]);
+            if ((int) $existingAttempt->total_questions === 0) {
+                $existingAttempt->update([
+                    'total_questions' => $assignedItemModels->count(),
+                ]);
             }
+
+            if (empty($existingAttempt->question_item_ids)) {
+                $existingAttempt->update([
+                    'question_item_ids' => $assignedItemModels->pluck('id')->toArray(),
+                ]);
+            }
+
+            $this->attempt = $existingAttempt;
         }
+
+        $items = $this->transformItems($assignedItemModels);
 
         $answeredCount = $this->attempt
             ? $this->attempt->responses()
@@ -143,32 +177,247 @@ class TakeQuiz extends Component
             ->first();
     }
 
-    protected function loadItemsForAttempt(?QuizAttempt $attempt): Collection
+    protected function resolveAttemptItems(?QuizAttempt $attempt, bool $isAdaptive, int $attemptNumber): Collection
     {
-        if (!$attempt) {
+        $questionTarget = $attempt && $attempt->total_questions
+            ? max(1, (int) $attempt->total_questions)
+            : 20;
+
+        if ($attempt) {
+            $assignedIds = collect($attempt->question_item_ids ?? []);
+
+            if ($assignedIds->isEmpty()) {
+                $assignedIds = $attempt->responses()
+                    ->orderBy('response_at')
+                    ->pluck('item_id');
+            }
+
+            if ($assignedIds->isNotEmpty()) {
+                $items = $this->fetchItemsByIds($assignedIds)->values();
+
+                $missing = max(0, $questionTarget - $items->count());
+
+                if ($missing > 0) {
+                    $exclude = $items->pluck('id')->filter()->all();
+                    $additionalModels = $this->selectItemModelsForSubtopic($isAdaptive, $missing, $exclude);
+                    $additionalModels = $this->prepareItemsForAttempt($additionalModels, $attemptNumber);
+                    $items = $items->concat($additionalModels)->values();
+
+                    $attempt->update([
+                        'question_item_ids' => $items->pluck('id')->toArray(),
+                        'total_questions' => $items->count(),
+                    ]);
+                }
+
+                return $items;
+            }
+        }
+
+        $initialModels = $this->selectItemModelsForSubtopic($isAdaptive, $questionTarget);
+        $initialModels = $this->prepareItemsForAttempt($initialModels, $attemptNumber)->values();
+
+        if ($attempt) {
+            $attempt->update([
+                'question_item_ids' => $initialModels->pluck('id')->toArray(),
+                'total_questions' => $initialModels->count(),
+            ]);
+        }
+
+        return $initialModels;
+    }
+
+    protected function fetchItemsByIds(Collection $ids): Collection
+    {
+        if ($ids->isEmpty()) {
             return collect();
         }
 
-        $responses = $attempt->responses
-            ->sortBy('response_at')
-            ->filter(fn (Response $response) => $response->item !== null);
+        $records = ItemBank::query()
+            ->whereIn('id', $ids)
+            ->with($this->itemRelations())
+            ->get();
 
-        if ($responses->isEmpty() && $attempt->total_questions === 0) {
-            return collect();
+        return $ids->map(fn ($id) => $records->firstWhere('id', $id))
+            ->filter()
+            ->values();
+    }
+
+    protected function prepareItemsForAttempt(Collection $itemModels, int $attemptNumber): Collection
+    {
+        if ($itemModels->isEmpty()) {
+            return $itemModels;
         }
 
-        $respondedItems = $responses->pluck('item')->filter();
-        $items = $this->transformItems($respondedItems);
-
-        $remaining = max(0, $attempt->total_questions - $items->count());
-
-        if ($remaining > 0) {
-            $exclude = $respondedItems->pluck('id')->all();
-            $additionalModels = $this->selectItemModelsForSubtopic($attempt->is_adaptive, $remaining, $exclude);
-            $items = $items->concat($this->transformItems($additionalModels));
+        if ($attemptNumber <= 1) {
+            return $itemModels->values();
         }
 
-        return $items->values();
+        return $itemModels->map(fn (ItemBank $item) => $this->createRewordedItemForRetake($item))->values();
+    }
+
+    protected function createRewordedItemForRetake(ItemBank $originalItem): ItemBank
+    {
+        $regenerationCount = QuizRegeneration::where('original_item_id', $originalItem->id)->count();
+        $withinLimit = $regenerationCount < 3;
+        $nextCount = $withinLimit ? $regenerationCount + 1 : $regenerationCount;
+
+        if ($withinLimit) {
+            try {
+                $reworded = OpenAI::rewordQuestion(
+                    $originalItem->question,
+                    $originalItem->options ?? [],
+                    $nextCount
+                );
+
+                $payload = $reworded['reworded_question'] ?? null;
+
+                if (!$payload) {
+                    throw new \RuntimeException('Reworded question payload missing.');
+                }
+
+                $optionSet = $this->buildOptionSet($payload['options'] ?? [], $originalItem->correct_answer);
+
+                $questionText = $payload['question_text'] ?? $originalItem->question;
+                $explanation = $payload['explanation'] ?? $originalItem->explanation;
+                $maintainsEquivalence = $payload['maintains_equivalence'] ?? true;
+
+                return $this->persistRetakeItem(
+                    $originalItem,
+                    $questionText,
+                    $optionSet['options'],
+                    $optionSet['correct_answer'],
+                    $explanation,
+                    true,
+                    $nextCount,
+                    $maintainsEquivalence
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Failed to reword quiz question for retake', [
+                    'item_id' => $originalItem->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $optionSet = $this->buildOptionSet($originalItem->options ?? [], $originalItem->correct_answer);
+
+                return $this->persistRetakeItem(
+                    $originalItem,
+                    $originalItem->question,
+                    $optionSet['options'],
+                    $optionSet['correct_answer'],
+                    $originalItem->explanation,
+                    true,
+                    $nextCount,
+                    true
+                );
+            }
+        }
+
+        $optionSet = $this->buildOptionSet($originalItem->options ?? [], $originalItem->correct_answer);
+
+        return $this->persistRetakeItem(
+            $originalItem,
+            $originalItem->question,
+            $optionSet['options'],
+            $optionSet['correct_answer'],
+            $originalItem->explanation,
+            false,
+            null,
+            true
+        );
+    }
+
+    protected function persistRetakeItem(
+        ItemBank $originalItem,
+        string $questionText,
+        array $options,
+        string $correctLetter,
+        ?string $explanation,
+        bool $logRegeneration,
+        ?int $regenerationCount,
+        bool $maintainsEquivalence = true
+    ): ItemBank {
+        $newItem = ItemBank::create([
+            'tos_item_id' => $originalItem->tos_item_id,
+            'subtopic_id' => $originalItem->subtopic_id,
+            'learning_outcome_id' => $originalItem->learning_outcome_id,
+            'question' => $questionText,
+            'options' => $options,
+            'correct_answer' => $correctLetter,
+            'explanation' => $explanation,
+            'cognitive_level' => $originalItem->cognitive_level,
+            'difficulty_b' => $originalItem->difficulty_b,
+            'time_estimate_seconds' => $originalItem->time_estimate_seconds,
+            'created_at' => now(),
+        ]);
+
+        if ($logRegeneration && $regenerationCount !== null && $regenerationCount <= 3) {
+            QuizRegeneration::create([
+                'original_item_id' => $originalItem->id,
+                'regenerated_item_id' => $newItem->id,
+                'subtopic_id' => $originalItem->subtopic_id,
+                'regeneration_count' => $regenerationCount,
+                'maintains_equivalence' => $maintainsEquivalence,
+                'regenerated_at' => now(),
+            ]);
+        }
+
+        return $newItem->load($this->itemRelations());
+    }
+
+    protected function buildOptionSet(array $options, ?string $originalCorrectLetter = null): array
+    {
+        $normalized = collect($options)
+            ->map(function ($option) {
+                return [
+                    'option_letter' => $option['option_letter'] ?? null,
+                    'option_text' => $option['option_text'] ?? '',
+                    'is_correct' => $option['is_correct'] ?? false,
+                ];
+            })
+            ->filter(fn ($option) => ($option['option_text'] ?? '') !== '');
+
+        if ($normalized->isEmpty()) {
+            throw new \RuntimeException('No options available for retake question generation.');
+        }
+
+        $letters = range('A', 'Z');
+
+        $shuffled = $normalized->shuffle()->values();
+
+        $prepared = [];
+        $correctLetter = null;
+
+        foreach ($shuffled as $index => $option) {
+            $letter = $letters[$index] ?? chr(ord('A') + $index);
+            $isCorrect = (bool) $option['is_correct'];
+
+            if (!$isCorrect && $originalCorrectLetter && $option['option_letter'] === $originalCorrectLetter) {
+                $isCorrect = true;
+            }
+
+            $prepared[] = [
+                'option_letter' => $letter,
+                'option_text' => $option['option_text'],
+                'is_correct' => $isCorrect,
+            ];
+
+            if ($isCorrect && !$correctLetter) {
+                $correctLetter = $letter;
+            }
+        }
+
+        if (!$correctLetter && !empty($prepared)) {
+            $prepared[0]['is_correct'] = true;
+            $correctLetter = $prepared[0]['option_letter'];
+        }
+
+        return [
+            'options' => collect($prepared)->map(fn ($option) => [
+                'option_letter' => $option['option_letter'],
+                'option_text' => $option['option_text'],
+            ])->toArray(),
+            'correct_answer' => $correctLetter,
+        ];
     }
 
     protected function selectItemModelsForSubtopic(bool $isAdaptive, int $limit, array $exclude = []): Collection
@@ -319,7 +568,7 @@ class TakeQuiz extends Component
         };
     }
 
-    public function nextQuestion(): void
+    public function nextQuestion(): RedirectResponse|Redirector|null
     {
         $this->currentQuestionIndex++;
         $this->selectedAnswer = null;
@@ -328,17 +577,18 @@ class TakeQuiz extends Component
         $this->correctAnswer = null;
 
         if ($this->currentQuestionIndex >= $this->items->count()) {
-            $this->completeQuiz();
-            return;
+            return $this->completeQuiz();
         }
 
         $this->resetTimer();
+
+        return null;
     }
 
-    public function completeQuiz(): void
+    public function completeQuiz(): RedirectResponse|Redirector|null
     {
         if (!$this->attempt) {
-            return;
+            return null;
         }
 
         $correctAnswers = $this->attempt->responses()->where('is_correct', true)->count();
@@ -373,8 +623,7 @@ class TakeQuiz extends Component
                 $responses->toArray()
             );
 
-            $studentAbility->increment('attempts_count');
-            $studentAbility->update(['theta' => $newTheta]);
+            $studentAbility->updateTheta($newTheta);
         }
 
         GenerateFeedbackJob::dispatch($this->attempt->id);
@@ -382,6 +631,21 @@ class TakeQuiz extends Component
         $this->quizCompleted = true;
         $this->quizStarted = false;
         $this->items = collect();
+
+        $this->refreshAttemptLimitState();
+
+        return redirect()->route('student.course.show', $this->subtopic->topic->document->course_id);
+    }
+
+    protected function refreshAttemptLimitState(): void
+    {
+        $this->completedAttemptsCount = QuizAttempt::query()
+            ->where('user_id', auth()->id())
+            ->where('subtopic_id', $this->subtopic->id)
+            ->whereNotNull('completed_at')
+            ->count();
+
+        $this->hasReachedAttemptLimit = $this->completedAttemptsCount >= $this->maxAttemptsAllowed;
     }
 
     public function resetTimer(): void
