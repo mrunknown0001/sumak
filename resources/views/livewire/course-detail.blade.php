@@ -46,16 +46,27 @@
                             Uploaded {{ $document->uploaded_at->diffForHumans() }} • {{ $document->formatted_file_size }}
                         </p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        @if($document->hasTos())
-                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/25 dark:text-emerald-200">
-                                ✓ Ready for Quizzes
-                            </span>
-                        @else
-                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold text-amber-600 dark:bg-amber-500/25 dark:text-amber-200">
-                                ⏳ Processing…
-                            </span>
-                        @endif
+                    <div class="flex flex-col items-end gap-3 sm:flex-row sm:items-center">
+                        <div>
+                            @if($document->hasTos())
+                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/25 dark:text-emerald-200">
+                                    ✓ Ready for Quizzes
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold text-amber-600 dark:bg-amber-500/25 dark:text-amber-200">
+                                    ⏳ Processing…
+                                </span>
+                            @endif
+                        </div>
+                        @can('view', $document)
+                            <a href="{{ route('student.document.download', $document->id) }}"
+                               class="inline-flex items-center gap-2 rounded-xl border border-emerald-300/70 bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-gray-500 shadow-sm transition hover:from-emerald-400 hover:to-teal-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-emerald-500/40">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+                                </svg>
+                                Download Lecture Material
+                            </a>
+                        @endcan
                     </div>
                 </div>
 
@@ -69,6 +80,63 @@
                         </h4>
                         <p>{{ $document->content_summary }}</p>
                     </div>
+                @endif
+
+                @if($document->topics->isNotEmpty())
+                    <section class="mt-6 space-y-4 rounded-2xl border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
+                        <header class="flex items-center justify-between gap-3">
+                            <div>
+                                <h4 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Learning Outline</h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    Review each topic and its subtopics before taking the quiz.
+                                </p>
+                            </div>
+                            <span class="rounded-full border border-emerald-200/70 px-3 py-1 text-xs font-semibold text-emerald-600 dark:border-emerald-500/40 dark:text-emerald-200">
+                                {{ $document->topics->count() }} {{ \Illuminate\Support\Str::plural('Topic', $document->topics->count()) }}
+                            </span>
+                        </header>
+
+                        <div class="space-y-4">
+                            @foreach($document->topics as $topic)
+                                <article class="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md dark:border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <h5 class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ $topic->name }}</h5>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                                {{ $topic->subtopics->count() }} {{ \Illuminate\Support\Str::plural('Subtopic', $topic->subtopics->count()) }}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    @if($topic->subtopics->isNotEmpty())
+                                        <ul class="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                                            @foreach($topic->subtopics as $subtopic)
+                                                <li class="flex items-center justify-between gap-3 rounded-xl border border-slate-200/60 bg-slate-50/70 px-3 py-2 dark:border-slate-700 dark:bg-slate-900/60">
+                                                    <div class="flex flex-col">
+                                                        <span class="font-medium text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</span>
+                                                        <span class="text-xs text-slate-500 dark:text-slate-400">
+                                                            Quiz items available: {{ $subtopic->items_count ?? $subtopic->items()->count() }}
+                                                        </span>
+                                                    </div>
+                                                    <a href="{{ route('student.quiz.context', $subtopic->id) }}"
+                                                       class="inline-flex items-center gap-1 rounded-lg border border-emerald-300/60 px-3 py-1 text-xs font-semibold text-emerald-600 transition hover:border-emerald-400 hover:bg-emerald-100/50 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:border-emerald-400/70 dark:hover:bg-emerald-500/10">
+                                                        Review & Quiz
+                                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                                        </svg>
+                                                    </a>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @else
+                                        <p class="mt-3 rounded-xl border border-slate-200/60 bg-slate-50/70 px-3 py-2 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
+                                            Subtopics will appear here once the instructor finishes processing this lecture.
+                                        </p>
+                                    @endif
+                                </article>
+                            @endforeach
+                        </div>
+                    </section>
                 @endif
 
                 @if($document->hasTos() && $document->topics->isNotEmpty())

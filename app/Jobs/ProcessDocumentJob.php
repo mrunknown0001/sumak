@@ -176,14 +176,19 @@ class ProcessDocumentJob implements ShouldQueue
     protected function generateTableOfSpecification(Document $document, OpenAiService $openAiService): void
     {
         // Get learning outcomes from OBTL if available
+        $learningOutcomeRecords = collect();
         $learningOutcomes = [];
+
         if ($this->options['has_obtl'] ?? false) {
             $obtl = $document->course->obtlDocument;
             if ($obtl) {
-                $learningOutcomes = $obtl->learningOutcomes()
+                $learningOutcomeRecords = $obtl->learningOutcomes()
                     ->with('subOutcomes')
-                    ->get()
+                    ->get();
+
+                $learningOutcomes = $learningOutcomeRecords
                     ->map(fn($lo) => [
+                        'outcome_code' => $lo->outcome_code,
                         'outcome' => $lo->description,
                         'bloom_level' => $lo->bloom_level,
                     ])
@@ -380,9 +385,24 @@ class ProcessDocumentJob implements ShouldQueue
                 continue;
             }
 
+            $learningOutcomeId = $this->matchLearningOutcomeId(
+                $tosItemData['learning_outcome'] ?? null,
+                $learningOutcomeRecords
+            );
+
+            if (! $learningOutcomeId && isset($tosItemData['learning_outcome'])) {
+                Log::debug('Unable to map learning outcome to ToS item', [
+                    'document_id' => $document->id,
+                    'tos_id' => $tos->id,
+                    'tos_item_index' => $index,
+                    'learning_outcome_label' => $tosItemData['learning_outcome'],
+                ]);
+            }
+
             TosItem::create([
                 'tos_id' => $tos->id,
                 'subtopic_id' => $subtopic->id,
+                'learning_outcome_id' => $learningOutcomeId,
                 'cognitive_level' => $tosItemData['cognitive_level'],
                 'bloom_category' => $tosItemData['bloom_category'],
                 'num_items' => $tosItemData['num_items'],
@@ -687,6 +707,80 @@ class ProcessDocumentJob implements ShouldQueue
             'strategy' => null,
             'candidate' => null,
         ];
+    }
+
+    protected function matchLearningOutcomeId(?string $label, Collection $learningOutcomeRecords): ?int
+    {
+        if (! is_string($label) || trim($label) === '' || $learningOutcomeRecords->isEmpty()) {
+            return null;
+        }
+
+        $normalizedLabel = $this->normalizeLabel($label);
+
+        if ($normalizedLabel === '') {
+            return null;
+        }
+
+        $exact = $learningOutcomeRecords->first(function ($outcome) use ($normalizedLabel) {
+            $code = $this->normalizeLabel($outcome->outcome_code ?? '');
+            $description = $this->normalizeLabel($outcome->description ?? '');
+
+            return $code === $normalizedLabel || $description === $normalizedLabel;
+        });
+
+        if ($exact) {
+            return $exact->id;
+        }
+
+        $labelLower = mb_strtolower($label);
+
+        $contains = $learningOutcomeRecords->first(function ($outcome) use ($labelLower) {
+            $codeLower = $outcome->outcome_code ? mb_strtolower($outcome->outcome_code) : null;
+            $descriptionLower = $outcome->description ? mb_strtolower($outcome->description) : null;
+
+            return ($codeLower && (str_contains($labelLower, $codeLower) || str_contains($codeLower, $labelLower)))
+                || ($descriptionLower && (str_contains($labelLower, $descriptionLower) || str_contains($descriptionLower, $labelLower)));
+        });
+
+        if ($contains) {
+            return $contains->id;
+        }
+
+        return $this->findClosestLearningOutcomeMatch($learningOutcomeRecords, $normalizedLabel);
+    }
+
+    protected function findClosestLearningOutcomeMatch(Collection $learningOutcomeRecords, string $normalizedLabel): ?int
+    {
+        if ($normalizedLabel === '') {
+            return null;
+        }
+
+        $bestOutcome = null;
+        $bestDistance = null;
+
+        foreach ($learningOutcomeRecords as $outcome) {
+            $candidates = array_filter([
+                $this->normalizeLabel($outcome->description ?? ''),
+                $this->normalizeLabel($outcome->outcome_code ?? ''),
+            ]);
+
+            foreach ($candidates as $candidate) {
+                $distance = levenshtein($normalizedLabel, $candidate);
+
+                if ($bestDistance === null || $distance < $bestDistance) {
+                    $bestDistance = $distance;
+                    $bestOutcome = $outcome;
+                }
+            }
+        }
+
+        if ($bestOutcome === null) {
+            return null;
+        }
+
+        $maxAllowedDistance = max(2, (int) round(strlen($normalizedLabel) * 0.3));
+
+        return $bestDistance <= $maxAllowedDistance ? $bestOutcome->id : null;
     }
 
     protected function deriveTopicNameFromLabel(string $rawLabel, array $topicCandidates, array $subtopicCandidates): string

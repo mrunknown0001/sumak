@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\QuizRegenerationController;
 use App\Http\Controllers\EnrollmentController;
+use App\Http\Controllers\DocumentController;
 use App\Services\Examples\OpenAiServiceExamples;
 use App\Services\OpenAiService;
 use App\Livewire\StudentDashboard;
@@ -46,6 +47,12 @@ Route::middleware(['auth', 'student'])->prefix('student')->name('student.')->gro
     Route::post('/course/{course}/unenroll', [EnrollmentController::class, 'unenroll'])->name('course.unenroll');
     Route::get('/course/{course}', CourseDetail::class)->name('course.show');
     
+    // Learning materials
+    Route::get('/document/{document}/download', [DocumentController::class, 'download'])
+        ->name('document.download');
+    Route::get('/document/{document}/preview', [DocumentController::class, 'preview'])
+        ->name('document.preview');
+
     // Quiz
     Route::get('/quiz/{subtopic}/context', QuizLearningContext::class)->name('quiz.context');
     Route::get('/quiz/{subtopic}', TakeQuiz::class)->name('quiz.take');

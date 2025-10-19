@@ -6,6 +6,9 @@ use App\Models\QuizAttempt;
 use App\Models\Subtopic;
 use App\Models\TosItem;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Livewire\Component;
 
 class QuizLearningContext extends Component
@@ -13,6 +16,8 @@ class QuizLearningContext extends Component
     public Subtopic $subtopic;
     public $course;
     public $document;
+    public ?string $materialDownloadUrl = null;
+    public ?string $materialPreviewUrl = null;
     public int $maxAttemptsAllowed = 3;
     public int $completedAttemptsCount = 0;
     public bool $hasReachedAttemptLimit = false;
@@ -26,14 +31,30 @@ class QuizLearningContext extends Component
 
         $this->subtopic = $subtopic;
         $this->document = $subtopic->topic->document;
+        $this->document->loadMissing(['topics.subtopics']);
         $this->course = $this->document->course;
 
-        if (!$this->course->isEnrolledBy(auth()->id())) {
+        $isEnrolled = $this->course->isEnrolledBy(auth()->id());
+        Log::debug('QuizLearningContext mount preflight', [
+            'subtopic_id' => $subtopic->id,
+            'document_id' => $this->document->id,
+            'course_id' => $this->course->id,
+            'user_id' => auth()->id(),
+            'is_enrolled' => $isEnrolled,
+            'has_preview_route' => Route::has('student.document.preview'),
+        ]);
+
+        if (! $isEnrolled) {
             redirect()
                 ->route('student.courses')
                 ->with('error', 'You must enroll in this course first.');
 
             return;
+        }
+
+        if (Gate::allows('view', $this->document)) {
+            $this->materialDownloadUrl = route('student.document.download', $this->document->id);
+            $this->materialPreviewUrl = route('student.document.preview', $this->document->id);
         }
 
         $this->maxAttemptsAllowed = (int) config('quiz.max_attempts', 3);
@@ -103,6 +124,10 @@ class QuizLearningContext extends Component
         return view('livewire.quiz-learning-context', [
             'course' => $this->course,
             'document' => $this->document,
+            'documentTopics' => $this->document->topics,
+            'materialDownloadUrl' => $this->materialDownloadUrl,
+            'materialPreviewUrl' => $this->materialPreviewUrl,
+            'currentSubtopicId' => $this->subtopic->id,
             'tosItems' => $tosItems,
             'learningOutcomeSummaries' => $learningOutcomeSummaries,
             'tableOfSpecification' => $tableOfSpecification,
