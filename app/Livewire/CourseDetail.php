@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Course;
+use Illuminate\Support\Facades\Log;
 
 class CourseDetail extends Component
 {
@@ -24,23 +25,43 @@ class CourseDetail extends Component
 
     public function render()
     {
+        $userId = auth()->id();
+
         $documents = $this->course->documents()
             ->whereHas('tableOfSpecification')
             ->whereHas('topics.subtopics.items')
             ->with([
                 'tableOfSpecification',
-                'topics' => function ($topicQuery) {
+                'topics' => function ($topicQuery) use ($userId) {
                     $topicQuery->whereHas('subtopics.items')
                         ->with([
-                            'subtopics' => function ($subtopicQuery) {
+                            'subtopics' => function ($subtopicQuery) use ($userId) {
                                 $subtopicQuery->whereHas('items')
-                                    ->withCount('items');
+                                    ->withCount('items')
+                                    ->withCount([
+                                        'quizAttempts as user_attempts_count' => function ($attemptQuery) use ($userId) {
+                                            $attemptQuery->where('user_id', $userId);
+                                        },
+                                    ]);
                             },
                         ]);
                 },
             ])
             ->latest()
             ->get();
+        Log::debug('CourseDetail render document stats', [
+            'course_id' => $this->course->id,
+            'documents_count' => $documents->count(),
+            'document_topic_breakdown' => $documents->map(function ($doc) {
+                return [
+                    'document_id' => $doc->id,
+                    'topics' => $doc->topics->count(),
+                    'subtopics' => $doc->topics->sum(function ($topic) {
+                        return $topic->subtopics->count();
+                    }),
+                ];
+            })->toArray(),
+        ]);
 
         return view('livewire.course-detail', [
             'documents' => $documents,
