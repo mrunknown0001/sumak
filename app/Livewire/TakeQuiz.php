@@ -46,9 +46,34 @@ class TakeQuiz extends Component
         $this->irtService = $irtService;
     }
 
-    public function mount(Subtopic $subtopic): void
+    public function mount(Subtopic $subtopic)
     {
         $this->subtopic = $subtopic->load('topic.document.course');
+
+        $contextSubtopicId = (int) (session()->get('quiz.context.subtopic') ?? 0);
+        $hasActiveAttempt = QuizAttempt::query()
+            ->where('user_id', auth()->id())
+            ->where('subtopic_id', $subtopic->id)
+            ->whereNull('completed_at')
+            ->exists();
+
+        if (!$hasActiveAttempt && $contextSubtopicId !== $subtopic->id) {
+            return redirect()->route('student.quiz.context', $subtopic->id);
+        }
+
+        if ($contextSubtopicId === $subtopic->id) {
+            session()->forget('quiz.context.subtopic');
+        }
+
+        Log::debug('TakeQuiz mount accessed', [
+            'subtopic_id' => $subtopic->id,
+            'course_id' => optional($subtopic->topic->document)->course_id,
+            'route_name' => optional(request()->route())->getName(),
+            'referer' => request()->headers->get('referer'),
+            'context_subtopic_id' => $contextSubtopicId,
+            'has_active_attempt' => $hasActiveAttempt,
+        ]);
+
         $this->items = collect();
         $this->refreshAttemptLimitState();
     }

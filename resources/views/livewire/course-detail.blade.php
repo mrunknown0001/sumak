@@ -89,7 +89,7 @@
                                     @endphp
 
                                     @if($canRetake)
-                                        <a href="{{ route('student.quiz.take', $subtopic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
+                                        <a href="{{ route('student.quiz.context', $subtopic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
                                             <div>
                                                 <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</p>
                                                 <p class="text-xs text-slate-500 dark:text-slate-400">📚 {{ $topic->name }}</p>

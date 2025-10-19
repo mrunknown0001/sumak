@@ -9,6 +9,7 @@ use App\Services\OpenAiService;
 use App\Livewire\StudentDashboard;
 use App\Livewire\StudentCourses;
 use App\Livewire\CourseDetail;
+use App\Livewire\QuizLearningContext;
 use App\Livewire\TakeQuiz;
 use App\Livewire\QuizResult;
 
@@ -46,6 +47,7 @@ Route::middleware(['auth', 'student'])->prefix('student')->name('student.')->gro
     Route::get('/course/{course}', CourseDetail::class)->name('course.show');
     
     // Quiz
+    Route::get('/quiz/{subtopic}/context', QuizLearningContext::class)->name('quiz.context');
     Route::get('/quiz/{subtopic}', TakeQuiz::class)->name('quiz.take');
     Route::get('/quiz/{attempt}/result', QuizResult::class)->name('quiz.result');
     Route::post('/quiz/{subtopic}/regenerate', [QuizRegenerationController::class, 'regenerate'])->name('quiz.regenerate');

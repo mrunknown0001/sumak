@@ -53,7 +53,7 @@ class StudentDashboard extends Component
         $quiz = collect($this->recentQuizzes)->firstWhere('id', $quizId);
 
         if ($quiz && $quiz['attempts_remaining'] > 0) {
-            return redirect()->route('student.quiz.take', $quiz['quiz_id']);
+            return redirect()->route('student.quiz.context', $quiz['quiz_id']);
         }
 
         session()->flash('error', 'No attempts remaining for this quiz.');

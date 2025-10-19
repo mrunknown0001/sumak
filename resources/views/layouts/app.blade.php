@@ -127,6 +127,7 @@
                 request()->routeIs('student.dashboard') => 'Dashboard',
                 request()->routeIs('student.courses') => 'Courses',
                 request()->routeIs('student.course.*') => 'Course Details',
+                request()->routeIs('student.quiz.context') => 'Learning Context',
                 request()->routeIs('student.quiz.take') => 'Take Quiz',
                 request()->routeIs('student.quiz.result') => 'Quiz Results',
                 default => 'Student Portal',

@@ -219,7 +219,7 @@
                 ← Back to Course
             </a>
             <a
-                href="{{ route('student.quiz.take', $attempt->subtopic_id) }}"
+                href="{{ route('student.quiz.context', $attempt->subtopic_id) }}"
                 class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-emerald-500 hover:to-blue-500 dark:from-emerald-500 dark:to-blue-500 dark:hover:from-emerald-400 dark:hover:to-blue-400"
             >
                 🔄 Retake Quiz
