@@ -204,18 +204,6 @@
                         </li>
                     @endforeach
                 </ul>
-
-                <div data-sidebar-text class="mt-8 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
-                    <h3 class="font-semibold text-emerald-800 dark:text-emerald-200">Need help?</h3>
-                    <p class="mt-1 text-xs text-emerald-600 dark:text-emerald-300">Check the quick start guide or contact your instructor for support.</p>
-                    <a href="{{ route('student.courses') }}#faq" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-300 dark:hover:text-emerald-200">
-                        View FAQs
-                        <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none">
-                            <path d="M7 5h8v8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                            <path d="M15 5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                    </a>
-                </div>
             </nav>
 
             <div class="border-t border-slate-200 px-6 py-5 dark:border-slate-800">
