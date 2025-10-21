@@ -104,6 +104,7 @@
             </header>
             <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/60 shadow-inner dark:border-slate-700 dark:bg-slate-900/60" style="min-height: 600px;">
                 <iframe src="{{ $materialPreviewUrl }}"
+                        style="height:600px !important;"
                         class="h-full w-full"
                         title="Lecture material preview"
                         loading="lazy"></iframe>
@@ -115,72 +116,6 @@
             <p class="mt-2">
                 Please download the lecture material using the button above and review it before proceeding to the quiz.
             </p>
-        </section>
-    @endif
-
-    @if($documentTopics->isNotEmpty())
-        <section class="space-y-6 rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-lg shadow-slate-500/5 dark:border-slate-800/70 dark:bg-slate-900/70">
-            <header class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Learning Outline</h2>
-                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                        Study the lecture breakdown below before attempting the quiz.
-                    </p>
-                </div>
-                <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 px-4 py-1 text-xs font-semibold text-emerald-600 dark:border-emerald-500/40 dark:text-emerald-200">
-                    {{ $documentTopics->count() }} {{ \Illuminate\Support\Str::plural('Topic', $documentTopics->count()) }}
-                </span>
-            </header>
-
-            <div class="space-y-4">
-                @foreach($documentTopics as $topic)
-                    <article class="rounded-2xl border border-slate-200/70 bg-white/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md dark:border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
-                        <header class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                            <div>
-                                <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ $topic->name }}</h3>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">
-                                    {{ $topic->subtopics->count() }} {{ \Illuminate\Support\Str::plural('Subtopic', $topic->subtopics->count()) }}
-                                </p>
-                            </div>
-                        </header>
-
-                        @if($topic->subtopics->isNotEmpty())
-                            <ul class="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                                @foreach($topic->subtopics as $outlineSubtopic)
-                                    @php
-                                        $isActiveSubtopic = ($currentSubtopicId ?? null) === $outlineSubtopic->id;
-                                    @endphp
-                                    <li class="flex flex-col gap-2 rounded-xl border border-slate-200/60 bg-slate-50/70 px-3 py-3 transition dark:border-slate-700 dark:bg-slate-900/60 md:flex-row md:items-center md:justify-between {{ $isActiveSubtopic ? 'border-emerald-400/70 bg-emerald-100/40 shadow-sm dark:border-emerald-400/60 dark:bg-emerald-900/30' : '' }}">
-                                        <div>
-                                            <p class="font-medium text-slate-900 dark:text-slate-100">{{ $outlineSubtopic->name }}</p>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400">
-                                                Quiz items available: {{ $outlineSubtopic->items_count ?? $outlineSubtopic->items()->count() }}
-                                            </p>
-                                            @if($isActiveSubtopic)
-                                                <span class="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-600 dark:bg-emerald-500/25 dark:text-emerald-200">
-                                                    Currently reviewing
-                                                </span>
-                                            @endif
-                                        </div>
-                                        <a href="{{ route('student.quiz.context', $outlineSubtopic->id) }}"
-                                           aria-current="{{ $isActiveSubtopic ? 'true' : 'false' }}"
-                                           class="inline-flex items-center gap-1 rounded-lg border border-emerald-300/60 px-3 py-1 text-xs font-semibold text-emerald-600 transition hover:border-emerald-400 hover:bg-emerald-100/50 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:border-emerald-400/70 dark:hover:bg-emerald-500/10">
-                                            Review & Quiz
-                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                            </svg>
-                                        </a>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @else
-                            <p class="mt-3 rounded-xl border border-slate-200/60 bg-slate-50/70 px-3 py-2 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
-                                Subtopics will appear here once the instructor finishes processing this lecture.
-                            </p>
-                        @endif
-                    </article>
-                @endforeach
-            </div>
         </section>
     @endif
 

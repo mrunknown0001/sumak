@@ -72,6 +72,14 @@ class GenerateFeedbackJob implements ShouldQueue
             
             // Generate feedback using AI
             $feedbackData = $openAiService->generateFeedback($quizAttemptData, $userMasteryData);
+
+            $weaknesses = $feedbackData['areas_for_improvement'] ?? [];
+            $recommendations = $feedbackData['specific_recommendations'] ?? [];
+
+            if ((float) $attempt->score_percentage >= 100) {
+                $weaknesses = [];
+                $recommendations = [];
+            }
             
             // Save feedback
             Feedback::create([
@@ -80,8 +88,8 @@ class GenerateFeedbackJob implements ShouldQueue
                 'user_id' => $attempt->user_id,
                 'feedback_text' => $feedbackData['overall_feedback'],
                 'strengths' => $feedbackData['strengths'] ?? [],
-                'weaknesses' => $feedbackData['areas_for_improvement'] ?? [],
-                'recommendations' => $feedbackData['specific_recommendations'] ?? [],
+                'weaknesses' => $weaknesses,
+                'recommendations' => $recommendations,
                 'next_steps' => $feedbackData['next_steps'] ?? [],
                 'motivational_message' => $feedbackData['motivational_message'] ?? null,
                 'generated_at' => now(),
