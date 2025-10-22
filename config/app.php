@@ -128,4 +128,8 @@ return [
         'OpenAI' => App\Facades\OpenAI::class,
 
     ],
+
+    'https' => [
+        'force' => env('FORCE_URL_HTTPS_SCHEME', false),
+    ],
 ];
