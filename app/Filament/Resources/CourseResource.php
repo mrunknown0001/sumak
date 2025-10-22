@@ -18,7 +18,9 @@ class CourseResource extends Resource
 {
     protected static ?string $model = Course::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-book-open';
+
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
@@ -89,7 +91,13 @@ class CourseResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('workflow_stage')
+                    ->label('Workflow Stage')
+                    ->options([
+                        'materials_uploaded' => 'Materials Uploaded',
+                        'obtl_uploaded' => 'OBTL Uploaded',
+                        'draft' => 'Draft',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

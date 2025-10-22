@@ -18,7 +18,12 @@ class ObtlDocumentResource extends Resource
 {
     protected static ?string $model = ObtlDocument::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+
+    protected static ?int $navigationSort = 2;
+
+    protected static ?string $navigationLabel = 'OBTL Documents';
+    protected static ?string $label = 'OBTL Documents';
 
     public static function form(Form $form): Form
     {
@@ -90,7 +95,13 @@ class ObtlDocumentResource extends Resource
                     ->tooltip(fn (?string $state) => $state),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('processing_status')
+                    ->options([
+                        'completed' => 'Completed',
+                        'processing' => 'Processing',
+                        'pending' => 'Pending',
+                        'failed' => 'Failed'
+                    ]),
             ])
             ->actions([
                 // Tables\Actions\EditAction::make(),

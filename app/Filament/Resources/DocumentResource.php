@@ -18,7 +18,13 @@ class DocumentResource extends Resource
 {
     protected static ?string $model = Document::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-document';
+
+    protected static ?int $navigationSort = 3;
+
+    protected static ?string $navigationLabel = "Learning Materials";
+
+    protected static ?string $label = "Learning Materials";
 
     public static function form(Form $form): Form
     {
@@ -95,7 +101,16 @@ class DocumentResource extends Resource
                     ->tooltip(fn (?string $state) => $state),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('course')
+                    ->relationship('course', 'course_title')
+                    ->searchable(),
+                Tables\Filters\SelectFilter::make('processing_status')
+                    ->options([
+                        'completed' => 'Completed',
+                        'processing' => 'Processing',
+                        'pending' => 'Pending',
+                        'failed' => 'Failed'
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers;
+use App\Filament\Resources\StudentResource\Pages;
+use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -13,13 +13,15 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class UserResource extends Resource
+class StudentResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
 
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 6;
+
+    protected static ?string $label = 'Students';
 
     public static function form(Form $form): Form
     {
@@ -34,7 +36,7 @@ class UserResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Name')
+                    ->label('Student Name')
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')
@@ -65,15 +67,14 @@ class UserResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUsers::route('/'),
-            'create' => Pages\CreateUser::route('/create'),
-            'edit' => Pages\EditUser::route('/{record}/edit'),
+            'index' => Pages\ListStudents::route('/'),
+            'create' => Pages\CreateStudent::route('/create'),
+            'edit' => Pages\EditStudent::route('/{record}/edit'),
         ];
     }
 
-
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('role', '!=', 'student');
+        return parent::getEloquentQuery()->where('role', '=', 'student');
     }
 }
