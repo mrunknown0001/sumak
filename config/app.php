@@ -130,6 +130,6 @@ return [
     ],
 
     'https' => [
-        'force' => env('FORCE_URL_HTTPs_SCHEME', false),
+        'force' => env('FORCE_URL_HTTPS_SCHEME', false),
     ],
 ];
