@@ -54,6 +54,7 @@ class ListDocuments extends ListRecords
                     Forms\Components\FileUpload::make('document_file')
                         ->label('Upload  Document')
                         ->acceptedFileTypes(['application/pdf'])
+                        ->maxSize(20480) // 20MB
                         ->required(),
                 ])
                 // upload and extract information

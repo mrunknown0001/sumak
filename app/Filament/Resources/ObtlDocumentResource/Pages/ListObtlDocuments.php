@@ -43,6 +43,7 @@ class ListObtlDocuments extends ListRecords
                     Forms\Components\FileUpload::make('obtl_file')
                         ->label('Upload OBTL Document')
                         ->acceptedFileTypes(['application/pdf'])
+                        ->maxSize(20480) // 20MB
                         ->required(),
                 ])
                 // upload and extract information
