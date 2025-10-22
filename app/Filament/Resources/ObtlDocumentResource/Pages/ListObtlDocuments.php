@@ -45,6 +45,7 @@ class ListObtlDocuments extends ListRecords
                         ->acceptedFileTypes(['application/pdf'])
                         ->maxSize(20480) // 20MB
                         ->disk('public')
+                        ->directory('obtl-documents')
                         ->required(),
                 ])
                 ->modalHeading('Upload OBTL Document')
