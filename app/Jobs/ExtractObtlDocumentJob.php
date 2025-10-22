@@ -34,10 +34,24 @@ class ExtractObtlDocumentJob implements ShouldQueue
     public function handle(): void
     {
         $obtlDocument = ObtlDocument::find($this->ObtlDocumentId);
-        if (!$obtlDocument) {
+        if (! $obtlDocument) {
             Log::error("OBTL Document not found: {$this->ObtlDocumentId}");
             return;
         }
+
+        $initialStatus = $obtlDocument->processing_status;
+
+        Log::info('ExtractObtlDocumentJob started', [
+            'obtl_document_id' => $this->ObtlDocumentId,
+            'initial_status' => $initialStatus,
+            'has_processed_at' => ! is_null($obtlDocument->processed_at),
+        ]);
+
+        $obtlDocument->update([
+            'processing_status' => ObtlDocument::PROCESSING_IN_PROGRESS,
+            'processed_at' => null,
+            'error_message' => null,
+        ]);
 
         // Extract title from the document
         $parser = new PdfParser();
@@ -67,8 +81,31 @@ class ExtractObtlDocumentJob implements ShouldQueue
             }
 
             DB::commit();
+
+            $obtlDocument->update([
+                'processing_status' => ObtlDocument::PROCESSING_COMPLETED,
+                'processed_at' => now(),
+                'error_message' => null,
+            ]);
+
+            $obtlDocument->refresh();
+
+            Log::info('ExtractObtlDocumentJob finished', [
+                'obtl_document_id' => $this->ObtlDocumentId,
+                'status_before' => $initialStatus,
+                'status_after' => $obtlDocument->processing_status,
+                'processed_at' => optional($obtlDocument->processed_at)?->toDateTimeString(),
+                'title' => $obtlDocument->title,
+                'learning_outcomes_created' => $obtlDocument->learningOutcomes()->count(),
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            $obtlDocument->update([
+                'processing_status' => ObtlDocument::PROCESSING_FAILED,
+                'error_message' => $e->getMessage(),
+            ]);
+
             Log::error("Failed to extract OBTL Document", [
                 'obtl_document_id' => $this->ObtlDocumentId,
                 'error' => $e->getMessage(),

@@ -13,6 +13,7 @@ use App\Models\ObtlDocument;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use App\Jobs\ExtractObtlDocumentJob;
+use Illuminate\Validation\ValidationException as LaravelValidationException;
 
 
 class ListObtlDocuments extends ListRecords
@@ -29,7 +30,15 @@ class ListObtlDocuments extends ListRecords
                     Forms\Components\Select::make('course_id')
                         ->label('Select Course')
                         ->searchable()
-                        ->options(Course::all()->pluck('course_title', 'id'))
+                        ->options(fn () => Course::query()
+                            ->where(function ($query) {
+                                $query->whereNull('workflow_stage')
+                                    ->orWhere('workflow_stage', Course::WORKFLOW_STAGE_DRAFT);
+                            })
+                            ->whereDoesntHave('obtlDocument')
+                            ->orderBy('course_title')
+                            ->pluck('course_title', 'id'))
+                        ->hint('Only courses without an uploaded OBTL document are listed.')
                         ->required(),
                     Forms\Components\FileUpload::make('obtl_file')
                         ->label('Upload OBTL Document')
@@ -40,38 +49,78 @@ class ListObtlDocuments extends ListRecords
                 ->modalHeading('Upload OBTL Document')
                 ->modalButton('Upload')
                 ->action(function (array $data) {
-                    // handle the uploaded file
                     $obtlFile = $data['obtl_file'];
-                    // get full path
                     $obtlFileFullPath = Storage::disk('public')->path($obtlFile);
+                    $fileSize = Storage::disk('public')->size($obtlFile);
 
                     DB::beginTransaction();
+
                     try {
+                        $course = Course::lockForUpdate()->find($data['course_id']);
+
+                        if (! $course) {
+                            throw ValidationException::withMessages([
+                                'course_id' => 'The selected course could not be found.',
+                            ]);
+                        }
+
+                        if ($course->workflow_stage !== null && $course->workflow_stage !== Course::WORKFLOW_STAGE_DRAFT) {
+                            throw ValidationException::withMessages([
+                                'course_id' => 'The selected course already has an OBTL document in progress.',
+                            ]);
+                        }
+
+                        if ($course->obtlDocument()->exists()) {
+                            throw ValidationException::withMessages([
+                                'course_id' => 'An OBTL document has already been uploaded for this course.',
+                            ]);
+                        }
 
                         $document = ObtlDocument::create([
-                            'course_id' => $data['course_id'],
+                            'course_id' => $course->id,
                             'user_id' => auth()->id(),
                             'title' => 'OBTL Document Title',
                             'file_path' => $obtlFileFullPath,
                             'file_type' => 'pdf',
+                            'file_size' => $fileSize,
                             'uploaded_at' => now(),
+                            'processing_status' => ObtlDocument::PROCESSING_PENDING,
                         ]);
 
-                        // Dispatch job to extract title
+                        $course->update([
+                            'workflow_stage' => Course::WORKFLOW_STAGE_OBTL_UPLOADED,
+                            'obtl_uploaded_at' => now(),
+                        ]);
+
                         ExtractObtlDocumentJob::dispatch($document->id);
 
                         Notification::make()
-                            ->title('Document uploaded successfully.')
+                            ->title('OBTL document uploaded successfully.')
+                            ->body('Processing has started. You will be notified when extraction completes.')
                             ->success()
                             ->send();
-                        
+
                         DB::commit();
-                    } catch (\Throwable $th) {
+                    } catch (LaravelValidationException $exception) {
                         DB::rollBack();
+                        $this->halt();
+
                         Notification::make()
-                            ->title('Error uploading documents.')
+                            ->title('Unable to upload OBTL document.')
+                            ->body(collect($exception->errors())->flatten()->join(' '))
                             ->danger()
                             ->send();
+
+                        throw $exception;
+                    } catch (\Throwable $th) {
+                        DB::rollBack();
+
+                        Notification::make()
+                            ->title('Error uploading OBTL document.')
+                            ->body('Please try again or contact support if the issue persists.')
+                            ->danger()
+                            ->send();
+
                         Log::error($th);
                     }
 

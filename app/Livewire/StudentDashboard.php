@@ -27,118 +27,14 @@ class StudentDashboard extends Component
 
     public function loadDashboardData()
     {
-        // In production, fetch from StudentDashboardController
-        // Uncomment the line below to use real data:
-        // $data = $this->dashboardController->getDashboardData();
+        // Fetch real data from StudentDashboardController
+        $data = $this->dashboardController->getDashboardData();
         
-        // Mock data for demonstration
-        $student = Auth::user();
-        $this->studentData = [
-            'name' => $student->name ?? 'Maria Santos',
-            'student_id' => $student->student_id ?? '2024-00123',
-        ];
-
-        $this->courses = [
-            [
-                'id' => 1,
-                'name' => 'Data Structures & Algorithms',
-                'code' => 'CS201',
-                'progress' => 75,
-                'quizzes_taken' => 8,
-                'total_quizzes' => 12,
-                'avg_score' => 85,
-                'ability_level' => 0.65,
-                'status' => 'active'
-            ],
-            [
-                'id' => 2,
-                'name' => 'Database Management Systems',
-                'code' => 'CS301',
-                'progress' => 60,
-                'quizzes_taken' => 5,
-                'total_quizzes' => 10,
-                'avg_score' => 78,
-                'ability_level' => 0.42,
-                'status' => 'active'
-            ],
-            [
-                'id' => 3,
-                'name' => 'Web Development',
-                'code' => 'CS205',
-                'progress' => 90,
-                'quizzes_taken' => 10,
-                'total_quizzes' => 10,
-                'avg_score' => 92,
-                'ability_level' => 0.85,
-                'status' => 'active'
-            ]
-        ];
-
-        $this->recentQuizzes = [
-            [
-                'id' => 1,
-                'course' => 'Data Structures & Algorithms',
-                'topic' => 'Binary Search Trees',
-                'score' => 18,
-                'total' => 20,
-                'date' => '2025-10-03',
-                'duration' => '18 mins',
-                'attempts_used' => 1,
-                'attempts_remaining' => 2,
-                'ability_estimate' => 0.72
-            ],
-            [
-                'id' => 2,
-                'course' => 'Database Management Systems',
-                'topic' => 'Normalization',
-                'score' => 15,
-                'total' => 20,
-                'date' => '2025-10-02',
-                'duration' => '20 mins',
-                'attempts_used' => 2,
-                'attempts_remaining' => 1,
-                'ability_estimate' => 0.45
-            ],
-            [
-                'id' => 3,
-                'course' => 'Web Development',
-                'topic' => 'React Hooks',
-                'score' => 19,
-                'total' => 20,
-                'date' => '2025-10-01',
-                'duration' => '17 mins',
-                'attempts_used' => 1,
-                'attempts_remaining' => 2,
-                'ability_estimate' => 0.88
-            ]
-        ];
-
-        $this->aiFeedback = [
-            [
-                'course' => 'Data Structures & Algorithms',
-                'topic' => 'Binary Search Trees',
-                'feedback' => 'Excellent work on tree traversal concepts! You demonstrated strong understanding of in-order, pre-order, and post-order traversals. Consider reviewing balancing operations for even better performance.',
-                'recommendations' => ['Practice AVL tree rotations', 'Study Red-Black tree properties'],
-                'strengths' => ['Tree traversal algorithms', 'Recursive thinking'],
-                'areas_to_improve' => ['Tree balancing', 'Time complexity analysis']
-            ],
-            [
-                'course' => 'Database Management Systems',
-                'topic' => 'Normalization',
-                'feedback' => 'You\'re making good progress with normalization! Focus on identifying functional dependencies more accurately. Review 3NF and BCNF differences.',
-                'recommendations' => ['Practice with more complex schemas', 'Review functional dependency rules'],
-                'strengths' => ['1NF and 2NF identification'],
-                'areas_to_improve' => ['3NF vs BCNF distinction', 'Decomposition techniques']
-            ]
-        ];
-
-        $this->overallStats = [
-            'total_quizzes_taken' => 23,
-            'avg_accuracy' => 85,
-            'total_study_time' => '42 hours',
-            'mastery_level' => 'Advanced Beginner',
-            'overall_ability' => 0.65
-        ];
+        $this->studentData = $data['student_info'];
+        $this->courses = $data['courses'];
+        $this->recentQuizzes = $data['recent_quizzes'];
+        $this->aiFeedback = $data['ai_feedback'];
+        $this->overallStats = $data['overall_stats'];
     }
 
     public function viewCourse($courseId)
@@ -155,9 +51,9 @@ class StudentDashboard extends Component
     {
         // Check if attempts remaining
         $quiz = collect($this->recentQuizzes)->firstWhere('id', $quizId);
-        
+
         if ($quiz && $quiz['attempts_remaining'] > 0) {
-            return redirect()->route('student.quiz.retake', $quizId);
+            return redirect()->route('student.quiz.context', $quiz['quiz_id']);
         }
 
         session()->flash('error', 'No attempts remaining for this quiz.');
@@ -212,6 +108,10 @@ class StudentDashboard extends Component
     public function render()
     {
         return view('livewire.student-dashboard')
-            ->layout('layouts.app');
+            ->layout('layouts.app', [
+                'title' => 'SumakQuiz | Student Dashboard',
+                'pageTitle' => 'Dashboard',
+                'pageSubtitle' => 'Monitor your mastery, courses, and recent quiz performance.',
+            ]);
     }
 }

@@ -19,6 +19,8 @@ class LearningOutcomeResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?int $navigationSort = 4;
+
     public static function form(Form $form): Form
     {
         return $form
@@ -31,6 +33,10 @@ class LearningOutcomeResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('obtlDocument.title')
+                    ->label('OBTL Document')
+                    ->sortable()
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('outcome_code')->label('Outcome Code')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('description')->label('Description')->sortable()->searchable()
                     ->limit(100),
@@ -38,14 +44,16 @@ class LearningOutcomeResource extends Resource
                     ->formatStateUsing(fn ($state) => ucfirst($state)),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('obtlDocument')
+                    ->relationship('obtlDocument', 'title')
+                    ->searchable(),
             ])
             ->actions([
                 // Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    // Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }

@@ -19,6 +19,8 @@ class ItemBankResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?int $navigationSort = 5;
+
     public static function form(Form $form): Form
     {
         return $form
@@ -31,17 +33,30 @@ class ItemBankResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('question')
+                    ->limit(80)
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('correct_answer')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('learningOutcome.outcome_code')
+                    ->label('Learning Outcome Code')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('learningOutcome.description')
+                    ->hidden()
+                    ->searchable(),                
             ])
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                // Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    // Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }
