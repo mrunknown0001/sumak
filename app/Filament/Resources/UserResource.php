@@ -25,7 +25,30 @@ class UserResource extends Resource
     {
         return $form
             ->schema([
-                //
+                Forms\Components\TextInput::make('name')
+                    ->label('Full Name')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('email')
+                    ->label('Email Address')
+                    ->required()
+                    ->email()
+                    ->unique(ignoreRecord:true)
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('password')
+                    ->label('Password')
+                    ->required()
+                    ->maxLength(255)
+                    ->password()
+                    ->revealable(),
+                Forms\Components\Select::make('role')
+                    ->label('Role')
+                    ->options([
+                        'admin' => 'Admin'
+                    ])
+                    ->default('admin')
+                    ->required(),
+                
             ]);
     }
 
