@@ -360,7 +360,7 @@
             <div class="feature-card">
                 <div class="feature-icon">🔄</div>
                 <h3>Multiple Attempts</h3>
-                <p>Regenerate quizzes up to three times with reworded questions to reinforce learning.</p>
+                <p>Regenerate quizzes up to three times to reinforce learning.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">📚</div>
@@ -388,7 +388,7 @@
             <div class="step">
                 <div class="step-number">3</div>
                 <h3>Take Adaptive Quiz</h3>
-                <p>Answer 20 multiple-choice questions with 1-minute timer per item in an adaptive format.</p>
+                <p>Answer multiple-choice questions with customized timer per item in an adaptive format.</p>
             </div>
             <div class="step">
                 <div class="step-number">4</div>
