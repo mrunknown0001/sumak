@@ -26,28 +26,28 @@
 
             <div class="px-6 py-6 sm:px-8 sm:py-8">
                 <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div class="rounded-2xl border border-slate-100/60 bg-slate-50/80 p-5 text-sm font-medium text-slate-600 shadow-inner shadow-white/40 transition dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-300">
+                    <div class="rounded-2xl bg-slate-50/80 p-5 text-sm font-medium text-slate-600 shadow-inner shadow-white/40 transition dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-300">
                         <dt class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Course</dt>
                         <dd class="mt-2 text-base font-semibold text-slate-800 dark:text-white">
                             {{ $course?->course_title ?? 'Not available' }}
                         </dd>
                     </div>
 
-                    <div class="rounded-2xl border border-slate-100/60 bg-slate-50/80 p-5 text-sm font-medium text-slate-600 shadow-inner shadow-white/40 transition dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-300">
+                    <div class="rounded-2xl bg-slate-50/80 p-5 text-sm font-medium text-slate-600 shadow-inner shadow-white/40 transition dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-300">
                         <dt class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Learning Material</dt>
                         <dd class="mt-2 text-base font-semibold text-slate-800 dark:text-white">
                             {{ $record->document?->title ?? 'Not available' }}
                         </dd>
                     </div>
 
-                    <div class="rounded-2xl border border-slate-100/60 bg-slate-50/80 p-5 text-sm font-medium text-slate-600 shadow-inner shadow-white/40 transition dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-300">
+                    <div class="rounded-2xl bg-slate-50/80 p-5 text-sm font-medium text-slate-600 shadow-inner shadow-white/40 transition dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-300">
                         <dt class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Items</dt>
                         <dd class="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                             {{ $totals['items'] }}
                         </dd>
                     </div>
 
-                    <div class="rounded-2xl border border-slate-100/60 bg-slate-50/80 p-5 text-sm font-medium text-slate-600 shadow-inner shadow-white/40 transition dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-300">
+                    <div class="rounded-2xl bg-slate-50/80 p-5 text-sm font-medium text-slate-600 shadow-inner shadow-white/40 transition dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-300">
                         <dt class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">LOTS Focus</dt>
                         <dd class="mt-2 text-base font-semibold text-slate-800 dark:text-white">
                             {{ $record->lots_percentage ? number_format((float) $record->lots_percentage, 0) . '%' : '—' }}
@@ -177,62 +177,62 @@
                                         <th scope="col" class="px-6 py-4 text-right">Sample Item No.</th>
                                     </tr>
                                 </thead>
-<tbody class="divide-y divide-slate-100 bg-white text-sm text-slate-700 dark:divide-slate-800 dark:bg-slate-900 dark:text-slate-200">
-    @forelse ($rows as $row)
-        @php
-            $item = $row['model'];
-            $learningOutcome = $item->learningOutcome?->description ?? $item->learningOutcome?->outcome_statement ?? '—';
-            $topic = $item->subtopic?->topic?->name;
-            $subtopic = $item->subtopic?->name;
-            $coverage = collect([$topic, $subtopic])->filter()->unique()->implode(' • ');
-            $sampleRange = $row['sample_range'] ?? null;
-        @endphp
-        <tr class="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/70">
-            <!-- Learning Outcome -->
-            <td class="px-6 py-4 align-top font-medium text-slate-800 dark:text-primary">
-                <div>{{ $learningOutcome }}</div>
-                @if ($item->learningOutcome?->outcome_code)
-                    <div class="mt-1 text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                        {{ $item->learningOutcome->outcome_code }}
-                    </div>
-                @endif
-            </td>
+                                <tbody class="divide-y divide-slate-100 text-sm text-slate-700 dark:bg-slate-700 dark:divide-slate-800  dark:text-slate-500">
+                                    @forelse ($rows as $row)
+                                        @php
+                                            $item = $row['model'];
+                                            $learningOutcome = $item->learningOutcome?->description ?? $item->learningOutcome?->outcome_statement ?? '—';
+                                            $topic = $item->subtopic?->topic?->name;
+                                            $subtopic = $item->subtopic?->name;
+                                            $coverage = collect([$topic, $subtopic])->filter()->unique()->implode(' • ');
+                                            $sampleRange = $row['sample_range'] ?? null;
+                                        @endphp
+                                        <tr class="transition-colors hover:bg-slate-50 dark:hover:bg-slate-600">
+                                            <!-- Learning Outcome -->
+                                            <td class="px-6 py-4 align-top font-medium text-slate-800 dark:text-primary">
+                                                <div>{{ $learningOutcome }}</div>
+                                                @if ($item->learningOutcome?->outcome_code)
+                                                    <div class="mt-1 text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                                        {{ $item->learningOutcome->outcome_code }}
+                                                    </div>
+                                                @endif
+                                            </td>
 
-            <!-- Coverage -->
-            <td class="px-6 py-4 align-top text-slate-600 dark:text-slate-300">
-                {{ $coverage ?: '—' }}
-            </td>
+                                            <!-- Coverage -->
+                                            <td class="px-6 py-4 align-top text-slate-600 dark:text-slate-300">
+                                                {{ $coverage ?: '—' }}
+                                            </td>
 
-            <!-- Cognitive Level -->
-            <td class="px-6 py-4 align-top">
-                <span class="inline-flex items-center rounded-full bg-emerald-100/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
-                    {{ \Illuminate\Support\Str::headline($item->cognitive_level ?? 'Unspecified') }}
-                </span>
-            </td>
+                                            <!-- Cognitive Level -->
+                                            <td class="px-6 py-4 align-top">
+                                                <span class="inline-flex items-center rounded-full bg-emerald-100/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
+                                                    {{ \Illuminate\Support\Str::headline($item->cognitive_level ?? 'Unspecified') }}
+                                                </span>
+                                            </td>
 
-            <!-- No. of Items -->
-            <td class="px-6 py-4 align-top text-right font-semibold text-slate-800 dark:text-slate-100">
-                {{ $item->num_items }}
-            </td>
+                                            <!-- No. of Items -->
+                                            <td class="px-6 py-4 align-top text-right font-semibold text-slate-800 dark:text-slate-100">
+                                                {{ $item->num_items }}
+                                            </td>
 
-            <!-- Weight Percentage -->
-            <td class="px-6 py-4 align-top text-right text-slate-600 dark:text-slate-300">
-                {{ number_format((float) $item->weight_percentage, 1) }}%
-            </td>
+                                            <!-- Weight Percentage -->
+                                            <td class="px-6 py-4 align-top text-right text-slate-600 dark:text-slate-300">
+                                                {{ number_format((float) $item->weight_percentage, 1) }}%
+                                            </td>
 
-            <!-- Sample Range -->
-            <td class="px-6 py-4 align-top text-right text-slate-500 dark:text-slate-400">
-                {{ $sampleRange ?? '—' }}
-            </td>
-        </tr>
-    @empty
-        <tr>
-            <td colspan="6" class="px-6 py-12 text-center text-sm font-medium text-slate-500 dark:text-slate-400">
-                No Table of Specification rows available for this record.
-            </td>
-        </tr>
-    @endforelse
-</tbody>
+                                            <!-- Sample Range -->
+                                            <td class="px-6 py-4 align-top text-right text-slate-500 dark:text-slate-400">
+                                                {{ $sampleRange ?? '—' }}
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="6" class="px-6 py-12 text-center text-sm font-medium text-slate-500 dark:text-slate-400">
+                                                No Table of Specification rows available for this record.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
 
                                 <tfoot class="bg-slate-900/90 text-xs font-semibold uppercase tracking-wider dark:text-white dark:bg-slate-950">
                                     <tr>
