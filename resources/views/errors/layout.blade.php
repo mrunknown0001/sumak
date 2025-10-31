@@ -58,7 +58,7 @@
 
     <main class="relative z-10 flex min-h-screen items-center justify-center px-6 py-16">
         <div class="w-full max-w-3xl">
-            <div class="overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 p-10 shadow-xl shadow-emerald-500/10 backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/90 dark:shadow-emerald-900/20 sm:p-12">
+            <div class="overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 p-10 shadow-xl shadow-emerald-500/10 backdrop-blur dark:border-slate-800/70 dark:bg-slate-900 dark:shadow-emerald-900/20 sm:p-12">
                 <div class="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
                     <div class="flex items-center gap-4 text-emerald-600 dark:text-emerald-300">
                         <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/15 text-3xl font-semibold text-emerald-600 shadow-inner shadow-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-200">
@@ -91,7 +91,7 @@
                     </div>
                 @endif
 
-                <div class="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <div class="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center mt-2">
                     @if (trim($__env->yieldContent('actions')) !== '')
                         @yield('actions')
                     @else

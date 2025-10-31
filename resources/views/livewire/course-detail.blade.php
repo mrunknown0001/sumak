@@ -1,7 +1,20 @@
 @php
+    use App\Models\Course;
+    use App\Models\ObtlDocument;
+    use Illuminate\Support\Str;
+
     $documentCount = $documents->count();
+    $obtlDocument = $course->obtlDocument;
+    $obtlStatus = $obtlDocument?->processing_status;
 @endphp
+
 <div class="mx-auto max-w-5xl space-y-8 text-slate-900 dark:text-slate-100">
+    @if (session()->has('message'))
+        <div class="rounded-xl border border-emerald-400/40 bg-emerald-100/70 px-4 py-3 text-emerald-800 shadow-sm dark:border-emerald-500/40 dark:bg-emerald-900/40 dark:text-emerald-100">
+            {{ session('message') }}
+        </div>
+    @endif
+
     <div class="flex items-center">
         <a href="{{ route('student.courses') }}" class="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:border-emerald-200 hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-900/70 dark:text-emerald-300 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/20">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,48 +36,316 @@
                     <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-600 dark:bg-emerald-500/30 dark:text-emerald-200">
                         ✓ Enrolled
                     </span>
-                    @if($course->obtlDocument)
+
+                    <span class="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-3 py-1 text-blue-600 dark:bg-blue-500/25 dark:text-blue-200">
+                        Workflow: {{ Str::headline($course->workflow_stage ?? Course::WORKFLOW_STAGE_DRAFT) }}
+                    </span>
+
+                    @if($obtlDocument)
                         <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-600 dark:bg-emerald-500/30 dark:text-emerald-200">
-                            ✓ OBTL Available
+                            ✓ OBTL {{ Str::headline($obtlStatus) }}
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-3 py-1 text-amber-600 dark:bg-amber-500/30 dark:text-amber-200">
+                            OBTL Pending
                         </span>
                     @endif
+
                     <span class="inline-flex items-center gap-1 rounded-full border border-slate-200/70 px-3 py-1 text-slate-600 dark:border-slate-700 dark:text-slate-300">
-                        {{ $documentCount }} {{ \Illuminate\Support\Str::plural('lecture', $documentCount) }}
+                        {{ $documentCount }} {{ \Illuminate\Support\Str::plural('learning material', $documentCount) }}
                     </span>
                 </div>
             </div>
         </div>
     </div>
 
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <section class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md dark:border-slate-800/70 dark:bg-slate-900/70">
+            <header class="mb-4 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        OBTL Document
+                    </h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                        Upload the course Outcome-Based Teaching and Learning document (PDF only).
+                    </p>
+                </div>
+                <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                    {{ $course->obtl_uploaded_at ? $course->obtl_uploaded_at->diffForHumans() : 'Not uploaded' }}
+                </div>
+            </header>
+
+            @if (!$obtlDocument)
+                @if ($this->canManageCourse)
+                    <form wire:submit.prevent="uploadObtl" class="space-y-5">
+                        <div class="space-y-2">
+                            <label for="obtlUpload" class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Select PDF file <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                id="obtlUpload"
+                                type="file"
+                                accept="application/pdf"
+                                wire:model="obtlUpload"
+                                class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-10 text-sm text-slate-500 shadow-inner transition hover:border-emerald-300 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-emerald-400 dark:focus:border-emerald-400 dark:focus:ring-emerald-500/40"
+                            />
+                            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                Maximum file size: 10 MB.
+                            </p>
+
+                            <div wire:loading.flex wire:target="obtlUpload" class="items-center gap-2 rounded-xl border border-emerald-300/60 bg-emerald-100/60 px-3 py-2 text-xs font-semibold text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
+                                <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                </svg>
+                                Uploading document…
+                            </div>
+
+                            @error('obtlUpload')
+                                <p class="text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button
+                                type="submit"
+                                wire:loading.attr="disabled"
+                                wire:target="uploadObtl,obtlUpload"
+                                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-blue-600 px-5 py-2 text-sm font-semibold text-white shadow transition hover:from-emerald-500 hover:to-blue-500 disabled:opacity-70 dark:from-emerald-500 dark:to-blue-500 dark:hover:from-emerald-400 dark:hover:to-blue-400"
+                            >
+                                <svg
+                                    wire:loading
+                                    wire:target="uploadObtl,obtlUpload"
+                                    class="h-4 w-4 animate-spin"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                >
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                </svg>
+                                <span>Upload OBTL</span>
+                            </button>
+                        </div>
+                    </form>
+                @else
+                    <div class="rounded-2xl border border-slate-200/60 bg-slate-50/70 p-4 text-sm text-slate-600 shadow-inner dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        Only the course creator can upload the OBTL document.
+                    </div>
+                @endif
+            @else
+                <div class="space-y-4">
+                    <div class="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800">
+                        <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">Document Details</h3>
+                        <dl class="mt-3 grid grid-cols-1 gap-3 text-sm text-slate-600 dark:text-slate-400 sm:grid-cols-2">
+                            <div>
+                                <dt class="font-semibold text-slate-500 dark:text-slate-400">File Name</dt>
+                                <dd class="truncate">{{ $obtlDocument->title }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-semibold text-slate-500 dark:text-slate-400">Uploaded</dt>
+                                <dd>{{ $obtlDocument->uploaded_at?->diffForHumans() ?? 'N/A' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-semibold text-slate-500 dark:text-slate-400">Status</dt>
+                                <dd>
+                                    <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold
+                                        @class([
+                                            'bg-emerald-500/20 text-emerald-600 dark:bg-emerald-500/30 dark:text-emerald-200' => $obtlStatus === ObtlDocument::PROCESSING_COMPLETED,
+                                            'bg-amber-500/20 text-amber-600 dark:bg-amber-500/30 dark:text-amber-200' => $obtlStatus === ObtlDocument::PROCESSING_IN_PROGRESS,
+                                            'bg-slate-500/20 text-slate-600 dark:bg-slate-500/30 dark:text-slate-300' => $obtlStatus === ObtlDocument::PROCESSING_PENDING,
+                                            'bg-red-500/15 text-red-600 dark:bg-red-500/20 dark:text-red-300' => $obtlStatus === ObtlDocument::PROCESSING_FAILED,
+                                        ])
+                                    ">
+                                        {{ Str::headline($obtlStatus) }}
+                                    </span>
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="font-semibold text-slate-500 dark:text-slate-400">Learning Outcomes</dt>
+                                <dd>{{ $obtlDocument->learningOutcomes()->count() }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                    @if ($obtlStatus !== ObtlDocument::PROCESSING_COMPLETED)
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                            OBTL extraction is running. You will be notified once processing finishes. Learning materials upload remains locked until completion.
+                        </p>
+                    @endif
+                </div>
+            @endif
+        </section>
+
+        <section class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md dark:border-slate-800/70 dark:bg-slate-900/70">
+            <header class="mb-4 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        Learning Materials
+                    </h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                        Upload lectures once the OBTL document has finished processing. Accepted formats: PDF, DOCX.
+                    </p>
+                </div>
+                <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                    {{ $course->materials_uploaded_at ? $course->materials_uploaded_at->diffForHumans() : 'Awaiting uploads' }}
+                </div>
+            </header>
+
+            @if (!$obtlDocument)
+                <div class="rounded-2xl border border-amber-200/60 bg-amber-50/70 p-4 text-sm text-amber-700 shadow-inner dark:border-amber-500/30 dark:bg-amber-900/20 dark:text-amber-200">
+                    Upload the OBTL document first to unlock learning material uploads.
+                </div>
+            @elseif ($obtlStatus !== ObtlDocument::PROCESSING_COMPLETED)
+                <div class="rounded-2xl border border-amber-200/60 bg-amber-50/70 p-4 text-sm text-amber-700 shadow-inner dark:border-amber-500/30 dark:bg-amber-900/20 dark:text-amber-200">
+                    OBTL extraction is still in progress. You will be able to upload learning materials once the processing status is <strong>Completed</strong>.
+                </div>
+            @elseif (! $this->canManageCourse)
+                <div class="rounded-2xl border border-slate-200/60 bg-slate-50/70 p-4 text-sm text-slate-600 shadow-inner dark:border-slate-700/50 dark:bg-slate-800/40 dark:text-slate-300">
+                    Only the course creator can upload learning materials.
+                </div>
+            @else
+                <form wire:submit.prevent="uploadMaterial" class="space-y-5">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div class="space-y-2 sm:col-span-2">
+                            <label for="materialTitle" class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Material Title <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                id="materialTitle"
+                                type="text"
+                                wire:model.defer="newMaterial.title"
+                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-500/40"
+                                placeholder="Lecture title"
+                            />
+                            @error('newMaterial.title')
+                                <p class="text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="lectureNumber" class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Lecture Number
+                            </label>
+                            <input
+                                id="lectureNumber"
+                                type="text"
+                                wire:model.defer="newMaterial.lecture_number"
+                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-500/40"
+                                placeholder="Optional reference (e.g., Lecture 05)"
+                            />
+                            @error('newMaterial.lecture_number')
+                                <p class="text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="hoursTaught" class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Hours Taught
+                            </label>
+                            <input
+                                id="hoursTaught"
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                wire:model.defer="newMaterial.hours_taught"
+                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-500/40"
+                                placeholder="Optional (0-100)"
+                            />
+                            @error('newMaterial.hours_taught')
+                                <p class="text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="space-y-2 sm:col-span-2">
+                            <label for="materialUpload" class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Upload File <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                id="materialUpload"
+                                type="file"
+                                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                wire:model="newMaterialUpload"
+                                class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-10 text-sm text-slate-500 shadow-inner transition hover:border-emerald-300 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-emerald-400 dark:focus:border-emerald-400 dark:focus:ring-emerald-500/40"
+                            />
+                            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                PDF or DOCX. Maximum size: 20 MB.
+                            </p>
+
+                            <div wire:loading.flex wire:target="newMaterialUpload" class="items-center gap-2 rounded-xl border border-emerald-300/60 bg-emerald-100/60 px-3 py-2 text-xs font-semibold text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
+                                <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                </svg>
+                                Uploading learning material…
+                            </div>
+
+                            @error('newMaterialUpload')
+                                <p class="text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button
+                            type="submit"
+                            wire:loading.attr="disabled"
+                            wire:target="uploadMaterial,newMaterialUpload"
+                            class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-blue-600 px-5 py-2 text-sm font-semibold text-white shadow transition hover:from-emerald-500 hover:to-blue-500 disabled:opacity-70 dark:from-emerald-500 dark:to-blue-500 dark:hover:from-emerald-400 dark:hover:to-blue-400"
+                        >
+                            <svg
+                                wire:loading
+                                wire:target="uploadMaterial,newMaterialUpload"
+                                class="h-4 w-4 animate-spin"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                            >
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                            <span>Upload Material</span>
+                        </button>
+                    </div>
+                </form>
+            @endif
+        </section>
+    </div>
+
     <div class="space-y-4">
+        <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">Learning Materials</h2>
+
         @forelse($documents as $document)
-            <article class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl dark:border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
+            <article class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl dark	border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
                 <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div class="space-y-2">
                         <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100">{{ $document->title }}</h3>
                         <p class="text-sm text-slate-500 dark:text-slate-400">
                             Uploaded {{ $document->uploaded_at->diffForHumans() }} • {{ $document->formatted_file_size }}
                         </p>
+                        @if ($document->content_summary)
+                            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                {{ Str::limit($document->content_summary, 160) }}
+                            </p>
+                        @endif
                     </div>
                     <div class="flex flex-col items-end gap-3 sm:flex-row sm:items-center">
                         <div>
-                            @if($document->hasTos())
-                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/25 dark:text-emerald-200">
-                                    ✓ Ready for Quizzes
-                                </span>
-                            @else
-                                <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold text-amber-600 dark:bg-amber-500/25 dark:text-amber-200">
-                                    ⏳ Processing…
-                                </span>
-                            @endif
+                            <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold
+                                @class([
+                                    'bg-emerald-500/20 text-emerald-600 dark:bg-emerald-500/25 dark:text-emerald-200' => $document->processing_status === \App\Models\Document::PROCESSING_COMPLETED,
+                                    'bg-amber-500/20 text-amber-600 dark:bg-amber-500/25 dark:text-amber-200' => $document->processing_status === \App\Models\Document::PROCESSING_IN_PROGRESS,
+                                    'bg-slate-500/20 text-slate-600 dark:bg-slate-500/30 dark:text-slate-300' => $document->processing_status === \App\Models\Document::PROCESSING_PENDING,
+                                    'bg-red-500/15 text-red-600 dark:bg-red-500/20 dark:text-red-300' => $document->processing_status === \App\Models\Document::PROCESSING_FAILED,
+                                ])
+                            ">
+                                {{ Str::headline($document->processing_status) }}
+                            </span>
                         </div>
                         @can('view', $document)
                             <a href="{{ route('student.document.download', $document->id) }}"
-                               class="inline-flex items-center gap-2 rounded-xl border border-emerald-300/70 bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-gray-500 shadow-sm transition hover:from-emerald-400 hover:to-teal-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-emerald-500/40">
+                               class="inline-flex items-center gap-2 rounded-xl border border-emerald-300/70 bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:from-emerald-400 hover:to-teal-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-emerald-500/40">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
                                 </svg>
-                                Download Lecture Material
+                                Download
                             </a>
                         @endcan
                     </div>
@@ -139,8 +420,20 @@
                 <svg class="mx-auto mb-4 h-16 w-16 text-slate-400 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p class="text-slate-500 dark:text-slate-400">No lecture materials available yet.</p>
-                <p class="mt-2 text-sm text-slate-400 dark:text-slate-500">Your instructor will upload materials soon.</p>
+                <p class="text-slate-500 dark:text-slate-400">No learning materials uploaded yet.</p>
+                @if (!$obtlDocument)
+                    <p class="mt-2 text-sm text-slate-400 dark:text-slate-500">
+                        Upload the OBTL document to unlock learning material uploads and quiz generation.
+                    </p>
+                @elseif ($obtlStatus !== ObtlDocument::PROCESSING_COMPLETED)
+                    <p class="mt-2 text-sm text-slate-400 dark:text-slate-500">
+                        OBTL processing is underway. Learning materials will appear here once uploads complete.
+                    </p>
+                @else
+                    <p class="mt-2 text-sm text-slate-400 dark:text-slate-500">
+                        Upload your first learning material using the form above.
+                    </p>
+                @endif
             </div>
         @endforelse
     </div>
