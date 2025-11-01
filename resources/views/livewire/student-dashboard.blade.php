@@ -2,8 +2,8 @@
     <!-- Header with Navigation -->
     <div class="flex flex-col gap-6 rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-sm backdrop-blur dark:border-slate-800/60 dark:bg-slate-900/70 lg:flex-row lg:items-center lg:justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">Welcome back, {{ $studentData['name'] }}</h1>
-            <p class="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">Student ID: {{ $studentData['student_id'] }}</p>
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">Hello, {{ $studentData['name'] }}</h1>
+            <p class="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">Welcome to SumakQuiz! Your journey to “Sumakses” starts here</p>
         </div>
         <a
             href="{{ route('student.courses') }}"
@@ -101,7 +101,7 @@
                             <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ $course['name'] }}</h3>
                             <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $course['code'] }}</p>
                         </div>
-                        <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $abilityInfo['bg'] }} {{ $abilityInfo['color'] }} dark:bg-opacity-30 dark:text-slate-100">
+                        <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $abilityInfo['bg'] }} {{ $abilityInfo['color'] }} dark:bg-opacity-30 dark:text-slate-800">
                             {{ $abilityInfo['label'] }}
                         </span>
                     </div>
@@ -332,7 +332,7 @@
                 <ul class="space-y-2 text-sm text-slate-700 dark:text-slate-300">
                     <li class="flex items-start gap-2">
                         <span class="mt-1 text-blue-500 dark:text-blue-300">•</span>
-                        <span>Each quiz allows up to 3 attempts with reworded questions to help reinforce learning</span>
+                        <span>Each quiz allows up to 3 attempts, be based on Bloom’s Taxonomy adaptive difficulty</span>
                     </li>
                     <li class="flex items-start gap-2">
                         <span class="mt-1 text-blue-500 dark:text-blue-300">•</span>

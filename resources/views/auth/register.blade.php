@@ -76,26 +76,46 @@
                     <label for="password" class="block text-gray-700 text-sm font-bold mb-2">
                         Password
                     </label>
-                    <input 
-                        id="password" 
-                        type="password" 
-                        name="password" 
-                        required
-                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    >
+                    <div class="relative">
+                        <input
+                            id="password"
+                            type="password"
+                            name="password"
+                            required
+                            class="shadow appearance-none border rounded w-full py-2 px-3 pr-12 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        >
+                        <button
+                            type="button"
+                            class="absolute inset-y-0 right-0 flex items-center px-3 text-sm font-medium text-gray-600 hover:text-gray-800 focus:outline-none focus:underline"
+                            data-toggle="password"
+                            data-target="password"
+                        >
+                            Show
+                        </button>
+                    </div>
                 </div>
 
                 <div class="mb-6">
                     <label for="password_confirmation" class="block text-gray-700 text-sm font-bold mb-2">
                         Confirm Password
                     </label>
-                    <input 
-                        id="password_confirmation" 
-                        type="password" 
-                        name="password_confirmation" 
-                        required
-                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    >
+                    <div class="relative">
+                        <input
+                            id="password_confirmation"
+                            type="password"
+                            name="password_confirmation"
+                            required
+                            class="shadow appearance-none border rounded w-full py-2 px-3 pr-12 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        >
+                        <button
+                            type="button"
+                            class="absolute inset-y-0 right-0 flex items-center px-3 text-sm font-medium text-gray-600 hover:text-gray-800 focus:outline-none focus:underline"
+                            data-toggle="password"
+                            data-target="password_confirmation"
+                        >
+                            Show
+                        </button>
+                    </div>
                 </div>
 
                 <div class="mb-4">
@@ -125,5 +145,24 @@
             </form>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('[data-toggle="password"]').forEach((button) => {
+                const targetId = button.dataset.target;
+                const target = document.getElementById(targetId);
+
+                if (!target) {
+                    return;
+                }
+
+                button.addEventListener('click', () => {
+                    const isHidden = target.type === 'password';
+                    target.type = isHidden ? 'text' : 'password';
+                    button.textContent = isHidden ? 'Hide' : 'Show';
+                });
+            });
+        });
+    </script>
 </body>
 </html>
