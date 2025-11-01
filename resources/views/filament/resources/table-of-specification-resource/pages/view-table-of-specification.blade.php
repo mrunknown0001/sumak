@@ -1,5 +1,5 @@
 <x-filament-panels::page>
-    <div class="mx-auto max-w-7xl space-y-8 px-4 pb-10 pt-6 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl space-y-8 px-4 pb-10 pt-6 sm:px-6 lg:px-8 rounded-xl bg-white dark:bg-gray-900 shadow-sm text-gray-800 dark:text-gray-200">
         <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white/95 shadow-xl shadow-slate-900/5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
             <div class="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 px-6 py-6 sm:px-8 sm:py-8 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
                 <div class="absolute inset-0 opacity-30">
@@ -166,7 +166,7 @@
                 <div class="hidden lg:block">
                     <div class="overflow-hidden rounded-2xl bg-white/95 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/50">
                         <div class="overflow-x-auto">
-                            <table class="min-w-[960px] divide-y divide-slate-200 text-left dark:divide-slate-800">
+                            <table class="min-w-[960px] divide-y divide-slate-200 text-left dark:divide-slate-800 bg-transparent dark:bg-transparent">
                                 <thead class="bg-slate-900 text-xs font-semibold uppercase tracking-wider dark:text-white dark:bg-slate-950">
                                     <tr>
                                         <th scope="col" class="px-6 py-4">Learning Outcome (from OBTL)</th>
