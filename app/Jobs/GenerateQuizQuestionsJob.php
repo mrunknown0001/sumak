@@ -107,12 +107,14 @@ class GenerateQuizQuestionsJob implements ShouldQueue
             'num_items' => $questionsNeeded,
             'sample_indicators' => $tosItem->sample_indicators,
         ];
-        
+        if($questionsNeeded == 0) {
+            $questionsNeeded = 1;
+        }
         // Generate questions using AI
         $questionsData = $openAiService->generateQuizQuestions(
             [$tosItemData],
             $materialContent,
-            $questionsNeeded
+            $questionsNeeded 
         );
 
         $generatedQuestions = $questionsData['questions'] ?? [];

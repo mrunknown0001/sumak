@@ -215,7 +215,7 @@ class OpenAiService
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are an expert in Outcome-Based Teaching and Learning (OBTL) who can extract and structure learning outcomes from curriculum documents.'
+                    'content' => 'You are an expert in Outcome-Based Teaching and Learning (OBTL) who can extract and structure learning outcomes from curriculum documents. Do not include mission, vission, objective of the related insitutions or like.'
                 ],
                 [
                     'role' => 'user',
