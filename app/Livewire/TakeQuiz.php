@@ -179,7 +179,21 @@ class TakeQuiz extends Component
         $this->quizStarted = true;
         $this->isBreakTime = false;
 
+        Log::debug('TakeQuiz startQuiz timer initialized', [
+            'user_id' => auth()->id(),
+            'subtopic_id' => $this->subtopic->id,
+            'attempt_id' => $this->attempt->id ?? null,
+            'timer_mode' => $this->timerMode,
+            'time_remaining' => $this->timeRemaining,
+            'question_count' => $this->items->count(),
+            'current_question_index' => $this->currentQuestionIndex,
+        ]);
+
         $this->resetTimer();
+        $this->dispatchTimerStream('start_quiz', [
+            'question_count' => $this->items->count(),
+            'current_question_index' => $this->currentQuestionIndex,
+        ]);
     }
 
     protected function shouldUseAdaptiveMode(): bool
@@ -542,13 +556,12 @@ class TakeQuiz extends Component
         ];
     }
 
-    public function submitAnswer(): void
+    public function submitAnswer(?string $answerOverride = null, bool $forced = false): void
     {
         if (
             !$this->quizStarted ||
             !$this->attempt ||
-            $this->items->isEmpty() ||
-            !$this->selectedAnswer
+            $this->items->isEmpty()
         ) {
             return;
         }
@@ -559,6 +572,16 @@ class TakeQuiz extends Component
             return;
         }
 
+        if (!$forced && !$this->selectedAnswer) {
+            return;
+        }
+
+        $answer = $forced
+            ? ($answerOverride ?? $this->selectedAnswer)
+            : $this->selectedAnswer;
+
+        $answerValue = $answer ?? '';
+
         $alreadyResponded = $this->attempt->responses()
             ->where('user_id', auth()->id())
             ->where('item_id', $item['id'])
@@ -568,20 +591,28 @@ class TakeQuiz extends Component
             return;
         }
 
-        $this->isCorrect = $item['correct_answer'] === $this->selectedAnswer;
+        $this->selectedAnswer = $answer;
+        $this->isCorrect = $answer !== null && $answer !== '' && $item['correct_answer'] === $answer;
         $this->correctAnswer = $item['correct_answer'];
 
         Response::create([
             'quiz_attempt_id' => $this->attempt->id,
             'item_id' => $item['id'],
             'user_id' => auth()->id(),
-            'user_answer' => $this->selectedAnswer,
+            'user_answer' => $answerValue,
             'is_correct' => $this->isCorrect,
             'time_taken_seconds' => $this->calculateTimeTaken(),
             'response_at' => now(),
         ]);
 
         $this->showFeedback = true;
+
+        $this->dispatchTimerStream('answer_submitted', [
+            'forced_submission' => $forced,
+            'was_correct' => $this->isCorrect,
+            'selected_answer' => $this->selectedAnswer,
+            'correct_answer' => $this->correctAnswer,
+        ]);
     }
 
     protected function calculateTimeTaken(): int
@@ -606,6 +637,9 @@ class TakeQuiz extends Component
         }
 
         $this->resetTimer();
+        $this->dispatchTimerStream('next_question', [
+            'current_question_index' => $this->currentQuestionIndex,
+        ]);
 
         return null;
     }
@@ -673,8 +707,39 @@ class TakeQuiz extends Component
         $this->hasReachedAttemptLimit = $this->completedAttemptsCount >= $this->maxAttemptsAllowed;
     }
 
+    public function tickTimer(): void
+    {
+        if (!$this->shouldPollTimer()) {
+            return;
+        }
+
+        if ($this->timeRemaining > 0) {
+            $this->timeRemaining--;
+            $this->dispatchTimerStream($this->isBreakTime ? 'tick_break' : 'tick');
+            return;
+        }
+
+        if ($this->timerMode === 'standard') {
+            $this->dispatchTimerStream('timeout');
+            $this->submitAnswer(null, true);
+            return;
+        }
+
+        if ($this->timerMode === 'pomodoro') {
+            if ($this->isBreakTime) {
+                $this->dispatchTimerStream('break_complete');
+                $this->endBreak();
+            } else {
+                $this->dispatchTimerStream('session_complete');
+                $this->startBreak();
+            }
+        }
+    }
+
     public function resetTimer(): void
     {
+        $previousTimeRemaining = $this->timeRemaining;
+
         if ($this->timerMode === 'pomodoro') {
             $this->timeRemaining = $this->isBreakTime
                 ? $this->pomodoroBreakTime
@@ -685,21 +750,130 @@ class TakeQuiz extends Component
             $this->timeRemaining = 0;
         }
 
+        Log::debug('TakeQuiz resetTimer dispatched', [
+            'user_id' => auth()->id(),
+            'subtopic_id' => $this->subtopic->id,
+            'attempt_id' => $this->attempt->id ?? null,
+            'timer_mode' => $this->timerMode,
+            'is_break_time' => $this->isBreakTime,
+            'previous_time_remaining' => $previousTimeRemaining,
+            'new_time_remaining' => $this->timeRemaining,
+            'source' => 'resetTimer',
+        ]);
+
         $this->dispatch('resetTimer');
+        $this->dispatchTimerStream('reset');
     }
 
     public function startBreak(): void
     {
         $this->isBreakTime = true;
         $this->timeRemaining = $this->pomodoroBreakTime;
+
+        Log::debug('TakeQuiz startBreak activated', [
+            'user_id' => auth()->id(),
+            'subtopic_id' => $this->subtopic->id,
+            'attempt_id' => $this->attempt->id ?? null,
+            'timer_mode' => $this->timerMode,
+            'time_remaining' => $this->timeRemaining,
+        ]);
+
         $this->dispatch('startBreak');
+        $this->dispatchTimerStream('start_break');
     }
 
     public function endBreak(): void
     {
         $this->isBreakTime = false;
+
+        Log::debug('TakeQuiz endBreak triggered', [
+            'user_id' => auth()->id(),
+            'subtopic_id' => $this->subtopic->id,
+            'attempt_id' => $this->attempt->id ?? null,
+            'timer_mode' => $this->timerMode,
+        ]);
+
         $this->resetTimer();
         $this->dispatch('endBreak');
+        $this->dispatchTimerStream('end_break');
+    }
+
+    public function timerMaxSeconds(): int
+    {
+        if ($this->timerMode === 'pomodoro') {
+            return $this->isBreakTime
+                ? $this->pomodoroBreakTime
+                : $this->pomodoroSessionTime;
+        }
+
+        return $this->timerMode === 'standard' ? 60 : 0;
+    }
+
+    public function timerColorClass(): string
+    {
+        if ($this->timerMode === 'free') {
+            return 'bg-slate-400 dark:bg-slate-600';
+        }
+
+        if ($this->timerMode === 'pomodoro') {
+            return 'bg-purple-500 dark:bg-purple-400';
+        }
+
+        if ($this->timeRemaining > 30) {
+            return 'bg-emerald-500 dark:bg-emerald-400';
+        }
+
+        if ($this->timeRemaining > 10) {
+            return 'bg-amber-500 dark:bg-amber-400';
+        }
+
+        return 'bg-rose-500 dark:bg-rose-400';
+    }
+
+    public function formatSeconds(int $seconds): string
+    {
+        $total = max(0, $seconds);
+        $minutes = intdiv($total, 60);
+        $remainingSeconds = $total % 60;
+
+        return sprintf('%d:%02d', $minutes, $remainingSeconds);
+    }
+
+    public function shouldPollTimer(): bool
+    {
+        if (!$this->timerMode || $this->timerMode === 'free') {
+            return false;
+        }
+
+        if ($this->quizCompleted) {
+            return false;
+        }
+
+        if ($this->showFeedback) {
+            return false;
+        }
+
+        if ($this->isBreakTime && $this->timerMode === 'pomodoro') {
+            return true;
+        }
+
+        return $this->quizStarted;
+    }
+
+    protected function dispatchTimerStream(string $event, array $context = []): void
+    {
+        $payload = array_merge([
+            'event' => $event,
+            'timeRemaining' => $this->timeRemaining,
+            'timerMode' => $this->timerMode,
+            'quizStarted' => $this->quizStarted,
+            'isBreakTime' => $this->isBreakTime,
+            'showFeedback' => $this->showFeedback,
+        ], $context);
+
+        Log::debug('TakeQuiz streamTimeRemaining dispatch', $payload);
+
+        $this->dispatch('streamTimeRemaining', $payload);
     }
 
     public function render()
