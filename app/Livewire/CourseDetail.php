@@ -9,16 +9,24 @@ use App\Models\Document;
 use App\Models\ObtlDocument;
 use App\Jobs\ExtractObtlDocumentJob;
 use App\Jobs\ProcessDocumentJob;
+use App\Services\DocumentQuizBatchService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportRedirects\Redirector;
 
 class CourseDetail extends Component
 {
     use WithFileUploads;
 
+    protected DocumentQuizBatchService $documentQuizBatchService;
+
     public Course $course;
     public bool $isEnrolled = false;
+    public array $documentBatchMeta = [];
+    public ?array $activeQuizBatch = null;
 
     public $obtlUpload;
 
@@ -28,6 +36,11 @@ class CourseDetail extends Component
         'lecture_number' => '',
         'hours_taught' => null,
     ];
+
+    public function boot(DocumentQuizBatchService $documentQuizBatchService): void
+    {
+        $this->documentQuizBatchService = $documentQuizBatchService;
+    }
 
     public function mount(Course $course): void
     {
@@ -170,6 +183,58 @@ class CourseDetail extends Component
         session()->flash('message', 'Learning material uploaded successfully. Processing has started.');
     }
 
+    public function startMaterialQuizBatch(int $documentId): RedirectResponse|Redirector|null
+    {
+        $userId = auth()->id();
+
+        $document = $this->course->documents()
+            ->with([
+                'topics.subtopics' => function ($subtopicQuery) use ($userId) {
+                    $subtopicQuery
+                        ->withCount('items')
+                        ->withCount([
+                            'quizAttempts as user_attempts_count' => function ($attemptQuery) use ($userId) {
+                                $attemptQuery->where('user_id', $userId);
+                            },
+                        ]);
+                },
+            ])
+            ->find($documentId);
+
+        if (! $document) {
+            session()->flash('error', 'Learning material not found.');
+            return null;
+        }
+
+        $eligibleSubtopics = $this->documentQuizBatchService->eligibleSubtopicsForUser($document, $userId);
+
+        if ($eligibleSubtopics->isEmpty()) {
+            session()->flash('error', 'No eligible quizzes remain for this learning material.');
+            return null;
+        }
+
+        $this->documentQuizBatchService->initialiseBatchSession($document, $eligibleSubtopics);
+
+        $firstSubtopicId = (int) $eligibleSubtopics->first()->id;
+        session()->put('quiz.context.subtopic', $firstSubtopicId);
+
+        return redirect()->route('student.quiz.take', $firstSubtopicId);
+    }
+
+    public function continueBatch(int $subtopicId): RedirectResponse|Redirector|null
+    {
+        $batch = $this->documentQuizBatchService->currentBatch();
+
+        if (! $batch || empty($batch['queue']) || ! in_array($subtopicId, $batch['queue'], true)) {
+            session()->flash('error', 'Quiz batch session is no longer available.');
+            return null;
+        }
+
+        session()->put('quiz.context.subtopic', $subtopicId);
+
+        return redirect()->route('student.quiz.take', $subtopicId);
+    }
+
     public function render()
     {
         $this->course->refresh()->load('obtlDocument');
@@ -197,8 +262,15 @@ class CourseDetail extends Component
             ->orderByDesc('created_at')
             ->get();
 
+        $activeBatch = $this->documentQuizBatchService->currentBatch();
+        $this->activeQuizBatch = $activeBatch;
+        $this->documentBatchMeta = $this->buildDocumentBatchMeta($documents, $userId, $activeBatch)->toArray();
+
         return view('livewire.course-detail', [
             'documents' => $documents,
+            'documentBatchMeta' => $this->documentBatchMeta,
+            'activeQuizBatch' => $this->activeQuizBatch,
+            'maxAttempts' => (int) config('quiz.max_attempts', 3),
         ])->layout('layouts.app', [
             'title' => 'SumakQuiz | ' . $this->course->course_code,
             'pageTitle' => $this->course->course_title,
@@ -206,6 +278,37 @@ class CourseDetail extends Component
                 . Str::headline($this->course->workflow_stage ?? Course::WORKFLOW_STAGE_DRAFT)
                 . ' • Lecture materials and quiz readiness status.',
         ]);
+    }
+
+    protected function buildDocumentBatchMeta(Collection $documents, int $userId, ?array $activeBatch): Collection
+    {
+        $maxAttempts = (int) config('quiz.max_attempts', 3);
+        $activeDocumentId = $activeBatch['document_id'] ?? null;
+        $activeQueue = collect($activeBatch['queue'] ?? []);
+
+        return $documents->map(function (Document $document) use ($maxAttempts, $activeDocumentId, $activeQueue) {
+            $subtopics = $document->topics
+                ->flatMap(fn ($topic) => $topic->subtopics)
+                ->map(fn ($subtopic) => [
+                    'id' => $subtopic->id,
+                    'name' => $subtopic->name,
+                    'items_count' => $subtopic->items_count ?? 0,
+                    'user_attempts_count' => $subtopic->user_attempts_count ?? 0,
+                    'can_retake' => ($subtopic->items_count ?? 0) > 0
+                        && (($subtopic->user_attempts_count ?? 0) < $maxAttempts),
+                ]);
+
+            $eligibleCount = $subtopics->where('can_retake', true)->count();
+            $inBatchQueue = $activeDocumentId === $document->id;
+
+            return [
+                'document_id' => $document->id,
+                'eligible_quiz_count' => $eligibleCount,
+                'in_active_batch' => $inBatchQueue,
+                'active_queue' => $inBatchQueue ? $activeQueue->values()->all() : [],
+                'total_subtopics' => $subtopics->count(),
+            ];
+        });
     }
 
     protected function refreshCourseState(): void

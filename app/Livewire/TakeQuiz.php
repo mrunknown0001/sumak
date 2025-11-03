@@ -10,6 +10,7 @@ use App\Models\QuizRegeneration;
 use App\Models\Response;
 use App\Models\StudentAbility;
 use App\Models\Subtopic;
+use App\Services\DocumentQuizBatchService;
 use App\Services\IrtService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -40,17 +41,21 @@ class TakeQuiz extends Component
     public bool $hasReachedAttemptLimit = false;
 
     protected IrtService $irtService;
+    protected DocumentQuizBatchService $documentQuizBatchService;
 
-    public function boot(IrtService $irtService): void
+    public function boot(IrtService $irtService, DocumentQuizBatchService $documentQuizBatchService): void
     {
         $this->irtService = $irtService;
+        $this->documentQuizBatchService = $documentQuizBatchService;
     }
 
     public function mount(Subtopic $subtopic)
     {
         $this->subtopic = $subtopic->load('topic.document.course');
+        $this->maxAttemptsAllowed = (int) config('quiz.max_attempts', $this->maxAttemptsAllowed);
 
         $contextSubtopicId = (int) (session()->get('quiz.context.subtopic') ?? 0);
+
         $hasActiveAttempt = QuizAttempt::query()
             ->where('user_id', auth()->id())
             ->where('subtopic_id', $subtopic->id)
@@ -101,6 +106,10 @@ class TakeQuiz extends Component
         if (!$this->timerMode) {
             session()->flash('error', 'Please select a timer mode first.');
             return;
+        }
+
+        if ($this->timerMode) {
+            $this->documentQuizBatchService->updateTimerMode($this->timerMode);
         }
 
         $existingAttempt = $this->getActiveAttempt();
@@ -692,6 +701,16 @@ class TakeQuiz extends Component
         $this->items = collect();
 
         $this->refreshAttemptLimitState();
+
+        $nextSubtopicId = $this->documentQuizBatchService->advanceAfterCompletion($this->subtopic->id);
+
+        if ($nextSubtopicId) {
+            session()->put('quiz.context.subtopic', $nextSubtopicId);
+
+            return redirect()->route('student.quiz.take', $nextSubtopicId);
+        }
+
+        session()->forget('quiz.context.subtopic');
 
         return redirect()->route('student.course.show', $this->subtopic->topic->document->course_id);
     }
