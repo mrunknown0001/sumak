@@ -198,7 +198,7 @@ class ProcessDocumentJob implements ShouldQueue
         
         // Generate ToS using AI
         $materialSummary = $document->content_summary ?? "Lecture content from {$document->title}";
-        $totalItems = 20; // Fixed per requirement
+        $totalItems = rand(20, 40); // Fixed per requirement // TODO: Statically Assigned Values
 
         $tosData = $openAiService->generateToS($learningOutcomes, $materialSummary, $totalItems);
         $tosItems = $tosData['table_of_specification'] ?? [];
