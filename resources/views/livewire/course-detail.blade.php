@@ -6,6 +6,12 @@
     $documentCount = $documents->count();
     $obtlDocument = $course->obtlDocument;
     $obtlStatus = $obtlDocument?->processing_status;
+    $documentBatchMetaById = collect($documentBatchMeta ?? [])->keyBy('document_id');
+    $activeBatchDocumentId = $activeQuizBatch['document_id'] ?? null;
+    $activeBatchQueue = collect($activeQuizBatch['queue'] ?? []);
+    $activeBatchNextSubtopicId = $activeBatchQueue->first();
+    $activeBatchRemainingCount = $activeBatchQueue->count();
+    $maxAttemptsAllowed = $maxAttempts ?? config('quiz.max_attempts', 3);
 @endphp
 
 <div class="mx-auto max-w-5xl space-y-8 text-slate-900 dark:text-slate-100">
@@ -313,6 +319,13 @@
         <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">Learning Materials</h2>
 
         @forelse($documents as $document)
+            @php
+                $meta = $documentBatchMetaById->get($document->id) ?? null;
+                $isActiveBatch = $activeBatchDocumentId === $document->id;
+                $remainingInBatch = $isActiveBatch ? $activeBatchRemainingCount : 0;
+                $nextBatchSubtopicId = $isActiveBatch ? $activeBatchNextSubtopicId : null;
+                $eligibleQuizCount = $meta['eligible_quiz_count'] ?? 0;
+            @endphp
             <article class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl dark	border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
                 <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div class="space-y-2">
@@ -351,6 +364,63 @@
                     </div>
                 </div>
 
+                @if($document->processing_status === \App\Models\Document::PROCESSING_COMPLETED)
+                    <div class="mt-4 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/60">
+                        @if($isActiveBatch && $nextBatchSubtopicId)
+                            <div class="flex flex-col gap-3 text-sm text-slate-700 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
+                                <div class="space-y-1">
+                                    <p class="text-base font-semibold text-emerald-600 dark:text-emerald-300">Document-wide quiz batch in progress</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                                        {{ $remainingInBatch }} {{ Str::plural('quiz', $remainingInBatch) }} remaining for this learning material.
+                                    </p>
+                                </div>
+                                <div class="inline-flex flex-wrap items-center gap-2">
+                                    <button
+                                        wire:click="continueBatch({{ $nextBatchSubtopicId }})"
+                                        class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+                                    >
+                                        Continue quiz batch
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                        </svg>
+                                    </button>
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-200">
+                                        Queue: {{ implode(' › ', $activeBatchQueue->map(fn ($id) => $id === $nextBatchSubtopicId ? '•'.$id : $id)->toArray()) }}
+                                    </span>
+                                </div>
+                            </div>
+                        @elseif($eligibleQuizCount > 0)
+                            <div class="flex flex-col gap-3 text-sm text-slate-700 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
+                                <div class="space-y-1">
+                                    <p class="text-base font-semibold text-slate-900 dark:text-slate-100">Ready to take all quizzes for this learning material?</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                                        {{ $eligibleQuizCount }} {{ Str::plural('subtopic quiz', $eligibleQuizCount) }} available. Start a batch session to attempt them sequentially.
+                                    </p>
+                                </div>
+                                <button
+                                    wire:click="startMaterialQuizBatch({{ $document->id }})"
+                                    @disabled($eligibleQuizCount === 0)
+                                    class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:disabled:bg-slate-700"
+                                >
+                                    Take all quizzes
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                    </svg>
+                                </button>
+                            </div>
+                        @else
+                            <div class="flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-400 md:flex-row md:items-center md:justify-between">
+                                <p class="font-semibold text-slate-700 dark:text-slate-300">
+                                    All subtopic quizzes for this learning material have been attempted {{ $maxAttemptsAllowed }} times.
+                                </p>
+                                <span class="inline-flex items-center gap-1 rounded-full bg-slate-200/70 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
+                                    Batch unavailable
+                                </span>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
                 @if($document->content_summary)
                     <div class="mt-4 rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 text-sm text-blue-900 dark:border-blue-500/40 dark:bg-blue-900/20 dark:text-blue-100">
                         <h4 class="mb-2 flex items-center gap-2 text-sm font-semibold">
@@ -374,40 +444,42 @@
                         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                             @foreach($document->topics as $topic)
                                 @foreach($topic->subtopics as $subtopic)
-                                    @php
-                                        $attemptCount = $subtopic->user_attempts_count ?? 0;
-                                        $maxAttempts = 3;
-                                        $canRetake = $attemptCount < $maxAttempts;
-                                    @endphp
+                                    @if($subtopic->items()->count() > 0)
+                                        @php
+                                            $attemptCount = $subtopic->user_attempts_count ?? 0;
+                                            $maxAttempts = 3;
+                                            $canRetake = $attemptCount < $maxAttempts;
+                                        @endphp
 
-                                    @if($canRetake)
-                                        <a href="{{ route('student.quiz.context', $subtopic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
-                                            <div>
-                                                <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</p>
-                                                <p class="text-xs text-slate-500 dark:text-slate-400">📚 {{ $topic->name }}</p>
-                                                <p class="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
-                                                    Available • {{ $attemptCount }} / {{ $maxAttempts }} attempts used
-                                                </p>
+                                        @if($canRetake)
+                                            <a href="{{ route('student.quiz.context', $subtopic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
+                                                <div>
+                                                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</p>
+                                                    <p class="text-xs text-slate-500 dark:text-slate-400">📚 {{ $topic->name }}</p>
+                                                    <p class="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+                                                        Available • {{ $attemptCount }} / {{ $maxAttempts }} attempts used
+                                                    </p>
+                                                </div>
+                                                <div class="rounded-xl border border-emerald-300/70 bg-white/80 px-3 py-2 text-center shadow-sm dark:border-emerald-500/40 dark:bg-slate-900/70">
+                                                    <p class="text-lg font-bold text-emerald-600 dark:text-emerald-300">{{ $subtopic->items_count ?? $subtopic->items()->count() }}</p>
+                                                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">questions</span>
+                                                </div>
+                                            </a>
+                                        @else
+                                            <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-slate-100/70 p-4 opacity-70 shadow-sm transition cursor-not-allowed dark:border-slate-700 dark:bg-slate-800/70">
+                                                <div>
+                                                    <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ $subtopic->name }}</p>
+                                                    <p class="text-xs text-slate-400 dark:text-slate-500">📚 {{ $topic->name }}</p>
+                                                    <p class="mt-2 text-xs font-semibold text-red-500 dark:text-red-400">
+                                                        Unavailable • Max attempts reached ({{ $attemptCount }} / {{ $maxAttempts }})
+                                                    </p>
+                                                </div>
+                                                <div class="rounded-xl border border-slate-300/70 bg-white/70 px-3 py-2 text-center shadow-sm dark:border-slate-600/70 dark:bg-slate-900/70">
+                                                    <p class="text-lg font-bold text-slate-500 dark:text-slate-400">{{ $subtopic->items_count ?? $subtopic->items()->count() }}</p>
+                                                    <span class="text-xs font-medium text-slate-400 dark:text-slate-500">questions</span>
+                                                </div>
                                             </div>
-                                            <div class="rounded-xl border border-emerald-300/70 bg-white/80 px-3 py-2 text-center shadow-sm dark:border-emerald-500/40 dark:bg-slate-900/70">
-                                                <p class="text-lg font-bold text-emerald-600 dark:text-emerald-300">{{ $subtopic->items_count ?? $subtopic->items()->count() }}</p>
-                                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">questions</span>
-                                            </div>
-                                        </a>
-                                    @else
-                                        <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-slate-100/70 p-4 opacity-70 shadow-sm transition cursor-not-allowed dark:border-slate-700 dark:bg-slate-800/70">
-                                            <div>
-                                                <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ $subtopic->name }}</p>
-                                                <p class="text-xs text-slate-400 dark:text-slate-500">📚 {{ $topic->name }}</p>
-                                                <p class="mt-2 text-xs font-semibold text-red-500 dark:text-red-400">
-                                                    Unavailable • Max attempts reached ({{ $attemptCount }} / {{ $maxAttempts }})
-                                                </p>
-                                            </div>
-                                            <div class="rounded-xl border border-slate-300/70 bg-white/70 px-3 py-2 text-center shadow-sm dark:border-slate-600/70 dark:bg-slate-900/70">
-                                                <p class="text-lg font-bold text-slate-500 dark:text-slate-400">{{ $subtopic->items_count ?? $subtopic->items()->count() }}</p>
-                                                <span class="text-xs font-medium text-slate-400 dark:text-slate-500">questions</span>
-                                            </div>
-                                        </div>
+                                        @endif
                                     @endif
                                 @endforeach
                             @endforeach

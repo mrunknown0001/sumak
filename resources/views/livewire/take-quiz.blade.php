@@ -1,47 +1,22 @@
+@php
+    $shouldPollTimer = $this->shouldPollTimer();
+    $timerMaxSeconds = $this->timerMaxSeconds();
+    $timerProgressPercent = 0;
+
+    if ($timerMaxSeconds > 0) {
+        $timerProgressPercent = ($timeRemaining / $timerMaxSeconds) * 100;
+        $timerProgressPercent = max(0, min(100, $timerProgressPercent));
+    }
+
+    $timerColorClass = $this->timerColorClass();
+@endphp
+
 <div
     class="mx-auto max-w-5xl px-4 py-8 text-slate-900 dark:text-slate-100"
-    x-data="{
-        timeRemaining: @entangle('timeRemaining'),
-        timerMode: @entangle('timerMode'),
-        isBreakTime: @entangle('isBreakTime'),
-        timerInterval: null,
-        startTimer() {
-            this.timerInterval = setInterval(() => {
-                if (this.timeRemaining > 0 && this.timerMode !== 'free') {
-                    this.timeRemaining--;
-                } else if (this.timeRemaining === 0 && this.timerMode !== 'free') {
-                    clearInterval(this.timerInterval);
-                    if (this.timerMode === 'standard') {
-                        @this.call('submitAnswer');
-                    } else if (this.timerMode === 'pomodoro' && !this.isBreakTime) {
-                        @this.call('startBreak');
-                    }
-                }
-            }, 1000);
-        },
-        stopTimer() {
-            clearInterval(this.timerInterval);
-        },
-        getTimerColor() {
-            if (this.timerMode === 'free') return 'bg-slate-400 dark:bg-slate-600';
-            if (this.timerMode === 'pomodoro') return 'bg-purple-500 dark:bg-purple-400';
-            if (this.timeRemaining > 30) return 'bg-emerald-500 dark:bg-emerald-400';
-            if (this.timeRemaining > 10) return 'bg-amber-500 dark:bg-amber-400';
-            return 'bg-rose-500 dark:bg-rose-400';
-        },
-        formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return mins + ':' + (secs < 10 ? '0' : '') + secs;
-        }
-    }"
-    x-init="$watch('timeRemaining', value => {
-        if ((value === 60 || value === 1500) && $wire.quizStarted && !$wire.showFeedback) {
-            stopTimer();
-            startTimer();
-        }
-    })"
 >
+    @if($shouldPollTimer)
+        <span wire:poll.1s="tickTimer" class="sr-only">Timer ticking…</span>
+    @endif
     @if($hasReachedAttemptLimit && !$quizStarted && !$attempt)
         <div class="mx-auto max-w-3xl">
             <div class="rounded-3xl border border-rose-200/70 bg-white/90 p-10 text-center shadow-xl shadow-rose-500/10 backdrop-blur dark:border-rose-500/40 dark:bg-slate-900/70">
@@ -235,7 +210,7 @@
                 <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Take a moment to recharge before the next session.</p>
 
                 <div class="mt-6">
-                    <p class="text-4xl font-semibold text-slate-900 dark:text-slate-100" x-text="formatTime(timeRemaining)"></p>
+                    <p class="text-4xl font-semibold text-slate-900 dark:text-slate-100">{{ $this->formatSeconds($timeRemaining) }}</p>
                     <p class="mt-1 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Time remaining in break</p>
                 </div>
 
@@ -254,21 +229,20 @@
                     <div class="mb-2 flex items-center justify-between text-sm font-semibold text-slate-600 dark:text-slate-300">
                         <span>Question {{ $currentQuestionIndex + 1 }} of {{ $items->count() }}</span>
                         @if($timerMode === 'pomodoro')
-                            <span class="text-purple-600 dark:text-purple-300" x-text="'Session: ' + formatTime(timeRemaining)"></span>
+                            <span class="text-purple-600 dark:text-purple-300">Session: {{ $this->formatSeconds($timeRemaining) }}</span>
                         @else
                             <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
                                 </svg>
-                                <span x-text="timeRemaining + 's'"></span>
+                                <span>{{ $timeRemaining }}s</span>
                             </span>
                         @endif
                     </div>
                     <div class="h-2 w-full rounded-full bg-slate-200/80 dark:bg-slate-800">
                         <div
-                            class="h-2 rounded-full transition-all duration-1000"
-                            :class="getTimerColor()"
-                            :style="`width: ${timerMode === 'pomodoro' ? (timeRemaining / {{ $pomodoroSessionTime }}) * 100 : (timeRemaining / 60) * 100}%`"
+                            class="h-2 rounded-full transition-all duration-500 {{ $timerColorClass }}"
+                            style="width: {{ $timerProgressPercent }}%;"
                         ></div>
                     </div>
                 </div>
@@ -310,7 +284,7 @@
 
                         <button
                             wire:click="submitAnswer"
-                            :disabled="!$wire.selectedAnswer"
+                            @disabled(!$selectedAnswer)
                             class="mt-6 w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:disabled:bg-slate-700"
                         >
                             Submit Answer
@@ -332,7 +306,6 @@
 
                         <button
                             wire:click="nextQuestion"
-                            x-on:click="stopTimer()"
                             class="mt-6 w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                         >
                             {{ $currentQuestionIndex + 1 < $items->count() ? 'Next Question' : 'Complete Quiz' }}
