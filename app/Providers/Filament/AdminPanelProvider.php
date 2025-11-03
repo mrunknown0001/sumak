@@ -29,6 +29,9 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandLogo(asset('img/logo.png'))
+            ->brandLogoHeight('4rem')
+            ->favicon(asset('img/logo.ico'))
             ->colors([
                 'primary' => Color::Green,
             ])

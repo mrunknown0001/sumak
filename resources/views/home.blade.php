@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config('app.name', 'Laravel') }} - Personalized Quiz Platform</title>
+    <link rel="icon" href="{{ asset('img/logo.ico') }}" type="image/x-icon">
     <style>
         * {
             margin: 0;
@@ -294,6 +295,16 @@
                 font-size: 2rem;
             }
         }
+
+        .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        }
+        .logo img {
+        height: 30px;
+        }
     </style>
 </head>
 
@@ -301,7 +312,10 @@
     <!-- Navigation -->
     <nav>
         <div class="nav-container">
-            <a href="#" class="logo">🎓 {{ config('app.name', 'AI Learning Assistant') }}</a>
+            <a href="#" class="logo">
+                <img src="{{ asset('img/logo.png') }}" alt="Logo">
+                {{ config('app.name', 'AI Learning Assistant') }}
+            </a>
             <ul class="nav-links">
                 <li><a href="#features">Features</a></li>
                 <li><a href="#how-it-works">How It Works</a></li>
