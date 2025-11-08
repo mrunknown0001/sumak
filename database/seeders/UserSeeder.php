@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends \Illuminate\Database\Seeder
 {
@@ -14,21 +15,21 @@ class UserSeeder extends \Illuminate\Database\Seeder
         User::create([
             'name' => 'Super Admin',
             'email' => 'superadmin@localhost',
-            'password' => bcrypt('password'),
+            'password' => Hash::make('password'),
             'role' => 'superadmin',
         ]);
 
         User::create([
             'name' => 'Admin',
             'email' => 'admin@localhost',
-            'password' => bcrypt('password'),
+            'password' => Hash::make('password'),
             'role' => 'admin',
         ]);
 
         User::create([
             'name' => 'Student User1',
             'email' => 'student1@localhost',
-            'password' => bcrypt('password'),
+            'password' => Hash::make('password'),
             'role' => 'student',
         ]);
     }

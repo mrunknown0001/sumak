@@ -24,7 +24,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('register') }}">
+            <form method="POST" action="{{ route('register') }}" id="registerForm">
                 @csrf
 
                 <div class="grid grid-cols-2 gap-4 mb-4">
@@ -70,6 +70,7 @@
                         required
                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                     >
+                    <p id="emailError" class="text-red-500 text-xs mt-1 hidden"></p>
                 </div>
 
                 <div class="mb-4">
@@ -92,6 +93,35 @@
                         >
                             Show
                         </button>
+                    </div>
+                    
+                    <!-- Password Strength Indicator -->
+                    <div class="mt-2">
+                        <div class="flex gap-1 mb-1">
+                            <div id="strength-bar-1" class="h-1 flex-1 bg-gray-200 rounded transition-colors duration-300"></div>
+                            <div id="strength-bar-2" class="h-1 flex-1 bg-gray-200 rounded transition-colors duration-300"></div>
+                            <div id="strength-bar-3" class="h-1 flex-1 bg-gray-200 rounded transition-colors duration-300"></div>
+                            <div id="strength-bar-4" class="h-1 flex-1 bg-gray-200 rounded transition-colors duration-300"></div>
+                        </div>
+                        <p id="strengthText" class="text-xs text-gray-600"></p>
+                    </div>
+                    
+                    <div class="mt-2 text-xs text-gray-600">
+                        <p class="font-semibold mb-1">Password must contain:</p>
+                        <ul class="space-y-1">
+                            <li id="req-length" class="flex items-center">
+                                <span class="mr-2">○</span> At least 8 characters
+                            </li>
+                            <li id="req-uppercase" class="flex items-center">
+                                <span class="mr-2">○</span> One uppercase letter
+                            </li>
+                            <li id="req-lowercase" class="flex items-center">
+                                <span class="mr-2">○</span> One lowercase letter
+                            </li>
+                            <li id="req-number" class="flex items-center">
+                                <span class="mr-2">○</span> One number
+                            </li>
+                        </ul>
                     </div>
                 </div>
 
@@ -116,14 +146,16 @@
                             Show
                         </button>
                     </div>
+                    <p id="passwordMatchError" class="text-red-500 text-xs mt-1 hidden"></p>
+                    <p id="passwordMatchSuccess" class="text-green-600 text-xs mt-1 hidden">✓ Passwords match</p>
                 </div>
 
                 <div class="mb-4">
                     <label class="flex items-start">
                         <input type="checkbox" name="terms" required class="mr-2 mt-1">
                         <span class="text-sm text-gray-700">
-                            I agree to the <a href="#" class="text-green-600 hover:text-green-800">Terms of Use</a> 
-                            and <a href="#" class="text-green-600 hover:text-green-800">Privacy Policy</a>
+                            I agree to the <a href="{{ route('terms') }}" target="_blank" class="text-green-600 hover:text-green-800">Terms of Use</a> 
+                            and <a href="{{ route('privacy.policy') }}" target="_blank" class="text-green-600 hover:text-green-800">Privacy Policy</a>
                         </span>
                     </label>
                 </div>
@@ -131,6 +163,7 @@
                 <div class="flex items-center justify-between">
                     <button 
                         type="submit"
+                        id="submitBtn"
                         class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
                     >
                         Sign Up
@@ -148,19 +181,217 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('registerForm');
+            const emailInput = document.getElementById('email');
+            const emailError = document.getElementById('emailError');
+            const passwordInput = document.getElementById('password');
+            const passwordConfirmation = document.getElementById('password_confirmation');
+            const passwordMatchError = document.getElementById('passwordMatchError');
+            const passwordMatchSuccess = document.getElementById('passwordMatchSuccess');
+            const strengthText = document.getElementById('strengthText');
+            const submitBtn = document.getElementById('submitBtn');
+
+            // Password toggle functionality
             document.querySelectorAll('[data-toggle="password"]').forEach((button) => {
                 const targetId = button.dataset.target;
                 const target = document.getElementById(targetId);
 
-                if (!target) {
-                    return;
-                }
+                if (!target) return;
 
                 button.addEventListener('click', () => {
                     const isHidden = target.type === 'password';
                     target.type = isHidden ? 'text' : 'password';
                     button.textContent = isHidden ? 'Hide' : 'Show';
                 });
+            });
+
+            // Email validation
+            function validateEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            }
+
+            function checkEmail() {
+                const email = emailInput.value.trim();
+                
+                if (email === '') {
+                    emailError.classList.add('hidden');
+                    emailInput.classList.remove('border-red-500', 'border-green-500');
+                    return true;
+                }
+                
+                if (!validateEmail(email)) {
+                    emailError.textContent = 'Please enter a valid email address';
+                    emailError.classList.remove('hidden');
+                    emailInput.classList.add('border-red-500');
+                    emailInput.classList.remove('border-green-500');
+                    return false;
+                } else {
+                    emailError.classList.add('hidden');
+                    emailInput.classList.remove('border-red-500');
+                    emailInput.classList.add('border-green-500');
+                    return true;
+                }
+            }
+
+            emailInput.addEventListener('input', checkEmail);
+            emailInput.addEventListener('blur', checkEmail);
+
+            // Password strength checker
+            function checkPasswordStrength(password) {
+                let strength = 0;
+                const requirements = {
+                    length: password.length >= 8,
+                    uppercase: /[A-Z]/.test(password),
+                    lowercase: /[a-z]/.test(password),
+                    number: /[0-9]/.test(password),
+                    special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+                };
+
+                // Update requirement indicators
+                document.getElementById('req-length').innerHTML = requirements.length 
+                    ? '<span class="mr-2 text-green-600">✓</span> At least 8 characters' 
+                    : '<span class="mr-2">○</span> At least 8 characters';
+                
+                document.getElementById('req-uppercase').innerHTML = requirements.uppercase 
+                    ? '<span class="mr-2 text-green-600">✓</span> One uppercase letter' 
+                    : '<span class="mr-2">○</span> One uppercase letter';
+                
+                document.getElementById('req-lowercase').innerHTML = requirements.lowercase 
+                    ? '<span class="mr-2 text-green-600">✓</span> One lowercase letter' 
+                    : '<span class="mr-2">○</span> One lowercase letter';
+                
+                document.getElementById('req-number').innerHTML = requirements.number 
+                    ? '<span class="mr-2 text-green-600">✓</span> One number' 
+                    : '<span class="mr-2">○</span> One number';
+
+                // Calculate strength
+                if (requirements.length) strength++;
+                if (requirements.uppercase) strength++;
+                if (requirements.lowercase) strength++;
+                if (requirements.number) strength++;
+                if (requirements.special) strength++;
+
+                return { strength, requirements };
+            }
+
+            function updateStrengthIndicator(strength) {
+                const bars = [
+                    document.getElementById('strength-bar-1'),
+                    document.getElementById('strength-bar-2'),
+                    document.getElementById('strength-bar-3'),
+                    document.getElementById('strength-bar-4')
+                ];
+
+                // Reset all bars
+                bars.forEach(bar => {
+                    bar.className = 'h-1 flex-1 bg-gray-200 rounded transition-colors duration-300';
+                });
+
+                let color = '';
+                let text = '';
+
+                if (strength === 0) {
+                    text = '';
+                } else if (strength <= 2) {
+                    color = 'bg-red-500';
+                    text = 'Weak password';
+                    bars[0].className = `h-1 flex-1 ${color} rounded transition-colors duration-300`;
+                } else if (strength === 3) {
+                    color = 'bg-yellow-500';
+                    text = 'Fair password';
+                    bars[0].className = `h-1 flex-1 ${color} rounded transition-colors duration-300`;
+                    bars[1].className = `h-1 flex-1 ${color} rounded transition-colors duration-300`;
+                } else if (strength === 4) {
+                    color = 'bg-blue-500';
+                    text = 'Good password';
+                    bars[0].className = `h-1 flex-1 ${color} rounded transition-colors duration-300`;
+                    bars[1].className = `h-1 flex-1 ${color} rounded transition-colors duration-300`;
+                    bars[2].className = `h-1 flex-1 ${color} rounded transition-colors duration-300`;
+                } else {
+                    color = 'bg-green-500';
+                    text = 'Strong password';
+                    bars.forEach(bar => {
+                        bar.className = `h-1 flex-1 ${color} rounded transition-colors duration-300`;
+                    });
+                }
+
+                strengthText.textContent = text;
+                strengthText.className = `text-xs ${strength <= 2 ? 'text-red-600' : strength === 3 ? 'text-yellow-600' : strength === 4 ? 'text-blue-600' : 'text-green-600'}`;
+            }
+
+            passwordInput.addEventListener('input', () => {
+                const password = passwordInput.value;
+                const { strength } = checkPasswordStrength(password);
+                updateStrengthIndicator(strength);
+                
+                // Check password match if confirmation is filled
+                if (passwordConfirmation.value) {
+                    checkPasswordMatch();
+                }
+            });
+
+            // Password confirmation match
+            function checkPasswordMatch() {
+                const password = passwordInput.value;
+                const confirmation = passwordConfirmation.value;
+
+                if (confirmation === '') {
+                    passwordMatchError.classList.add('hidden');
+                    passwordMatchSuccess.classList.add('hidden');
+                    passwordConfirmation.classList.remove('border-red-500', 'border-green-500');
+                    return true;
+                }
+
+                if (password !== confirmation) {
+                    passwordMatchError.textContent = 'Passwords do not match';
+                    passwordMatchError.classList.remove('hidden');
+                    passwordMatchSuccess.classList.add('hidden');
+                    passwordConfirmation.classList.add('border-red-500');
+                    passwordConfirmation.classList.remove('border-green-500');
+                    return false;
+                } else {
+                    passwordMatchError.classList.add('hidden');
+                    passwordMatchSuccess.classList.remove('hidden');
+                    passwordConfirmation.classList.remove('border-red-500');
+                    passwordConfirmation.classList.add('border-green-500');
+                    return true;
+                }
+            }
+
+            passwordConfirmation.addEventListener('input', checkPasswordMatch);
+            passwordConfirmation.addEventListener('blur', checkPasswordMatch);
+
+            // Form submission validation
+            form.addEventListener('submit', (e) => {
+                let isValid = true;
+
+                // Validate email
+                const email = emailInput.value.trim();
+                if (!validateEmail(email)) {
+                    emailError.textContent = 'Please enter a valid email address';
+                    emailError.classList.remove('hidden');
+                    emailInput.classList.add('border-red-500');
+                    isValid = false;
+                }
+
+                // Validate password requirements
+                const password = passwordInput.value;
+                const { requirements } = checkPasswordStrength(password);
+                
+                if (!requirements.length || !requirements.uppercase || !requirements.lowercase || !requirements.number) {
+                    alert('Password must meet all requirements');
+                    isValid = false;
+                }
+
+                // Validate password match
+                if (!checkPasswordMatch()) {
+                    isValid = false;
+                }
+
+                if (!isValid) {
+                    e.preventDefault();
+                }
             });
         });
     </script>
