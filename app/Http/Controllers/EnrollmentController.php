@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\CourseEnrollment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use App\Models\QuizAttempt;
 
 class EnrollmentController extends Controller
 {
@@ -40,7 +41,7 @@ class EnrollmentController extends Controller
         $enrollment = CourseEnrollment::where('user_id', auth()->id())
             ->where('course_id', $course->id)
             ->first();
-
+            
         if ($enrollment) {
             $enrollment->delete();
             return redirect()->route('student.courses')
