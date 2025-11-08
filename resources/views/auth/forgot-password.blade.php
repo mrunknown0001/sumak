@@ -11,6 +11,7 @@
         <div class="max-w-md w-full bg-white rounded-lg shadow-md p-8">
             <div class="text-center mb-8">
                 <h1 class="text-3xl font-bold text-green-600">SumakQuiz</h1>
+                <p class="text-gray-600 mt-2">Forgot Password</p>
             </div>
             @if (session('status'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">{{ session('status') }}</div>
