@@ -352,7 +352,7 @@
                                 {{ Str::headline($document->processing_status) }}
                             </span>
                         </div>
-                        @can('view', $document)
+                        {{-- @can('view', $document)
                             <a href="{{ route('student.document.download', $document->id) }}"
                                class="inline-flex items-center gap-2 rounded-xl border border-emerald-300/70 bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:from-emerald-400 hover:to-teal-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-emerald-500/40">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,7 +360,7 @@
                                 </svg>
                                 Download
                             </a>
-                        @endcan
+                        @endcan --}}
                     </div>
                 </div>
 

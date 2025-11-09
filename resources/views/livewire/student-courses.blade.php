@@ -130,6 +130,7 @@
                                 @if($course->description)
                                     <p class="text-sm text-slate-500 line-clamp-3 dark:text-slate-400">{{ $course->description }}</p>
                                 @endif
+
                             </div>
 
                             <div class="mb-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
@@ -170,6 +171,16 @@
                             >
                                 🎓 Enroll in Course
                             </button>
+
+                            @if($course->user_id == auth()->id())
+                                <button
+                                    wire:click="deleteCourse({{ $course->id }})"
+                                    wire:confirm="Are you sure you want to delete this course? This action cannot be undone."
+                                    class="mt-auto w-full rounded-xl bg-gradient-to-r from-red-600 to-red-700 px-4 py-3 text-center text-sm font-semibold text-red-600 hover:cursor-pointer shadow transition hover:from-red-500 hover:to-red-600 dark:from-red-500 dark:to-red-600 dark:hover:from-red-400 dark:hover:to-red-500"
+                                >
+                                    Delete Course
+                                </button>
+                            @endif
                         </div>
                     @empty
                         <div class="col-span-full rounded-2xl border border-slate-200/70 bg-white/90 p-12 text-center shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
@@ -337,3 +348,11 @@
         </div>
     @endif
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('delete-course', event => {
+        alert(event.detail.message);
+    });
+</script>
+@endpush

@@ -202,6 +202,29 @@ class StudentCourses extends Component
         DB::rollBack();
     }
 
+
+    public function deleteCourse(int $courseId)
+    {
+        DB::beginTransaction();
+        
+        try {
+            $course = Course::findOrFail($courseId);
+            $course->delete();
+            
+            DB::commit();
+            
+            $this->dispatch('delete-course', message: "Course deleted successfully");
+            $this->loadCourses();
+            
+            session()->flash('message', 'Course deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            session()->flash('error', 'Unable to delete the course. Please try again.');
+            report($e);
+        }
+    }
+
     public function render()
     {
         return view('livewire.student-courses')
