@@ -55,6 +55,7 @@ class StudentCourses extends Component
         $enrolledIds = $this->enrolledCourses->pluck('id');
 
         $this->availableCourses = Course::whereNotIn('id', $enrolledIds)
+            ->where('user_id' , auth()->id())
             ->with(['obtlDocument', 'user'])
             ->withCount(['documents', 'enrollments'])
             ->orderByDesc('created_at')
