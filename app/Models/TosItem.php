@@ -13,7 +13,7 @@ class TosItem extends Model
 
     protected $fillable = [
         'tos_id',
-        'subtopic_id',
+        'topic_id',
         'learning_outcome_id',
         'cognitive_level',
         'bloom_category',
@@ -37,12 +37,13 @@ class TosItem extends Model
     }
 
     /**
-     * Get the subtopic
+     * Get the topic
      */
-    public function subtopic(): BelongsTo
+    public function topic(): BelongsTo
     {
-        return $this->belongsTo(Subtopic::class);
+        return $this->belongsTo(Topic::class);
     }
+
 
     /**
      * Get the learning outcome

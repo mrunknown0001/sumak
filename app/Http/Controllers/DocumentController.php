@@ -82,8 +82,7 @@ class DocumentController extends Controller
         // $this->authorize('view', $document);
 
         $document->load([
-            'topics.subtopics',
-            'tableOfSpecification.tosItems.subtopic',
+            'topics',
             'course'
         ]);
 
@@ -102,18 +101,13 @@ class DocumentController extends Controller
                 'topics' => $document->topics->map(fn($t) => [
                     'id' => $t->id,
                     'name' => $t->name,
-                    'subtopics' => $t->subtopics->map(fn($s) => [
-                        'id' => $s->id,
-                        'name' => $s->name,
-                        'items_count' => $s->items()->count(),
-                    ]),
                 ]),
                 'table_of_specification' => $document->tableOfSpecification ? [
                     'id' => $document->tableOfSpecification->id,
                     'total_items' => $document->tableOfSpecification->total_items,
                     'cognitive_distribution' => $document->tableOfSpecification->cognitive_distribution_summary,
                     'items' => $document->tableOfSpecification->tosItems->map(fn($i) => [
-                        'subtopic' => $i->subtopic->name,
+                        'topic' => $i->topic->name,
                         'cognitive_level' => $i->cognitive_level,
                         'num_items' => $i->num_items,
                         'weight_percentage' => $i->weight_percentage,

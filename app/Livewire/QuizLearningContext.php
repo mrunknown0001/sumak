@@ -3,7 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\QuizAttempt;
-use App\Models\Subtopic;
+use App\Models\Topic;
 use App\Models\TosItem;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;

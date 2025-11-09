@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('item_bank', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tos_item_id')->constrained()->onDelete('cascade');
-            $table->foreignId('subtopic_id')->constrained()->onDelete('cascade');
+            $table->foreignId('topic_id')->constrained()->onDelete('cascade');
             $table->foreignId('learning_outcome_id')->nullable()->constrained()->onDelete('set null');
             $table->text('question');
             $table->json('options'); // A, B, C, D with text and is_correct flag
@@ -23,7 +23,7 @@ return new class extends Migration
             $table->timestamp('created_at');
             
             $table->index(['tos_item_id']);
-            $table->index(['subtopic_id', 'cognitive_level']);
+            $table->index(['topic_id', 'cognitive_level']);
             $table->index(['difficulty_b']);
         });
     }

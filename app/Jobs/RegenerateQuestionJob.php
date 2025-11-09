@@ -53,7 +53,7 @@ class RegenerateQuestionJob implements ShouldQueue
             // Create new item in item bank
             $newItem = ItemBank::create([
                 'tos_item_id' => $originalItem->tos_item_id,
-                'subtopic_id' => $originalItem->subtopic_id,
+                'topic_id' => $originalItem->topic_id,
                 'learning_outcome_id' => $originalItem->learning_outcome_id,
                 'question' => $rewordedQuestion['question_text'],
                 'options' => $rewordedQuestion['options'],
@@ -70,7 +70,7 @@ class RegenerateQuestionJob implements ShouldQueue
             QuizRegeneration::create([
                 'original_item_id' => $originalItem->id,
                 'regenerated_item_id' => $newItem->id,
-                'subtopic_id' => $originalItem->subtopic_id,
+                'topic_id' => $originalItem->topic_id,
                 'regeneration_count' => $regenerationCount + 1,
                 'maintains_equivalence' => $rewordedQuestion['maintains_equivalence'] ?? true,
                 'regenerated_at' => now(),

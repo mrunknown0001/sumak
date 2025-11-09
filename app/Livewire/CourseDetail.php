@@ -245,19 +245,14 @@ class CourseDetail extends Component
             ->with([
                 'tableOfSpecification',
                 'topics' => function ($topicQuery) use ($userId) {
-                    $topicQuery->with([
-                        'subtopics' => function ($subtopicQuery) use ($userId) {
-                            $subtopicQuery
-                                ->withCount('items')
-                                ->withCount([
-                                    'quizAttempts as user_attempts_count' => function ($attemptQuery) use ($userId) {
-                                        $attemptQuery->where('user_id', $userId);
-                                    },
-                                ]);
-                        },
-                    ]);
-                },
-            ])
+                    $topicQuery->withCount('items')
+                            ->withCount([
+                                'quizAttempts as user_attempts_count' => function ($attemptQuery) use ($userId) {
+                                    $attemptQuery->where('user_id', $userId);
+                                },
+                            ]);
+                    },
+                ])
             ->orderByDesc('uploaded_at')
             ->orderByDesc('created_at')
             ->get();

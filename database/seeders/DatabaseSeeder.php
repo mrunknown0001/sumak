@@ -8,7 +8,6 @@ use Illuminate\Database\Seeder;
 use App\Models\Course;
 use App\Models\Document;
 use App\Models\Topic;
-use App\Models\Subtopic;
 use App\Models\TableOfSpecification;
 use App\Models\TosItem;
 use App\Models\ItemBank;

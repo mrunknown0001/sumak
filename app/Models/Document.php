@@ -79,14 +79,11 @@ class Document extends Model
     }
 
     /**
-     * Get total number of subtopics
+     * Get total number of topics
      */
-    public function getTotalSubtopicsAttribute(): int
+    public function getTotalTopicsAttribute(): int
     {
         return $this->topics()
-            ->with('subtopics')
-            ->get()
-            ->flatMap(fn($topic) => $topic->subtopics)
             ->count();
     }
 

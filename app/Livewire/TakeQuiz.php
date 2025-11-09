@@ -9,7 +9,7 @@ use App\Models\QuizAttempt;
 use App\Models\QuizRegeneration;
 use App\Models\Response;
 use App\Models\StudentAbility;
-use App\Models\Subtopic;
+use App\Models\Topic;
 use App\Services\DocumentQuizBatchService;
 use App\Services\IrtService;
 use Illuminate\Database\Eloquent\Builder;

@@ -20,7 +20,7 @@ class StudentDashboardController extends Controller
         // Get all courses
         $courses = Course::where('user_id', $userId)
             ->with([
-                'documents.topics.subtopics',
+                'documents.topics',
                 'documents.tableOfSpecification'
             ])
             ->withCount('documents')
@@ -28,7 +28,7 @@ class StudentDashboardController extends Controller
 
         // Get recent quiz attempts
         $recentAttempts = QuizAttempt::where('user_id', $userId)
-            ->with(['subtopic.topic.document.course'])
+            ->with(['topic.document.course'])
             ->latest('completed_at')
             ->limit(10)
             ->get();
@@ -47,12 +47,12 @@ class StudentDashboardController extends Controller
             ->where('score_percentage', '>=', 70)
             ->count();
 
-        // Get mastery levels by subtopic
+        // Get mastery levels by topic
         $masteryLevels = StudentAbility::where('user_id', $userId)
-            ->with(['subtopic.topic.document.course'])
+            ->with(['topic.document.course'])
             ->get()
             ->groupBy(function($ability) {
-                return $ability->subtopic->topic->document->course_id;
+                return $ability->topic->topic->document->course_id;
             })
             ->map(function($abilities, $courseId) use ($courses) {
                 $course = $courses->firstWhere('id', $courseId);
@@ -63,8 +63,8 @@ class StudentDashboardController extends Controller
                         'code' => $course->course_code,
                         'title' => $course->course_title,
                     ],
-                    'subtopics' => $abilities->map(fn($a) => [
-                        'subtopic' => $a->subtopic->name,
+                    'topics' => $abilities->map(fn($a) => [
+                        'topic' => $a->topic->name,
                         'theta' => round($a->theta, 2),
                         'proficiency_level' => $a->proficiency_level,
                         'attempts_count' => $a->attempts_count,
@@ -95,8 +95,8 @@ class StudentDashboardController extends Controller
                 ]),
                 'recent_attempts' => $recentAttempts->map(fn($a) => [
                     'id' => $a->id,
-                    'course' => $a->subtopic->topic->document->course->course_title,
-                    'subtopic' => $a->subtopic->name,
+                    'course' => $a->topic->topic->document->course->course_title,
+                    'topic' => $a->topic->name,
                     'score' => $a->score_percentage,
                     'passed' => $a->isPassed(),
                     'completed_at' => $a->completed_at,
@@ -116,7 +116,7 @@ class StudentDashboardController extends Controller
         $userId = auth()->id();
 
         $course->load([
-            'documents.topics.subtopics',
+            'documents.topics.topics',
             'documents.tableOfSpecification.tosItems'
         ]);
 
@@ -132,20 +132,20 @@ class StudentDashboardController extends Controller
                             'id' => $topic->id,
                             'name' => $topic->name,
                         ],
-                        'subtopics' => $topic->subtopics->map(function($subtopic) use ($userId) {
+                        'topics' => $topic->topics->map(function($topic) use ($userId) {
                             $attempts = QuizAttempt::where('user_id', $userId)
-                                ->where('subtopic_id', $subtopic->id)
+                                ->where('topic_id', $topic->id)
                                 ->get();
 
                             $ability = StudentAbility::where('user_id', $userId)
-                                ->where('subtopic_id', $subtopic->id)
+                                ->where('topic_id', $topic->id)
                                 ->first();
 
                             $lastAttempt = $attempts->sortByDesc('completed_at')->first();
 
                             return [
-                                'id' => $subtopic->id,
-                                'name' => $subtopic->name,
+                                'id' => $topic->id,
+                                'name' => $topic->name,
                                 'attempts_count' => $attempts->count(),
                                 'best_score' => $attempts->max('score_percentage') ?? 0,
                                 'average_score' => round($attempts->avg('score_percentage') ?? 0, 2),
