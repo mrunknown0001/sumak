@@ -21,7 +21,7 @@ use Livewire\Features\SupportRedirects\Redirector;
 
 class TakeQuiz extends Component
 {
-    public Subtopic $subtopic;
+    public Topic $topic;
     public ?QuizAttempt $attempt = null;
     public Collection $items;
     public int $currentQuestionIndex = 0;
@@ -49,33 +49,33 @@ class TakeQuiz extends Component
         $this->documentQuizBatchService = $documentQuizBatchService;
     }
 
-    public function mount(Subtopic $subtopic)
+    public function mount(Topic $topic)
     {
-        $this->subtopic = $subtopic->load('topic.document.course');
+        $this->topic = $topic->load('document.course');
         $this->maxAttemptsAllowed = (int) config('quiz.max_attempts', $this->maxAttemptsAllowed);
 
-        $contextSubtopicId = (int) (session()->get('quiz.context.subtopic') ?? 0);
+        $contextTopicId = (int) (session()->get('quiz.context.topic') ?? 0);
 
         $hasActiveAttempt = QuizAttempt::query()
             ->where('user_id', auth()->id())
-            ->where('subtopic_id', $subtopic->id)
+            ->where('topic_id', $topic->id)
             ->whereNull('completed_at')
             ->exists();
 
-        if (!$hasActiveAttempt && $contextSubtopicId !== $subtopic->id) {
-            return redirect()->route('student.quiz.context', $subtopic->id);
+        if (!$hasActiveAttempt && $contextTopicId !== $topic->id) {
+            return redirect()->route('student.quiz.context', $topic->id);
         }
 
-        if ($contextSubtopicId === $subtopic->id) {
-            session()->forget('quiz.context.subtopic');
+        if ($contextTopicId === $topic->id) {
+            session()->forget('quiz.context.topic');
         }
 
         Log::debug('TakeQuiz mount accessed', [
-            'subtopic_id' => $subtopic->id,
-            'course_id' => optional($subtopic->topic->document)->course_id,
+            'topic_id' => $topic->id,
+            'course_id' => optional($topic->document)->course_id,
             'route_name' => optional(request()->route())->getName(),
             'referer' => request()->headers->get('referer'),
-            'context_subtopic_id' => $contextSubtopicId,
+            'context_topic_id' => $contextTopicId,
             'has_active_attempt' => $hasActiveAttempt,
         ]);
 
@@ -86,7 +86,7 @@ class TakeQuiz extends Component
     public function selectTimerMode(string $mode): void
     {
         if ($this->hasReachedAttemptLimit && !$this->quizStarted) {
-            session()->flash('error', 'You have reached the maximum number of quiz attempts allowed for this subtopic.');
+            session()->flash('error', 'You have reached the maximum number of quiz attempts allowed for this topic.');
             return;
         }
 
@@ -117,14 +117,14 @@ class TakeQuiz extends Component
         $nextAttemptNumber = $existingAttempt
             ? $existingAttempt->attempt_number
             : ((QuizAttempt::where('user_id', auth()->id())
-                ->where('subtopic_id', $this->subtopic->id)
+                ->where('topic_id', $this->topic->id)
                 ->max('attempt_number') ?? 0) + 1);
 
         if (!$existingAttempt) {
             $this->refreshAttemptLimitState();
 
             if ($this->hasReachedAttemptLimit || $nextAttemptNumber > $this->maxAttemptsAllowed) {
-                session()->flash('error', 'You have reached the maximum number of quiz attempts allowed for this subtopic.');
+                session()->flash('error', 'You have reached the maximum number of quiz attempts allowed for this topic.');
                 return;
             }
         }
@@ -141,7 +141,7 @@ class TakeQuiz extends Component
         if (!$existingAttempt) {
             $this->attempt = QuizAttempt::create([
                 'user_id' => auth()->id(),
-                'subtopic_id' => $this->subtopic->id,
+                'topic_id' => $this->topic->id,
                 'attempt_number' => $nextAttemptNumber,
                 'is_adaptive' => $isAdaptive,
                 'total_questions' => $assignedItemModels->count(),
@@ -190,7 +190,7 @@ class TakeQuiz extends Component
 
         Log::debug('TakeQuiz startQuiz timer initialized', [
             'user_id' => auth()->id(),
-            'subtopic_id' => $this->subtopic->id,
+            'topic_id' => $this->topic->id,
             'attempt_id' => $this->attempt->id ?? null,
             'timer_mode' => $this->timerMode,
             'time_remaining' => $this->timeRemaining,
@@ -207,7 +207,7 @@ class TakeQuiz extends Component
 
     protected function shouldUseAdaptiveMode(): bool
     {
-        return $this->subtopic->hasCompletedAllInitialQuizzes(auth()->id());
+        return $this->topic->hasCompletedAllInitialQuizzes(auth()->id());
     }
 
     protected function getActiveAttempt(): ?QuizAttempt
@@ -219,7 +219,7 @@ class TakeQuiz extends Component
                     ->with('item'),
             ])
             ->where('user_id', auth()->id())
-            ->where('subtopic_id', $this->subtopic->id)
+            ->where('topic_id', $this->topic->id)
             ->whereNull('completed_at')
             ->latest('started_at')
             ->first();
@@ -247,7 +247,7 @@ class TakeQuiz extends Component
 
                 if ($missing > 0) {
                     $exclude = $items->pluck('id')->filter()->all();
-                    $additionalModels = $this->selectItemModelsForSubtopic($isAdaptive, $missing, $exclude);
+                    $additionalModels = $this->selectItemModelsForTopic($isAdaptive, $missing, $exclude);
                     $additionalModels = $this->prepareItemsForAttempt($additionalModels, $attemptNumber);
                     $items = $items->concat($additionalModels)->values();
 
@@ -261,7 +261,7 @@ class TakeQuiz extends Component
             }
         }
 
-        $initialModels = $this->selectItemModelsForSubtopic($isAdaptive, $questionTarget);
+        $initialModels = $this->selectItemModelsForTopic($isAdaptive, $questionTarget);
         $initialModels = $this->prepareItemsForAttempt($initialModels, $attemptNumber)->values();
 
         if ($attempt) {
@@ -386,7 +386,7 @@ class TakeQuiz extends Component
     ): ItemBank {
         $newItem = ItemBank::create([
             'tos_item_id' => $originalItem->tos_item_id,
-            'subtopic_id' => $originalItem->subtopic_id,
+            'topic_id' => $originalItem->topic_id,
             'learning_outcome_id' => $originalItem->learning_outcome_id,
             'question' => $questionText,
             'options' => $options,
@@ -402,7 +402,7 @@ class TakeQuiz extends Component
             QuizRegeneration::create([
                 'original_item_id' => $originalItem->id,
                 'regenerated_item_id' => $newItem->id,
-                'subtopic_id' => $originalItem->subtopic_id,
+                'topic_id' => $originalItem->topic_id,
                 'regeneration_count' => $regenerationCount,
                 'maintains_equivalence' => $maintainsEquivalence,
                 'regenerated_at' => now(),
@@ -468,19 +468,19 @@ class TakeQuiz extends Component
         ];
     }
 
-    protected function selectItemModelsForSubtopic(bool $isAdaptive, int $limit, array $exclude = []): Collection
+    protected function selectItemModelsForTopic(bool $isAdaptive, int $limit, array $exclude = []): Collection
     {
         if ($limit <= 0) {
             return collect();
         }
 
         $baseQuery = ItemBank::query()
-            ->where('subtopic_id', $this->subtopic->id)
+            ->where('topic_id', $this->topic->id)
             ->when(!empty($exclude), fn (Builder $query) => $query->whereNotIn('id', $exclude));
 
         if ($isAdaptive) {
             $studentAbility = StudentAbility::firstOrCreate(
-                ['user_id' => auth()->id(), 'subtopic_id' => $this->subtopic->id],
+                ['user_id' => auth()->id(), 'topic_id' => $this->topic->id],
                 ['theta' => 0, 'attempts_count' => 0]
             );
 
@@ -672,7 +672,7 @@ class TakeQuiz extends Component
         ]);
 
         $studentAbility = StudentAbility::firstOrCreate(
-            ['user_id' => auth()->id(), 'subtopic_id' => $this->subtopic->id],
+            ['user_id' => auth()->id(), 'topic_id' => $this->topic->id],
             ['theta' => 0, 'attempts_count' => 0]
         );
 
@@ -702,24 +702,24 @@ class TakeQuiz extends Component
 
         $this->refreshAttemptLimitState();
 
-        $nextSubtopicId = $this->documentQuizBatchService->advanceAfterCompletion($this->subtopic->id);
+        $nextTopicId = $this->documentQuizBatchService->advanceAfterCompletion($this->topic->id);
 
-        if ($nextSubtopicId) {
-            session()->put('quiz.context.subtopic', $nextSubtopicId);
+        if ($nextTopicId) {
+            session()->put('quiz.context.topic', $nextTopicId);
 
-            return redirect()->route('student.quiz.take', $nextSubtopicId);
+            return redirect()->route('student.quiz.take', $nextTopicId);
         }
 
-        session()->forget('quiz.context.subtopic');
+        session()->forget('quiz.context.topic');
 
-        return redirect()->route('student.course.show', $this->subtopic->topic->document->course_id);
+        return redirect()->route('student.course.show', $this->topic->document->course_id);
     }
 
     protected function refreshAttemptLimitState(): void
     {
         $this->completedAttemptsCount = QuizAttempt::query()
             ->where('user_id', auth()->id())
-            ->where('subtopic_id', $this->subtopic->id)
+            ->where('topic_id', $this->topic->id)
             ->whereNotNull('completed_at')
             ->count();
 
@@ -771,7 +771,7 @@ class TakeQuiz extends Component
 
         Log::debug('TakeQuiz resetTimer dispatched', [
             'user_id' => auth()->id(),
-            'subtopic_id' => $this->subtopic->id,
+            'topic_id' => $this->topic->id,
             'attempt_id' => $this->attempt->id ?? null,
             'timer_mode' => $this->timerMode,
             'is_break_time' => $this->isBreakTime,
@@ -791,7 +791,7 @@ class TakeQuiz extends Component
 
         Log::debug('TakeQuiz startBreak activated', [
             'user_id' => auth()->id(),
-            'subtopic_id' => $this->subtopic->id,
+            'topic_id' => $this->topic->id,
             'attempt_id' => $this->attempt->id ?? null,
             'timer_mode' => $this->timerMode,
             'time_remaining' => $this->timeRemaining,
@@ -807,7 +807,7 @@ class TakeQuiz extends Component
 
         Log::debug('TakeQuiz endBreak triggered', [
             'user_id' => auth()->id(),
-            'subtopic_id' => $this->subtopic->id,
+            'topic_id' => $this->topic->id,
             'attempt_id' => $this->attempt->id ?? null,
             'timer_mode' => $this->timerMode,
         ]);
@@ -899,8 +899,8 @@ class TakeQuiz extends Component
     {
         return view('livewire.take-quiz')->layout('layouts.app', [
             'title' => 'SumakQuiz | Take Quiz',
-            'pageTitle' => $this->subtopic->name,
-            'pageSubtitle' => $this->subtopic->topic->name . ' • Select a timer mode and track your progress question by question.',
+            'pageTitle' => $this->topic->name,
+            'pageSubtitle' => $this->topic->name . ' • Select a timer mode and track your progress question by question.',
         ]);
     }
 }

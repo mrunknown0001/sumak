@@ -445,22 +445,22 @@
                             @foreach($document->topics as $topic)
                                 @if($topic->items()->count() > 0)
                                     @php
-                                        $attemptCount = $subtopic->user_attempts_count ?? 0;
+                                        $attemptCount = $topic->user_attempts_count ?? 0;
                                         $maxAttempts = 3;
                                         $canRetake = $attemptCount < $maxAttempts;
                                     @endphp
 
                                     @if($canRetake)
-                                        <a href="{{ route('student.quiz.context', $subtopic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
+                                        <a href="{{ route('student.quiz.context', $topic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
                                             <div>
-                                                <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</p>
+                                                <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $topic->name }}</p>
                                                 <p class="text-xs text-slate-500 dark:text-slate-400">📚 {{ $topic->name }}</p>
                                                 <p class="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
                                                     Available • {{ $attemptCount }} / {{ $maxAttempts }} attempts used
                                                 </p>
                                             </div>
                                             <div class="rounded-xl border border-emerald-300/70 bg-white/80 px-3 py-2 text-center shadow-sm dark:border-emerald-500/40 dark:bg-slate-900/70">
-                                                <p class="text-lg font-bold text-emerald-600 dark:text-emerald-300">{{ $subtopic->items_count ?? $subtopic->items()->count() }}</p>
+                                                <p class="text-lg font-bold text-emerald-600 dark:text-emerald-300">{{ $topic->items_count ?? $topic->items()->count() }}</p>
                                                 <span class="text-xs font-medium text-slate-500 dark:text-slate-400">questions</span>
                                             </div>
                                         </a>

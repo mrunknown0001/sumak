@@ -13,8 +13,8 @@
     <div class="rounded-3xl border border-emerald-100/70 bg-white/90 p-8 shadow-lg shadow-emerald-500/5 backdrop-blur dark:border-emerald-500/40 dark:bg-slate-900/70">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div class="space-y-2">
-                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $subtopic->topic->name }}</h1>
-                <p class="text-xl font-medium text-slate-600 dark:text-slate-300">{{ $subtopic->name }}</p>
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $topic->name }}</h1>
+                <p class="text-xl font-medium text-slate-600 dark:text-slate-300">{{ $topic->name }}</p>
 
                 @if($document?->content_summary)
                     <div class="mt-4 rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 text-sm text-blue-900 dark:border-blue-500/40 dark:bg-blue-900/20 dark:text-blue-100">

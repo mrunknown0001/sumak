@@ -1,7 +1,7 @@
 <div class="mx-auto max-w-5xl space-y-8 px-4 py-8 text-slate-900 dark:text-slate-100">
     <div>
         <a
-            href="{{ route('student.course.show', $attempt->subtopic->topic->document->course_id) }}"
+            href="{{ route('student.course.show', $attempt->topic->document->course_id) }}"
             class="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:border-emerald-200 hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-900/70 dark:text-emerald-300 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/20"
         >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,8 +15,8 @@
         <div class="rounded-3xl border border-emerald-200/70 bg-white/90 p-8 shadow-xl shadow-emerald-500/10 backdrop-blur dark:border-emerald-500/40 dark:bg-slate-900/70">
             <header class="text-center">
                 <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">🎯 Quiz Results</h1>
-                <p class="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{{ $attempt->subtopic->name }}</p>
-                <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ $attempt->subtopic->topic->name }}</p>
+                <p class="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{{ $attempt->topic->name }}</p>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ $attempt->topic->name }}</p>
             </header>
 
             <div class="mt-8 grid gap-6 md:grid-cols-3">
@@ -213,13 +213,13 @@
 
         <footer class="flex flex-wrap justify-center gap-3">
             <a
-                href="{{ route('student.course.show', $attempt->subtopic->topic->document->course_id) }}"
+                href="{{ route('student.course.show', $attempt->topic->document->course_id) }}"
                 class="inline-flex items-center gap-2 rounded-xl border border-slate-300/70 bg-slate-100/70 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
             >
                 ← Back to Course
             </a>
             <a
-                href="{{ route('student.quiz.context', $attempt->subtopic_id) }}"
+                href="{{ route('student.quiz.context', $attempt->topic_id) }}"
                 class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-emerald-500 hover:to-blue-500 dark:from-emerald-500 dark:to-blue-500 dark:hover:from-emerald-400 dark:hover:to-blue-400"
             >
                 🔄 Retake Quiz

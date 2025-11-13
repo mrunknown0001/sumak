@@ -46,8 +46,8 @@
     @elseif(!$timerMode)
         <div class="mx-auto max-w-4xl">
             <div class="rounded-3xl border border-emerald-200/70 bg-white/90 p-10 shadow-xl shadow-emerald-500/10 backdrop-blur dark:border-emerald-500/40 dark:bg-slate-900/70">
-                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</h1>
-                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">{{ $subtopic->topic->name }}</p>
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $topic->name }}</h1>
+                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">{{ $topic->name }}</p>
 
                 <h2 class="mt-8 text-2xl font-semibold text-slate-900 dark:text-slate-100">Choose Your Quiz Timer Mode</h2>
 
@@ -117,8 +117,8 @@
     @elseif(!$quizStarted)
         <div class="mx-auto max-w-2xl">
             <div class="rounded-3xl border border-emerald-200/70 bg-white/90 p-8 shadow-xl shadow-emerald-500/10 backdrop-blur dark:border-emerald-500/40 dark:bg-slate-900/70">
-                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</h1>
-                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">{{ $subtopic->topic->name }}</p>
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $topic->name }}</h1>
+                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">{{ $topic->name }}</p>
 
                 <div class="mt-6 rounded-2xl border border-emerald-200/70 bg-emerald-50/80 p-6 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-100">
                     <h2 class="mb-3 text-lg font-semibold flex items-center gap-2">

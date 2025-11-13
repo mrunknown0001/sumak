@@ -16,7 +16,7 @@ class QuizResult extends Component
         $this->attempt = $attempt->load([
             'responses.item',
             'feedback',
-            'subtopic.topic.document.course'
+            'topic.document.course'
         ]);
 
         Log::debug('QuizResult attempt timing snapshot', [
@@ -33,7 +33,7 @@ class QuizResult extends Component
         return view('livewire.quiz-result')->layout('layouts.app', [
             'title' => 'SumakQuiz | Quiz Result',
             'pageTitle' => 'Quiz Results',
-            'pageSubtitle' => $this->attempt->subtopic->name . ' • Review performance insights and feedback.',
+            'pageSubtitle' => $this->attempt->topic->name . ' • Review performance insights and feedback.',
         ]);
     }
 }

@@ -67,8 +67,8 @@ Route::middleware(['auth', 'student'])->prefix('student')->name('student.')->gro
         ->name('document.preview');
 
     // Quiz
-    Route::get('/quiz/{subtopic}/context', QuizLearningContext::class)->name('quiz.context');
-    Route::get('/quiz/{subtopic}', TakeQuiz::class)->name('quiz.take');
+    Route::get('/quiz/{topic}/context', QuizLearningContext::class)->name('quiz.context');
+    Route::get('/quiz/{topic}', TakeQuiz::class)->name('quiz.take');
     Route::get('/quiz/{attempt}/result', QuizResult::class)->name('quiz.result');
     Route::post('/quiz/{subtopic}/regenerate', [QuizRegenerationController::class, 'regenerate'])->name('quiz.regenerate');
 });

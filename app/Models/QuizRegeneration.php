@@ -43,7 +43,7 @@ class QuizRegeneration extends Model
     }
 
     /**
-     * Get the subtopic
+     * Get the topic
      */
     public function topic(): BelongsTo
     {

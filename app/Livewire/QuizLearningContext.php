@@ -13,7 +13,7 @@ use Livewire\Component;
 
 class QuizLearningContext extends Component
 {
-    public Subtopic $subtopic;
+    public Topic $topic;
     public $course;
     public $document;
     public ?string $materialDownloadUrl = null;
@@ -22,21 +22,21 @@ class QuizLearningContext extends Component
     public int $completedAttemptsCount = 0;
     public bool $hasReachedAttemptLimit = false;
 
-    public function mount(Subtopic $subtopic): void
+    public function mount(Topic $topic): void
     {
-        $subtopic->load([
-            'topic.document.course',
-            'topic.document.tableOfSpecification',
+        $topic->load([
+            'document.course',
+            'document.tableOfSpecification',
         ]);
 
-        $this->subtopic = $subtopic;
-        $this->document = $subtopic->topic->document;
-        $this->document->loadMissing(['topics.subtopics']);
+        $this->topic = $topic;
+        $this->document = $topic->document;
+        $this->document->loadMissing(['topics']);
         $this->course = $this->document->course;
 
         $isEnrolled = $this->course->isEnrolledBy(auth()->id());
         Log::debug('QuizLearningContext mount preflight', [
-            'subtopic_id' => $subtopic->id,
+            'topic_id' => $topic->id,
             'document_id' => $this->document->id,
             'course_id' => $this->course->id,
             'user_id' => auth()->id(),
@@ -66,21 +66,21 @@ class QuizLearningContext extends Component
         $this->refreshAttemptStats();
 
         if ($this->hasReachedAttemptLimit) {
-            session()->flash('error', 'You have reached the maximum number of quiz attempts allowed for this subtopic.');
+            session()->flash('error', 'You have reached the maximum number of quiz attempts allowed for this topic.');
 
             return null;
         }
 
-        session()->put('quiz.context.subtopic', $this->subtopic->id);
+        session()->put('quiz.context.topic', $this->topic->id);
 
-        return redirect()->route('student.quiz.take', $this->subtopic->id);
+        return redirect()->route('student.quiz.take', $this->topic->id);
     }
 
     protected function refreshAttemptStats(): void
     {
         $this->completedAttemptsCount = QuizAttempt::query()
             ->where('user_id', auth()->id())
-            ->where('subtopic_id', $this->subtopic->id)
+            ->where('topic_id', $this->topic->id)
             ->whereNotNull('completed_at')
             ->count();
 
@@ -112,7 +112,7 @@ class QuizLearningContext extends Component
 
     public function render()
     {
-        $tosItems = $this->subtopic->tosItems()
+        $tosItems = $this->topic->tosItems()
             ->with(['learningOutcome'])
             ->withCount('items')
             ->orderBy('learning_outcome_id')
@@ -127,14 +127,14 @@ class QuizLearningContext extends Component
             'documentTopics' => $this->document->topics,
             'materialDownloadUrl' => $this->materialDownloadUrl,
             'materialPreviewUrl' => $this->materialPreviewUrl,
-            'currentSubtopicId' => $this->subtopic->id,
+            'currentTopicId' => $this->topic->id,
             'tosItems' => $tosItems,
             'learningOutcomeSummaries' => $learningOutcomeSummaries,
             'tableOfSpecification' => $tableOfSpecification,
         ])->layout('layouts.app', [
             'title' => 'SumakQuiz | Learning Context',
-            'pageTitle' => $this->subtopic->name,
-            'pageSubtitle' => $this->subtopic->topic->name . ' • Review learning outcomes and expectations before starting the quiz.',
+            'pageTitle' => $this->topic->name,
+            'pageSubtitle' => $this->topic->name . ' • Review learning outcomes and expectations before starting the quiz.',
         ]);
     }
 }

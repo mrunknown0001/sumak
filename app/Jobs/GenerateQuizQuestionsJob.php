@@ -3,16 +3,15 @@
 namespace App\Jobs;
 
 use App\Models\Document;
-use App\Models\ItemBank;
-use App\Models\Topic;
 use App\Models\TosItem;
+use App\Models\ItemBank;
 use App\Services\OpenAiService;
+use App\Services\IrtService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class GenerateQuizQuestionsJob implements ShouldQueue
@@ -28,432 +27,383 @@ class GenerateQuizQuestionsJob implements ShouldQueue
         $this->documentId = $documentId;
     }
 
-    public function handle(OpenAiService $openAiService): void
+    public function handle(OpenAiService $openAiService, IrtService $irtService): void
     {
         try {
             $document = Document::with([
-                'topics',
                 'tableOfSpecification.tosItems',
+                'topics'
             ])->findOrFail($this->documentId);
-
-            $topics = $document->topics;
-
-            if ($topics->isEmpty()) {
-                Log::warning('Skipping quiz generation: document has no topics', [
-                    'document_id' => $document->id,
-                ]);
-                return;
-            }
-
+            
             $tos = $document->tableOfSpecification;
-
+            
             if (!$tos) {
-                Log::error('No ToS found for document', ['document_id' => $document->id]);
+                Log::error("No ToS found for document", ['document_id' => $document->id]);
                 return;
             }
 
-            $tosItemsByTopic = $tos->tosItems->keyBy('topic_id');
+            // Get document content
+            $materialContent = $document->content_summary ?? "Content from {$document->title}";
 
-            if ($tosItemsByTopic->isEmpty()) {
-                Log::warning('ToS does not contain topic-aligned items', [
+            $topicQuestionCounts = [];
+            $topicIds = $tos->tosItems
+                ->pluck('topic_id')
+                ->filter()
+                ->unique()
+                ->values();
+
+            if ($topicIds->isNotEmpty()) {
+                $topicQuestionCounts = ItemBank::query()
+                    ->whereIn('topic_id', $topicIds)
+                    ->selectRaw('topic_id, COUNT(*) as aggregate_count')
+                    ->groupBy('topic_id')
+                    ->pluck('aggregate_count', 'topic_id')
+                    ->map(fn ($count) => (int) $count)
+                    ->toArray();
+            }
+
+            Log::debug('Preparing quiz generation from ToS', [
+                'document_id' => $document->id,
+                'tos_id' => $tos->id,
+                'tos_items_count' => $tos->tosItems->count(),
+            ]);
+
+            if ($tos->tosItems->isEmpty()) {
+                Log::warning('ToS contains no items; skipping quiz generation', [
                     'document_id' => $document->id,
                     'tos_id' => $tos->id,
                 ]);
                 return;
             }
-
-            $materialContent = $document->content_summary ?? "Content from {$document->title}";
-            $topicPayload = $this->buildTopicPayload($topics);
-
-            $response = $openAiService->generateQuizQuestions($topicPayload, $materialContent);
-            $responseTopics = collect($response['topics'] ?? []);
-
-            $this->resetExistingItems($tosItemsByTopic);
-
-            foreach ($topics as $topic) {
-                $tosItem = $tosItemsByTopic->get($topic->id);
-
-                if (!$tosItem instanceof TosItem) {
-                    Log::warning('No ToS item aligned with topic; skipping quiz generation for topic', [
-                        'document_id' => $document->id,
-                        'topic_id' => $topic->id,
-                        'topic_name' => $topic->name,
-                    ]);
-                    continue;
-                }
-
-                $targetCount = (int)($topic->metadata['recommended_question_count'] ?? 4);
-                $topicResponse = $this->matchTopicResponse($responseTopics, $topic->name);
-
-                $persistedCount = $this->persistQuestionsForTopic(
-                    $topic,
+            
+            // Process each ToS item
+            foreach ($tos->tosItems as $tosItem) {
+                $this->generateQuestionsForTosItem(
                     $tosItem,
-                    $topicResponse['questions'] ?? [],
-                    $targetCount
+                    $materialContent,
+                    $openAiService,
+                    $irtService,
+                    $topicQuestionCounts
                 );
-
-                if ($persistedCount < $targetCount) {
-                    $fallbackCount = $targetCount - $persistedCount;
-                    $fallbackQuestions = $this->generateFallbackQuestions($topic, $fallbackCount);
-
-                    if ($fallbackQuestions->isEmpty()) {
-                        Log::warning('Fallback generator produced no questions', [
-                            'document_id' => $document->id,
-                            'topic_id' => $topic->id,
-                            'topic_name' => $topic->name,
-                            'fallback_requested' => $fallbackCount,
-                        ]);
-                        continue;
-                    }
-
-                    $this->persistSanitizedQuestions($topic, $tosItem, $fallbackQuestions);
-                    $persistedCount += $fallbackQuestions->count();
-                }
-
-                Log::info('Generated topic-level quiz questions', [
-                    'document_id' => $document->id,
-                    'topic_id' => $topic->id,
-                    'topic_name' => $topic->name,
-                    'questions_generated' => $persistedCount,
-                    'target_count' => $targetCount,
-                ]);
             }
-
-            Log::info('Quiz questions generated successfully', ['document_id' => $document->id]);
+            
+            Log::info("Quiz questions generated successfully", ['document_id' => $document->id]);
+            
         } catch (\Exception $e) {
-            Log::error('Failed to generate quiz questions', [
+            Log::error("Failed to generate quiz questions", [
                 'document_id' => $this->documentId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTraceAsString()
             ]);
-
+            
             throw $e;
         }
     }
 
-    /**
-     * Prepare AI payload for the provided topics.
-     */
-    protected function buildTopicPayload(Collection $topics): array
-    {
-        return $topics
-            ->map(function (Topic $topic) {
-                $metadata = $topic->metadata ?? [];
+    protected function generateQuestionsForTosItem(
+        TosItem $tosItem,
+        string $materialContent,
+        OpenAiService $openAiService,
+        IrtService $irtService,
+        array &$topicQuestionCounts
+    ): void {
+        $topicId = $tosItem->topic_id;
+        $topicTotalExisting = $topicQuestionCounts[$topicId] ?? 0;
+
+        // Check if questions already exist
+        $existingCount = $tosItem->items()->count();
+        $targetQuestionCount = max(1, (int) $tosItem->num_items);
+
+        Log::debug('Evaluating ToS item for question generation', [
+            'tos_item_id' => $tosItem->id,
+            'topic_id' => $topicId,
+            'existing_questions' => $existingCount,
+            'topic_total_questions' => $topicTotalExisting,
+            'required_questions' => $targetQuestionCount,
+        ]);
+        
+        $needsTopicBaseline = $topicTotalExisting === 0;
+
+        if (!$needsTopicBaseline && $existingCount >= $targetQuestionCount) {
+            Log::info("Questions already exist for ToS item", ['tos_item_id' => $tosItem->id]);
+            return;
+        }
+        
+        $questionsNeeded = max(
+            $needsTopicBaseline ? 1 : 0,
+            max(0, $targetQuestionCount - $existingCount)
+        );
+
+        // if ($questionsNeeded <= 0) {
+        //     return;
+        // }
+        
+        // Prepare ToS item data for AI
+        $tosItemData = [
+            'topic' => $tosItem->topic->name,
+            'cognitive_level' => $tosItem->cognitive_level,
+            'bloom_category' => $tosItem->bloom_category,
+            'num_items' => $questionsNeeded,
+            'sample_indicators' => $tosItem->sample_indicators,
+        ];
+        // Generate questions using AI
+        $questionsData = $openAiService->generateQuizQuestions(
+            [$tosItemData],
+            $materialContent,
+            rand(1,3) // TODO: Statically Assigned Values
+        );
+
+        $generatedQuestions = collect($questionsData['questions'] ?? [])
+            ->map(function (array $questionData) {
+                $questionText = trim($questionData['question_text'] ?? '');
+
+                $options = collect($questionData['options'] ?? [])
+                    ->map(function (array $option) {
+                        return [
+                            'option_letter' => $option['option_letter'] ?? null,
+                            'option_text' => $option['option_text'] ?? null,
+                            'is_correct' => (bool) ($option['is_correct'] ?? false),
+                            'rationale' => $option['rationale'] ?? null,
+                        ];
+                    })
+                    ->filter(function (array $option) {
+                        return !empty($option['option_letter']) && !empty($option['option_text']);
+                    })
+                    ->values();
+
+                if ($questionText === '' || $options->isEmpty()) {
+                    return null;
+                }
+
+                $correctOption = $options->firstWhere('is_correct', true);
+
+                if (!$correctOption) {
+                    $options = $options->map(function (array $option, int $index) use (&$correctOption) {
+                        if ($index === 0) {
+                            $option['is_correct'] = true;
+                            $correctOption = $option;
+                        }
+
+                        return $option;
+                    });
+                }
+
+                if (!$correctOption) {
+                    return null;
+                }
 
                 return [
-                    'topic' => $topic->name,
-                    'description' => $topic->description,
-                    'recommended_question_count' => (int)($metadata['recommended_question_count'] ?? 4),
-                    'cognitive_emphasis' => $metadata['cognitive_emphasis'] ?? 'understand',
-                    'key_concepts' => $metadata['key_concepts'] ?? [],
+                    'question_text' => $questionText,
+                    'options' => $options->map(function (array $option) {
+                        return [
+                            'option_letter' => $option['option_letter'],
+                            'option_text' => $option['option_text'],
+                            'is_correct' => $option['is_correct'],
+                            'rationale' => $option['rationale'],
+                        ];
+                    })->toArray(),
+                    'correct_answer_letter' => $correctOption['option_letter'],
+                    'explanation' => $questionData['explanation'] ?? null,
+                    'cognitive_level' => $questionData['cognitive_level'] ?? null,
+                    'estimated_difficulty' => is_numeric($questionData['estimated_difficulty'] ?? null)
+                        ? (float) $questionData['estimated_difficulty']
+                        : 0.5,
+                    'time_estimate_seconds' => (int) ($questionData['time_estimate_seconds'] ?? 60),
                 ];
             })
+            ->filter()
+            ->values();
+
+        if ($generatedQuestions->isEmpty()) {
+            $fallbackQuestions = collect($this->generateFallbackQuestions($tosItem, $questionsNeeded));
+
+            if ($fallbackQuestions->isEmpty()) {
+                Log::warning('Unable to generate fallback questions for ToS item', [
+                    'tos_item_id' => $tosItem->id,
+                    'questions_requested' => $questionsNeeded,
+                    'openai_response_keys' => is_array($questionsData) ? array_keys($questionsData) : null,
+                ]);
+                return;
+            }
+
+            Log::notice('AI returned no usable questions; using fallback generator', [
+                'tos_item_id' => $tosItem->id,
+                'fallback_questions' => $fallbackQuestions->count(),
+            ]);
+
+            $generatedQuestions = $fallbackQuestions;
+        }
+
+        if ($generatedQuestions->count() < $questionsNeeded) {
+            $fallbackNeeded = $questionsNeeded - $generatedQuestions->count();
+            $fallbackQuestions = collect($this->generateFallbackQuestions($tosItem, $fallbackNeeded));
+
+            if ($fallbackQuestions->isNotEmpty()) {
+                $generatedQuestions = $generatedQuestions->concat($fallbackQuestions)->values();
+
+                Log::notice('Supplemented AI output with fallback questions', [
+                    'tos_item_id' => $tosItem->id,
+                    'fallback_questions' => $fallbackQuestions->count(),
+                    'requested_total' => $questionsNeeded,
+                    'final_total' => $generatedQuestions->count(),
+                ]);
+            }
+        }
+        
+        $persistedCount = 0;
+        
+        // Save questions to item bank
+        foreach ($generatedQuestions as $questionData) {
+            // Estimate initial difficulty (will be refined based on responses)
+            $estimatedDifficulty = $questionData['estimated_difficulty'];
+            
+            // Convert difficulty from 0-1 scale to IRT scale (-3 to 3)
+            $difficultyB = ($estimatedDifficulty - 0.5) * 4;
+            
+            ItemBank::create([
+                'tos_item_id' => $tosItem->id,
+                'topic_id' => $tosItem->topic_id,
+                'learning_outcome_id' => $tosItem->learning_outcome_id,
+                'question' => $questionData['question_text'],
+                'options' => $questionData['options'],
+                'correct_answer' => $questionData['correct_answer_letter'],
+                'explanation' => $questionData['explanation'],
+                'cognitive_level' => $questionData['cognitive_level'],
+                'difficulty_b' => $difficultyB,
+                'time_estimate_seconds' => $questionData['time_estimate_seconds'],
+                'created_at' => now(),
+            ]);
+
+            $persistedCount++;
+        }
+        
+        $topicQuestionCounts[$topicId] = ($topicQuestionCounts[$topicId] ?? 0) + $persistedCount;
+
+        Log::info("Generated questions for ToS item", [
+            'tos_item_id' => $tosItem->id,
+            'topic_id' => $topicId,
+            'questions_generated' => $persistedCount,
+            'topic_total_questions' => $topicQuestionCounts[$topicId],
+        ]);
+    }
+
+    /**
+     * Fallback generator to ensure at least one usable question per ToS item
+     */
+    protected function generateFallbackQuestions(TosItem $tosItem, int $count): array
+    {
+        if ($count <= 0) {
+            return [];
+        }
+
+        $topicName = $tosItem->topic->name ?? 'this topic';
+        $cognitiveLevel = $tosItem->cognitive_level ?? 'remember';
+
+        $indicators = collect($this->normalizeSampleIndicators($tosItem->sample_indicators));
+        if ($indicators->isEmpty()) {
+            $indicators = collect(["Key concept of {$topicName}"]);
+        }
+
+        $distractorPool = [
+            "A statement that only loosely relates to {$topicName}.",
+            "An idea that misinterprets {$topicName}.",
+            "A detail belonging to a different topic.",
+            "An overgeneralization that does not apply to {$topicName}.",
+            "A misconception often associated with {$topicName}.",
+        ];
+
+        return collect(range(1, $count))
+            ->map(function (int $index) use ($indicators, $distractorPool, $topicName, $cognitiveLevel) {
+                $indicatorValue = $indicators->get(($index - 1) % $indicators->count());
+                if (is_array($indicatorValue)) {
+                    $indicatorValue = implode(' ', array_filter($indicatorValue, fn ($value) => is_string($value)));
+                }
+
+                $indicatorText = trim((string) ($indicatorValue ?: "a key concept in {$topicName}"));
+
+                $questionText = "Which statement best aligns with {$indicatorText} in {$topicName}?";
+                $correctExplanation = "This option directly reflects {$indicatorText} within {$topicName}.";
+
+                $distractors = collect($distractorPool)
+                    ->shuffle()
+                    ->take(3)
+                    ->values();
+
+                $options = collect([
+                    [
+                        'option_letter' => 'A',
+                        'option_text' => $indicatorText,
+                        'is_correct' => true,
+                        'rationale' => $correctExplanation,
+                    ],
+                ]);
+
+                $letters = ['B', 'C', 'D'];
+                foreach ($distractors as $i => $distractor) {
+                    $options->push([
+                        'option_letter' => $letters[$i] ?? chr(ord('A') + $i + 1),
+                        'option_text' => $distractor,
+                        'is_correct' => false,
+                        'rationale' => "This does not accurately describe {$topicName}.",
+                    ]);
+                }
+
+                return [
+                    'question_text' => $questionText,
+                    'options' => $options->map(fn ($option) => [
+                        'option_letter' => $option['option_letter'],
+                        'option_text' => $option['option_text'],
+                        'is_correct' => $option['is_correct'],
+                        'rationale' => $option['rationale'],
+                    ])->toArray(),
+                    'correct_answer_letter' => 'A',
+                    'explanation' => $correctExplanation,
+                    'cognitive_level' => $cognitiveLevel,
+                    'estimated_difficulty' => 0.25,
+                    'time_estimate_seconds' => 60,
+                ];
+            })
+            ->values()
             ->toArray();
     }
 
     /**
-     * Remove previously generated items for the supplied ToS items.
+     * Normalize sample indicators into a flat array of strings
      */
-    protected function resetExistingItems(Collection $tosItems): void
+    protected function normalizeSampleIndicators(mixed $sampleIndicators): array
     {
-        $tosItems->each(function (TosItem $tosItem) {
-            $deleted = $tosItem->items()->delete();
+        if (is_array($sampleIndicators)) {
+            return collect($sampleIndicators)
+                ->map(function ($value) {
+                    if (is_string($value)) {
+                        return trim($value);
+                    }
 
-            if ($deleted > 0) {
-                Log::debug('Deleted existing items for ToS item prior to regeneration', [
-                    'tos_item_id' => $tosItem->id,
-                    'deleted_count' => $deleted,
-                ]);
+                    if (is_array($value)) {
+                        return trim(implode(' ', array_filter($value, fn ($segment) => is_string($segment))));
+                    }
+
+                    return '';
+                })
+                ->filter()
+                ->values()
+                ->toArray();
+        }
+
+        if (is_string($sampleIndicators) && $sampleIndicators !== '') {
+            $decoded = json_decode($sampleIndicators, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $this->normalizeSampleIndicators($decoded);
             }
-        });
-    }
 
-    /**
-     * Find the AI response block that matches a given topic name.
-     */
-    protected function matchTopicResponse(Collection $responseTopics, string $topicName): ?array
-    {
-        $normalizedName = $this->normalizeLabel($topicName);
-
-        return $responseTopics
-            ->first(function (array $topicData) use ($normalizedName) {
-                return $this->normalizeLabel((string)($topicData['topic'] ?? '')) === $normalizedName;
-            });
-    }
-
-    /**
-     * Persist AI-generated questions for a specific topic.
-     */
-    protected function persistQuestionsForTopic(
-        Topic $topic,
-        TosItem $tosItem,
-        array $questionPayload,
-        int $targetCount
-    ): int {
-        $sanitizedQuestions = collect($questionPayload)
-            ->map(fn (array $rawQuestion) => $this->sanitizeQuestionData($topic, $rawQuestion))
-            ->filter()
-            ->take($targetCount);
-
-        if ($sanitizedQuestions->isEmpty()) {
-            return 0;
+            return collect(preg_split('/[\r\n;,]+/', $sampleIndicators))
+                ->map(fn ($segment) => trim($segment))
+                ->filter()
+                ->values()
+                ->toArray();
         }
 
-        $this->persistSanitizedQuestions($topic, $tosItem, $sanitizedQuestions);
-
-        return $sanitizedQuestions->count();
-    }
-
-    /**
-     * Persist sanitized quiz questions into the item bank.
-     */
-    protected function persistSanitizedQuestions(Topic $topic, TosItem $tosItem, Collection $questions): void
-    {
-        foreach ($questions as $question) {
-            $estimatedDifficulty = (float)($question['estimated_difficulty'] ?? 0.5);
-            $difficultyB = $this->convertToIrtDifficulty($estimatedDifficulty);
-
-            ItemBank::create([
-                'tos_item_id' => $tosItem->id,
-                'topic_id' => $topic->id,
-                'learning_outcome_id' => null,
-                'question' => $question['question_text'],
-                'options' => $question['options'],
-                'correct_answer' => $question['correct_answer_letter'],
-                'explanation' => $question['explanation'],
-                'cognitive_level' => $question['cognitive_level'],
-                'difficulty_b' => $difficultyB,
-                'time_estimate_seconds' => (int)($question['time_estimate_seconds'] ?? 60),
-                'created_at' => now(),
-            ]);
-        }
-    }
-
-    /**
-     * Normalize question data coming either from the AI response or fallback generator.
-     */
-    protected function sanitizeQuestionData(Topic $topic, array $questionData): ?array
-    {
-        $questionText = trim((string)($questionData['question_text'] ?? ''));
-
-        if ($questionText === '') {
-            return null;
-        }
-
-        $rawOptions = $questionData['options'] ?? [];
-        $options = $this->normalizeOptions($rawOptions);
-
-        if ($options->count() !== 4) {
-            return null;
-        }
-
-        $correctLetter = $this->resolveCorrectAnswer($options, $questionData['correct_answer'] ?? null);
-
-        $cognitiveLevel = $this->normalizeCognitiveLevel($questionData['cognitive_level'] ?? null);
-        $explanation = trim((string)($questionData['explanation'] ?? '')) ?: null;
-        $estimatedDifficulty = $this->normalizeEstimatedDifficulty($questionData['estimated_difficulty'] ?? null);
-        $timeEstimate = $this->normalizeTimeEstimate($questionData['time_estimate_seconds'] ?? null);
-
-        return [
-            'question_text' => $questionText,
-            'options' => $options->map(function (array $option) {
-                return [
-                    'option_letter' => $option['option_letter'],
-                    'option_text' => $option['option_text'],
-                    'is_correct' => $option['is_correct'],
-                    'rationale' => $option['rationale'],
-                ];
-            })->toArray(),
-            'correct_answer_letter' => $correctLetter,
-            'explanation' => $explanation,
-            'cognitive_level' => $cognitiveLevel,
-            'estimated_difficulty' => $estimatedDifficulty,
-            'time_estimate_seconds' => $timeEstimate,
-        ];
-    }
-
-    /**
-     * Normalize and validate options for a question.
-     */
-    protected function normalizeOptions(array $options): Collection
-    {
-        $letters = ['A', 'B', 'C', 'D'];
-
-        $normalized = collect($options)
-            ->take(4)
-            ->map(function (array $option, int $index) use ($letters) {
-                $letter = strtoupper((string)($option['option_letter'] ?? $letters[$index] ?? ''));
-                if (!in_array($letter, $letters, true)) {
-                    $letter = $letters[$index] ?? 'D';
-                }
-
-                $text = trim((string)($option['option_text'] ?? ''));
-
-                if ($text === '') {
-                    return null;
-                }
-
-                $isCorrect = (bool)($option['is_correct'] ?? false);
-                $rationale = trim((string)($option['rationale'] ?? ''));
-
-                return [
-                    'option_letter' => $letter,
-                    'option_text' => $text,
-                    'is_correct' => $isCorrect,
-                    'rationale' => $rationale !== '' ? $rationale : null,
-                ];
-            })
-            ->filter()
-            ->values();
-
-        if ($normalized->count() < 4) {
-            return collect();
-        }
-
-        return $normalized;
-    }
-
-    /**
-     * Resolve the correct answer letter ensuring exactly one correct option.
-     */
-    protected function resolveCorrectAnswer(Collection $options, ?string $explicit): string
-    {
-        $explicit = strtoupper(trim((string)$explicit));
-
-        if ($explicit !== '' && $options->firstWhere('option_letter', $explicit)) {
-            $options->transform(function (array $option) use ($explicit) {
-                $option['is_correct'] = $option['option_letter'] === $explicit;
-                return $option;
-            });
-
-            return $explicit;
-        }
-
-        $firstMarked = $options->firstWhere('is_correct', true);
-
-        if ($firstMarked) {
-            $correctLetter = $firstMarked['option_letter'];
-
-            $options->transform(function (array $option) use ($correctLetter) {
-                $option['is_correct'] = $option['option_letter'] === $correctLetter;
-                return $option;
-            });
-
-            return $correctLetter;
-        }
-
-        $options->transform(function (array $option, int $index) {
-            $option['is_correct'] = $index === 0;
-            return $option;
-        });
-
-        return $options->first()['option_letter'];
-    }
-
-    /**
-     * Generate deterministic fallback questions using topic metadata.
-     */
-    protected function generateFallbackQuestions(Topic $topic, int $count): Collection
-    {
-        if ($count <= 0) {
-            return collect();
-        }
-
-        $metadata = $topic->metadata ?? [];
-        $keyConcepts = collect($metadata['key_concepts'] ?? [])
-            ->filter(fn ($concept) => is_string($concept) && trim($concept) !== '')
-            ->map(fn ($concept) => trim($concept))
-            ->values();
-
-        if ($keyConcepts->isEmpty()) {
-            $keyConcepts = collect([
-                "{$topic->name} fundamentals",
-                "{$topic->name} terminology",
-                "{$topic->name} examples",
-            ]);
-        }
-
-        return collect(range(1, $count))->map(function (int $index) use ($topic, $keyConcepts) {
-            $concept = $keyConcepts->get(($index - 1) % $keyConcepts->count(), $topic->name);
-            $concept = trim($concept);
-
-            $questionText = "Which statement best aligns with \"{$concept}\" in the context of {$topic->name}?";
-            $correctOption = [
-                'option_letter' => 'A',
-                'option_text' => "It accurately reflects {$concept} as presented in {$topic->name}.",
-                'is_correct' => true,
-                'rationale' => "This option directly captures {$concept} as explained within {$topic->name}.",
-            ];
-
-            $distractors = collect([
-                "It describes content unrelated to {$topic->name}.",
-                "It contradicts the core ideas discussed in {$topic->name}.",
-                "It references an example that is not part of {$topic->name}.",
-            ])->map(fn (string $text, int $dIndex) => [
-                'option_letter' => chr(ord('B') + $dIndex),
-                'option_text' => $text,
-                'is_correct' => false,
-                'rationale' => "This does not correctly represent {$concept} within {$topic->name}.",
-            ])->take(3);
-
-            $options = collect([$correctOption])->concat($distractors)->take(4)->map(function (array $option, int $idx) {
-                $option['option_letter'] = ['A', 'B', 'C', 'D'][$idx] ?? 'A';
-                return $option;
-            });
-
-            return [
-                'question_text' => $questionText,
-                'options' => $options->toArray(),
-                'correct_answer_letter' => 'A',
-                'explanation' => "Option A aligns with {$concept} as highlighted in {$topic->name}.",
-                'cognitive_level' => $this->normalizeCognitiveLevel($topic->metadata['cognitive_emphasis'] ?? 'understand'),
-                'estimated_difficulty' => 0.35,
-                'time_estimate_seconds' => 60,
-            ];
-        });
-    }
-
-    /**
-     * Convert AI-provided difficulty (0-1 range) to IRT difficulty scale (-3 to 3).
-     */
-    protected function convertToIrtDifficulty(float $difficulty): float
-    {
-        $difficulty = max(0.1, min(0.9, $difficulty));
-
-        return ($difficulty - 0.5) * 6; // Map 0-1 to roughly -3 to +3
-    }
-
-    protected function normalizeCognitiveLevel(mixed $value): string
-    {
-        $level = strtolower(trim((string)$value));
-
-        return match ($level) {
-            'remember', 'recall' => 'remember',
-            'apply', 'application' => 'apply',
-            default => 'understand',
-        };
-    }
-
-    protected function normalizeEstimatedDifficulty(mixed $value): float
-    {
-        if (is_numeric($value)) {
-            $float = (float)$value;
-
-            return $float <= 0 ? 0.35 : ($float > 1 ? 0.75 : $float);
-        }
-
-        return 0.5;
-    }
-
-    protected function normalizeTimeEstimate(mixed $value): int
-    {
-        $int = is_numeric($value) ? (int)$value : 60;
-
-        return max(30, min(180, $int));
-    }
-
-    protected function normalizeLabel(?string $value): string
-    {
-        return strtolower(trim((string)$value));
+        return [];
     }
 }

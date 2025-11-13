@@ -190,7 +190,7 @@ class StudentCourses extends Component
             ->where('course_id', $courseId)
             ->first();
         QuizAttempt::where('user_id', auth()->id())
-            ->whereHas('subtopic.topic.document', function ($query) use ($courseId) {
+            ->whereHas('topic.document', function ($query) use ($courseId) {
                 $query->where('course_id', $courseId);
             })
             ->delete();

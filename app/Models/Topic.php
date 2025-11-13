@@ -45,4 +45,24 @@ class Topic extends Model
     {
         return $this->hasMany(ItemBank::class);
     }
+
+    /**
+     * Get all ToS items for this topic
+     */
+    public function tosItems(): HasMany
+    {
+        return $this->hasMany(TosItem::class);
+    }
+
+
+    public function hasCompletedAllInitialQuizzes(int $userId): bool
+    {
+        $completedCount = QuizAttempt::where('user_id', $userId)
+            ->where('topic_id', $this->id)
+            ->where('is_adaptive', false)
+            ->whereNotNull('completed_at')
+            ->count();
+        
+        return $completedCount > 0;
+    }
 }
