@@ -21,12 +21,15 @@ use Livewire\Features\SupportRedirects\Redirector;
 
 class TakeQuiz extends Component
 {
+    private const DEFAULT_POMODORO_FOCUS_SECONDS = 1500;
+    private const DEFAULT_POMODORO_BREAK_SECONDS = 300;
+    private const CUSTOM_POMODORO_SESSION_KEY = 'quiz.timer.custom_pomodoro';
     public Topic $topic;
     public ?QuizAttempt $attempt = null;
     public Collection $items;
     public int $currentQuestionIndex = 0;
     public ?string $selectedAnswer = null;
-    public int $timeRemaining = 60;
+    public int $timeRemaining = 1500;
     public bool $quizStarted = false;
     public bool $quizCompleted = false;
     public bool $showFeedback = false;
@@ -36,6 +39,11 @@ class TakeQuiz extends Component
     public int $pomodoroSessionTime = 1500;
     public int $pomodoroBreakTime = 300;
     public bool $isBreakTime = false;
+    public bool $showCustomPomodoroModal = false;
+    public int $customFocusMinutes = 25;
+    public int $customBreakMinutes = 5;
+    public bool $customPomodoroConfigured = false;
+    public ?string $previousTimerMode = null;
     public int $maxAttemptsAllowed = 3;
     public int $completedAttemptsCount = 0;
     public bool $hasReachedAttemptLimit = false;
@@ -81,6 +89,8 @@ class TakeQuiz extends Component
 
         $this->items = collect();
         $this->refreshAttemptLimitState();
+        $this->loadCustomPomodoroFromSession();
+        $this->hydrateTimerFromBatch();
     }
 
     public function selectTimerMode(string $mode): void
@@ -90,15 +100,109 @@ class TakeQuiz extends Component
             return;
         }
 
+        if (! in_array($mode, ['pomodoro', 'custom_pomodoro', 'no_time_limit'], true)) {
+            return;
+        }
+
+        if ($mode === 'custom_pomodoro') {
+            $this->loadCustomPomodoroFromSession();
+            $this->previousTimerMode = $this->timerMode;
+            $this->showCustomPomodoroModal = true;
+            Log::info('Custom Pomodoro Selected!');
+            return;
+        }
+
+        $this->showCustomPomodoroModal = false;
+        $this->previousTimerMode = null;
         $this->timerMode = $mode;
+        $this->isBreakTime = false;
 
         if ($mode === 'pomodoro') {
-            $this->timeRemaining = $this->pomodoroSessionTime;
-        } elseif ($mode === 'standard') {
-            $this->timeRemaining = 60;
-        } else {
-            $this->timeRemaining = 0;
+            $this->resetToDefaultPomodoroDurations();
+            $this->customPomodoroConfigured = false;
+            $this->syncTimerForCurrentMode();
+            return;
         }
+
+        $this->customPomodoroConfigured = false;
+        $this->timeRemaining = 0;
+    }
+
+    public function confirmCustomPomodoro(): void
+    {
+        $validated = $this->validate([
+            'customFocusMinutes' => ['required', 'integer', 'min:1'],
+            'customBreakMinutes' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $focusSeconds = (int) $validated['customFocusMinutes'] * 60;
+        $breakSeconds = (int) $validated['customBreakMinutes'] * 60;
+
+        $this->applyPomodoroDurationsFromSeconds($focusSeconds, $breakSeconds);
+
+        $this->timerMode = 'custom_pomodoro';
+        $this->isBreakTime = false;
+        $this->customPomodoroConfigured = true;
+        $this->showCustomPomodoroModal = false;
+        $this->previousTimerMode = null;
+
+        $this->syncTimerForCurrentMode();
+        $this->persistCustomPomodoroToSession($focusSeconds, $breakSeconds);
+    }
+
+    public function cancelCustomPomodoro(): void
+    {
+        $this->showCustomPomodoroModal = false;
+
+        if ($this->previousTimerMode !== null) {
+            $this->timerMode = $this->previousTimerMode;
+            $this->previousTimerMode = null;
+            $this->syncTimerForCurrentMode();
+
+            return;
+        }
+
+        $this->resetTimerSelection();
+    }
+
+    public function resetTimerSelection(): void
+    {
+        $this->timerMode = null;
+        $this->showCustomPomodoroModal = false;
+        $this->previousTimerMode = null;
+        $this->isBreakTime = false;
+        $this->customPomodoroConfigured = false;
+        $this->resetToDefaultPomodoroDurations();
+        $this->timeRemaining = 0;
+    }
+
+    protected function hydrateTimerFromBatch(): void
+    {
+        $batchTimerMode = $this->documentQuizBatchService->timerMode();
+
+        if (!is_string($batchTimerMode) || !in_array($batchTimerMode, ['pomodoro', 'custom_pomodoro', 'no_time_limit'], true)) {
+            return;
+        }
+
+        $this->timerMode = $batchTimerMode;
+        $this->isBreakTime = false;
+
+        if ($batchTimerMode === 'custom_pomodoro') {
+            $settings = $this->documentQuizBatchService->timerSettings() ?? [];
+            $focusSeconds = (int) ($settings['focus_seconds'] ?? self::DEFAULT_POMODORO_FOCUS_SECONDS);
+            $breakSeconds = (int) ($settings['break_seconds'] ?? self::DEFAULT_POMODORO_BREAK_SECONDS);
+
+            $this->applyPomodoroDurationsFromSeconds($focusSeconds, $breakSeconds);
+            $this->persistCustomPomodoroToSession($focusSeconds, $breakSeconds);
+            $this->customPomodoroConfigured = true;
+        } elseif ($batchTimerMode === 'pomodoro') {
+            $this->resetToDefaultPomodoroDurations();
+            $this->customPomodoroConfigured = false;
+        } else {
+            $this->customPomodoroConfigured = false;
+        }
+
+        $this->syncTimerForCurrentMode();
     }
 
     public function startQuiz(): void
@@ -109,7 +213,10 @@ class TakeQuiz extends Component
         }
 
         if ($this->timerMode) {
-            $this->documentQuizBatchService->updateTimerMode($this->timerMode);
+            $this->documentQuizBatchService->updateTimerMode(
+                $this->timerMode,
+                $this->currentPomodoroSettings()
+            );
         }
 
         $existingAttempt = $this->getActiveAttempt();
@@ -627,8 +734,7 @@ class TakeQuiz extends Component
     protected function calculateTimeTaken(): int
     {
         return match ($this->timerMode) {
-            'standard' => max(0, 60 - $this->timeRemaining),
-            'pomodoro' => $this->isBreakTime ? 0 : max(0, $this->pomodoroSessionTime - $this->timeRemaining),
+            'pomodoro', 'custom_pomodoro' => $this->isBreakTime ? 0 : max(0, $this->pomodoroSessionTime - $this->timeRemaining),
             default => 0,
         };
     }
@@ -738,33 +844,29 @@ class TakeQuiz extends Component
             return;
         }
 
-        if ($this->timerMode === 'standard') {
-            $this->dispatchTimerStream('timeout');
-            $this->submitAnswer(null, true);
+        if (! in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
             return;
         }
 
-        if ($this->timerMode === 'pomodoro') {
-            if ($this->isBreakTime) {
-                $this->dispatchTimerStream('break_complete');
-                $this->endBreak();
-            } else {
-                $this->dispatchTimerStream('session_complete');
-                $this->startBreak();
-            }
+        if ($this->isBreakTime) {
+            $this->dispatchTimerStream('break_complete');
+            $this->endBreak();
+
+            return;
         }
+
+        $this->dispatchTimerStream('session_complete');
+        $this->startBreak();
     }
 
     public function resetTimer(): void
     {
         $previousTimeRemaining = $this->timeRemaining;
 
-        if ($this->timerMode === 'pomodoro') {
+        if (in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
             $this->timeRemaining = $this->isBreakTime
                 ? $this->pomodoroBreakTime
                 : $this->pomodoroSessionTime;
-        } elseif ($this->timerMode === 'standard') {
-            $this->timeRemaining = 60;
         } else {
             $this->timeRemaining = 0;
         }
@@ -819,22 +921,22 @@ class TakeQuiz extends Component
 
     public function timerMaxSeconds(): int
     {
-        if ($this->timerMode === 'pomodoro') {
+        if (in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
             return $this->isBreakTime
                 ? $this->pomodoroBreakTime
                 : $this->pomodoroSessionTime;
         }
 
-        return $this->timerMode === 'standard' ? 60 : 0;
+        return 0;
     }
 
     public function timerColorClass(): string
     {
-        if ($this->timerMode === 'free') {
+        if ($this->timerMode === 'no_time_limit') {
             return 'bg-slate-400 dark:bg-slate-600';
         }
 
-        if ($this->timerMode === 'pomodoro') {
+        if (in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
             return 'bg-purple-500 dark:bg-purple-400';
         }
 
@@ -860,7 +962,7 @@ class TakeQuiz extends Component
 
     public function shouldPollTimer(): bool
     {
-        if (!$this->timerMode || $this->timerMode === 'free') {
+        if (!$this->timerMode || $this->timerMode === 'no_time_limit') {
             return false;
         }
 
@@ -872,11 +974,87 @@ class TakeQuiz extends Component
             return false;
         }
 
-        if ($this->isBreakTime && $this->timerMode === 'pomodoro') {
+        if ($this->isBreakTime && in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
             return true;
         }
 
         return $this->quizStarted;
+    }
+
+    protected function loadCustomPomodoroFromSession(): void
+    {
+        Log::info('Custom pomodoro function load');
+        $stored = session()->get(self::CUSTOM_POMODORO_SESSION_KEY);
+
+        if (!is_array($stored)) {
+            $this->resetToDefaultPomodoroDurations();
+            $this->customPomodoroConfigured = false;
+
+            return;
+        }
+
+        $focusSeconds = (int) ($stored['focus_seconds'] ?? self::DEFAULT_POMODORO_FOCUS_SECONDS);
+        $breakSeconds = (int) ($stored['break_seconds'] ?? self::DEFAULT_POMODORO_BREAK_SECONDS);
+
+        $this->applyPomodoroDurationsFromSeconds($focusSeconds, $breakSeconds);
+        $this->customPomodoroConfigured = true;
+    }
+
+    protected function applyPomodoroDurationsFromSeconds(int $focusSeconds, int $breakSeconds): void
+    {
+        $validatedFocus = max(60, $focusSeconds);
+        $validatedBreak = max(60, $breakSeconds);
+
+        $this->pomodoroSessionTime = $validatedFocus;
+        $this->pomodoroBreakTime = $validatedBreak;
+
+        $this->customFocusMinutes = max(1, (int) ceil($validatedFocus / 60));
+        $this->customBreakMinutes = max(1, (int) ceil($validatedBreak / 60));
+
+        $this->syncTimerForCurrentMode();
+    }
+
+    protected function resetToDefaultPomodoroDurations(): void
+    {
+        $this->pomodoroSessionTime = self::DEFAULT_POMODORO_FOCUS_SECONDS;
+        $this->pomodoroBreakTime = self::DEFAULT_POMODORO_BREAK_SECONDS;
+        $this->customFocusMinutes = (int) ceil(self::DEFAULT_POMODORO_FOCUS_SECONDS / 60);
+        $this->customBreakMinutes = (int) ceil(self::DEFAULT_POMODORO_BREAK_SECONDS / 60);
+    }
+
+    protected function syncTimerForCurrentMode(): void
+    {
+        if (in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
+            $this->timeRemaining = $this->isBreakTime
+                ? $this->pomodoroBreakTime
+                : $this->pomodoroSessionTime;
+
+            return;
+        }
+
+        $this->timeRemaining = 0;
+    }
+
+    protected function currentPomodoroSettings(): ?array
+    {
+        if (!in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
+            return null;
+        }
+
+        return [
+            'focus_seconds' => $this->pomodoroSessionTime,
+            'break_seconds' => $this->pomodoroBreakTime,
+            'is_custom' => $this->timerMode === 'custom_pomodoro',
+        ];
+    }
+
+    protected function persistCustomPomodoroToSession(int $focusSeconds, int $breakSeconds): void
+    {
+        session()->put(self::CUSTOM_POMODORO_SESSION_KEY, [
+            'focus_seconds' => max(60, $focusSeconds),
+            'break_seconds' => max(60, $breakSeconds),
+            'stored_at' => now()->toIso8601String(),
+        ]);
     }
 
     protected function dispatchTimerStream(string $event, array $context = []): void

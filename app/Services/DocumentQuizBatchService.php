@@ -37,6 +37,7 @@ class DocumentQuizBatchService
             'total' => $subtopics->count(),
             'started_at' => now()->toIso8601String(),
             'timer_mode' => null,
+            'timer_settings' => null,
         ]);
     }
 
@@ -47,7 +48,7 @@ class DocumentQuizBatchService
         return is_array($batch) ? $batch : null;
     }
 
-    public function updateTimerMode(string $timerMode): void
+    public function updateTimerMode(string $timerMode, ?array $timerSettings = null): void
     {
         $batch = $this->currentBatch();
 
@@ -57,6 +58,12 @@ class DocumentQuizBatchService
 
         $batch['timer_mode'] = $timerMode;
 
+        if ($timerSettings !== null) {
+            $batch['timer_settings'] = $timerSettings;
+        } elseif (array_key_exists('timer_settings', $batch)) {
+            unset($batch['timer_settings']);
+        }
+
         session()->put('quiz.batch', $batch);
     }
 
@@ -65,6 +72,15 @@ class DocumentQuizBatchService
         $batch = $this->currentBatch();
 
         return $batch['timer_mode'] ?? null;
+    }
+
+    public function timerSettings(): ?array
+    {
+        $batch = $this->currentBatch();
+
+        $settings = $batch['timer_settings'] ?? null;
+
+        return is_array($settings) ? $settings : null;
     }
 
     public function clearBatch(): void
