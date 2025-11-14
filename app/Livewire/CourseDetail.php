@@ -189,8 +189,8 @@ class CourseDetail extends Component
 
         $document = $this->course->documents()
             ->with([
-                'topics.subtopics' => function ($subtopicQuery) use ($userId) {
-                    $subtopicQuery
+                'topics' => function ($topicQuery) use ($userId) {
+                    $topicQuery
                         ->withCount('items')
                         ->withCount([
                             'quizAttempts as user_attempts_count' => function ($attemptQuery) use ($userId) {
@@ -206,33 +206,33 @@ class CourseDetail extends Component
             return null;
         }
 
-        $eligibleSubtopics = $this->documentQuizBatchService->eligibleSubtopicsForUser($document, $userId);
+        $eligibleTopics = $this->documentQuizBatchService->eligibleSubtopicsForUser($document, $userId);
 
-        if ($eligibleSubtopics->isEmpty()) {
+        if ($eligibleTopics->isEmpty()) {
             session()->flash('error', 'No eligible quizzes remain for this learning material.');
             return null;
         }
 
-        $this->documentQuizBatchService->initialiseBatchSession($document, $eligibleSubtopics);
+        $this->documentQuizBatchService->initialiseBatchSession($document, $eligibleTopics);
 
-        $firstSubtopicId = (int) $eligibleSubtopics->first()->id;
-        session()->put('quiz.context.subtopic', $firstSubtopicId);
+        $firstTopicId = (int) $eligibleTopics->first()->id;
+        session()->put('quiz.context.topic', $firstTopicId);
 
-        return redirect()->route('student.quiz.take', $firstSubtopicId);
+        return redirect()->route('student.quiz.take', $firstTopicId);
     }
 
-    public function continueBatch(int $subtopicId): RedirectResponse|Redirector|null
+    public function continueBatch(int $topicId): RedirectResponse|Redirector|null
     {
         $batch = $this->documentQuizBatchService->currentBatch();
 
-        if (! $batch || empty($batch['queue']) || ! in_array($subtopicId, $batch['queue'], true)) {
+        if (! $batch || empty($batch['queue']) || ! in_array($topicId, $batch['queue'], true)) {
             session()->flash('error', 'Quiz batch session is no longer available.');
             return null;
         }
 
-        session()->put('quiz.context.subtopic', $subtopicId);
+        session()->put('quiz.context.topic', $topicId);
 
-        return redirect()->route('student.quiz.take', $subtopicId);
+        return redirect()->route('student.quiz.take', $topicId);
     }
 
     public function render()
@@ -282,18 +282,17 @@ class CourseDetail extends Component
         $activeQueue = collect($activeBatch['queue'] ?? []);
 
         return $documents->map(function (Document $document) use ($maxAttempts, $activeDocumentId, $activeQueue) {
-            $subtopics = $document->topics
-                ->flatMap(fn ($topic) => $topic->subtopics)
-                ->map(fn ($subtopic) => [
-                    'id' => $subtopic->id,
-                    'name' => $subtopic->name,
-                    'items_count' => $subtopic->items_count ?? 0,
-                    'user_attempts_count' => $subtopic->user_attempts_count ?? 0,
-                    'can_retake' => ($subtopic->items_count ?? 0) > 0
-                        && (($subtopic->user_attempts_count ?? 0) < $maxAttempts),
+            $topics = $document->topics
+                ->flatMap(fn ($topic)=> [
+                    'id' => $topic->id,
+                    'name' => $topic->name,
+                    'items_count' => $topic->items_count ?? 0,
+                    'user_attempts_count' => $topic->user_attempts_count ?? 0,
+                    'can_retake' => ($topic->items_count ?? 0) > 0
+                        && (($topic->user_attempts_count ?? 0) < $maxAttempts),
                 ]);
 
-            $eligibleCount = $subtopics->where('can_retake', true)->count();
+            $eligibleCount = $topics->where('can_retake', true)->count();
             $inBatchQueue = $activeDocumentId === $document->id;
 
             return [
@@ -301,7 +300,7 @@ class CourseDetail extends Component
                 'eligible_quiz_count' => $eligibleCount,
                 'in_active_batch' => $inBatchQueue,
                 'active_queue' => $inBatchQueue ? $activeQueue->values()->all() : [],
-                'total_subtopics' => $subtopics->count(),
+                'total_topics' => $topics->count(),
             ];
         });
     }

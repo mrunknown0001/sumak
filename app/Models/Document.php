@@ -29,6 +29,10 @@ class Document extends Model
         'processing_status',
         'processed_at',
         'processing_error',
+        'correlation_score',
+        'correlation_threshold',
+        'correlation_metadata',
+        'correlation_evaluated_at',
     ];
 
     protected $casts = [
@@ -36,6 +40,10 @@ class Document extends Model
         'processed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'correlation_score' => 'float',
+        'correlation_threshold' => 'float',
+        'correlation_metadata' => 'array',
+        'correlation_evaluated_at' => 'datetime',
     ];
 
     /**

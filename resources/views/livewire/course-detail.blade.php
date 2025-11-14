@@ -9,7 +9,7 @@
     $documentBatchMetaById = collect($documentBatchMeta ?? [])->keyBy('document_id');
     $activeBatchDocumentId = $activeQuizBatch['document_id'] ?? null;
     $activeBatchQueue = collect($activeQuizBatch['queue'] ?? []);
-    $activeBatchNextSubtopicId = $activeBatchQueue->first();
+    $activeBatchNexTopicId = $activeBatchQueue->first();
     $activeBatchRemainingCount = $activeBatchQueue->count();
     $maxAttemptsAllowed = $maxAttempts ?? config('quiz.max_attempts', 3);
 @endphp
@@ -323,7 +323,7 @@
                 $meta = $documentBatchMetaById->get($document->id) ?? null;
                 $isActiveBatch = $activeBatchDocumentId === $document->id;
                 $remainingInBatch = $isActiveBatch ? $activeBatchRemainingCount : 0;
-                $nextBatchSubtopicId = $isActiveBatch ? $activeBatchNextSubtopicId : null;
+                $nextBatchTopicId = $isActiveBatch ? $activeBatchNextTopicId : null;
                 $eligibleQuizCount = $meta['eligible_quiz_count'] ?? 0;
             @endphp
             <article class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl dark	border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
@@ -366,7 +366,7 @@
 
                 @if($document->processing_status === \App\Models\Document::PROCESSING_COMPLETED)
                     <div class="mt-4 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/60">
-                        @if($isActiveBatch && $nextBatchSubtopicId)
+                        @if($isActiveBatch && $nextBatchTopicId)
                             <div class="flex flex-col gap-3 text-sm text-slate-700 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
                                 <div class="space-y-1">
                                     <p class="text-base font-semibold text-emerald-600 dark:text-emerald-300">Document-wide quiz batch in progress</p>
@@ -376,7 +376,7 @@
                                 </div>
                                 <div class="inline-flex flex-wrap items-center gap-2">
                                     <button
-                                        wire:click="continueBatch({{ $nextBatchSubtopicId }})"
+                                        wire:click="continueBatch({{ $nextBatchTopicId }})"
                                         class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                                     >
                                         Continue quiz batch
@@ -385,7 +385,7 @@
                                         </svg>
                                     </button>
                                     <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-200">
-                                        Queue: {{ implode(' › ', $activeBatchQueue->map(fn ($id) => $id === $nextBatchSubtopicId ? '•'.$id : $id)->toArray()) }}
+                                        Queue: {{ implode(' › ', $activeBatchQueue->map(fn ($id) => $id === $nextBatchTopicId ? '•'.$id : $id)->toArray()) }}
                                     </span>
                                 </div>
                             </div>
@@ -394,7 +394,7 @@
                                 <div class="space-y-1">
                                     <p class="text-base font-semibold text-slate-900 dark:text-slate-100">Ready to take all quizzes for this learning material?</p>
                                     <p class="text-xs text-slate-500 dark:text-slate-400">
-                                        {{ $eligibleQuizCount }} {{ Str::plural('subtopic quiz', $eligibleQuizCount) }} available. Start a batch session to attempt them sequentially.
+                                        {{ $eligibleQuizCount }} {{ Str::plural('topic quiz', $eligibleQuizCount) }} available. Start a batch session to attempt them sequentially.
                                     </p>
                                 </div>
                                 <button
@@ -411,7 +411,7 @@
                         @else
                             <div class="flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-400 md:flex-row md:items-center md:justify-between">
                                 <p class="font-semibold text-slate-700 dark:text-slate-300">
-                                    All subtopic quizzes for this learning material have been attempted {{ $maxAttemptsAllowed }} times.
+                                    All topic quizzes for this learning material have been attempted {{ $maxAttemptsAllowed }} times.
                                 </p>
                                 <span class="inline-flex items-center gap-1 rounded-full bg-slate-200/70 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
                                     Batch unavailable
@@ -467,14 +467,14 @@
                                     @else
                                         <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-slate-100/70 p-4 opacity-70 shadow-sm transition cursor-not-allowed dark:border-slate-700 dark:bg-slate-800/70">
                                             <div>
-                                                <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ $subtopic->name }}</p>
+                                                <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ $topic->name }}</p>
                                                 <p class="text-xs text-slate-400 dark:text-slate-500">📚 {{ $topic->name }}</p>
                                                 <p class="mt-2 text-xs font-semibold text-red-500 dark:text-red-400">
                                                     Unavailable • Max attempts reached ({{ $attemptCount }} / {{ $maxAttempts }})
                                                 </p>
                                             </div>
                                             <div class="rounded-xl border border-slate-300/70 bg-white/70 px-3 py-2 text-center shadow-sm dark:border-slate-600/70 dark:bg-slate-900/70">
-                                                <p class="text-lg font-bold text-slate-500 dark:text-slate-400">{{ $subtopic->items_count ?? $subtopic->items()->count() }}</p>
+                                                <p class="text-lg font-bold text-slate-500 dark:text-slate-400">{{ $topic->items_count ?? $topic->items()->count() }}</p>
                                                 <span class="text-xs font-medium text-slate-400 dark:text-slate-500">questions</span>
                                             </div>
                                         </div>
