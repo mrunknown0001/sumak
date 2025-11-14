@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Document;
+use App\Models\LearningOutcome;
 use App\Models\TableOfSpecification;
 use App\Models\Topic;
 use App\Models\TosItem;
@@ -14,6 +15,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use RuntimeException;
 use Smalot\PdfParser\Parser as PdfParser;
 
 class ProcessDocumentJob implements ShouldQueue
@@ -160,8 +163,21 @@ class ProcessDocumentJob implements ShouldQueue
             return null;
         }
 
-        $totalItems = (int)$topics->sum(function (Topic $topic) {
-            return (int)($topic->metadata['recommended_question_count'] ?? 0);
+        $document->loadMissing('course.obtlDocument.learningOutcomes');
+
+        $learningOutcomes = optional(optional($document->course)->obtlDocument)->learningOutcomes ?? collect();
+
+        if ($learningOutcomes->isEmpty()) {
+            Log::warning('Aborting ToS generation due to missing learning outcomes', [
+                'document_id' => $document->id,
+                'course_id' => $document->course_id,
+            ]);
+
+            throw new RuntimeException("Learning outcomes are required before generating a table of specification for document {$document->id}.");
+        }
+
+        $totalItems = (int) $topics->sum(function (Topic $topic) {
+            return (int) ($topic->metadata['recommended_question_count'] ?? 0);
         });
 
         if ($totalItems <= 0) {
@@ -181,14 +197,32 @@ class ProcessDocumentJob implements ShouldQueue
 
         foreach ($topics as $topic) {
             $metadata = $topic->metadata ?? [];
-            $recommended = (int)($metadata['recommended_question_count'] ?? 4);
+            $recommended = (int) ($metadata['recommended_question_count'] ?? 4);
             $cognitive = $metadata['cognitive_emphasis'] ?? 'understand';
             $keyConcepts = $metadata['key_concepts'] ?? [];
+
+            $learningOutcome = $this->resolveLearningOutcomeForTopic($topic, $learningOutcomes);
+
+            if (! $learningOutcome) {
+                Log::warning('Failed to resolve learning outcome for topic; using first available outcome', [
+                    'document_id' => $document->id,
+                    'topic_id' => $topic->id,
+                ]);
+
+                $learningOutcome = $learningOutcomes->first();
+            }
+
+            Log::debug('Resolved learning outcome for topic', [
+                'document_id' => $document->id,
+                'topic_id' => $topic->id,
+                'learning_outcome_id' => $learningOutcome?->id,
+                'learning_outcome_code' => $learningOutcome?->outcome_code,
+            ]);
 
             TosItem::create([
                 'tos_id' => $tos->id,
                 'topic_id' => $topic->id,
-                'learning_outcome_id' => null,
+                'learning_outcome_id' => $learningOutcome?->id,
                 'cognitive_level' => $cognitive,
                 'bloom_category' => $this->mapCognitiveToBloom($cognitive),
                 'num_items' => $recommended,
@@ -260,6 +294,76 @@ class ProcessDocumentJob implements ShouldQueue
         $normalized = trim($value);
 
         return $normalized !== '' ? $normalized : null;
+    }
+
+    protected function resolveLearningOutcomeForTopic(Topic $topic, Collection $learningOutcomes): ?LearningOutcome
+    {
+        if ($learningOutcomes->isEmpty()) {
+            return null;
+        }
+
+        $keywords = $this->extractTopicKeywords($topic);
+
+        if ($keywords->isEmpty()) {
+            return $learningOutcomes->first();
+        }
+
+        $bestMatch = $learningOutcomes
+            ->map(function (LearningOutcome $outcome) use ($keywords) {
+                $outcomeText = Str::lower(trim(($outcome->description ?? '') . ' ' . ($outcome->outcome_code ?? '')));
+
+                $score = 0;
+
+                foreach ($keywords as $keyword) {
+                    if ($keyword === '') {
+                        continue;
+                    }
+
+                    if (Str::contains($outcomeText, $keyword)) {
+                        $score += strlen($keyword);
+                    }
+                }
+
+                return [
+                    'outcome' => $outcome,
+                    'score' => $score,
+                ];
+            })
+            ->sortByDesc('score')
+            ->first();
+
+        if (! $bestMatch || $bestMatch['score'] <= 0) {
+            return $learningOutcomes->first();
+        }
+
+        return $bestMatch['outcome'];
+    }
+
+    protected function extractTopicKeywords(Topic $topic): Collection
+    {
+        $segments = collect([$topic->name, $topic->description]);
+
+        $metadata = $topic->metadata ?? [];
+
+        if (isset($metadata['key_concepts']) && is_array($metadata['key_concepts'])) {
+            $segments = $segments->merge($metadata['key_concepts']);
+        }
+
+        if (isset($metadata['supporting_notes']) && is_string($metadata['supporting_notes'])) {
+            $segments->push($metadata['supporting_notes']);
+        }
+
+        return $segments
+            ->filter(fn ($value) => is_string($value))
+            ->flatMap(function (string $value) {
+                $tokens = preg_split('/[\s,;:.()\-\_]+/', Str::lower($value));
+
+                return collect($tokens ?: []);
+            })
+            ->map(fn ($token) => trim($token))
+            ->filter(fn ($token) => strlen($token) >= 3)
+            ->unique()
+            ->values();
     }
 
     protected function buildCognitiveDistribution(Collection $topics, int $totalItems): array
