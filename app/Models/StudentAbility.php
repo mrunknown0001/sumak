@@ -14,7 +14,7 @@ class StudentAbility extends Model
 
     protected $fillable = [
         'user_id',
-        'subtopic_id',
+        'topic_id',
         'theta',
         'attempts_count',
         'last_updated',
@@ -49,9 +49,9 @@ class StudentAbility extends Model
     /**
      * Get the subtopic
      */
-    public function subtopic(): BelongsTo
+    public function Topic(): BelongsTo
     {
-        return $this->belongsTo(Subtopic::class);
+        return $this->belongsTo(Topic::class);
     }
 
     /**

@@ -31,7 +31,7 @@ class GenerateFeedbackJob implements ShouldQueue
         try {
             $attempt = QuizAttempt::with([
                 'responses.item',
-                'subtopic',
+                'topic',
                 'user'
             ])->findOrFail($this->attemptId);
             
@@ -43,7 +43,7 @@ class GenerateFeedbackJob implements ShouldQueue
             
             // Prepare quiz attempt data
             $quizAttemptData = [
-                'subtopic' => $attempt->subtopic->name,
+                'topic' => $attempt->topic->name,
                 'attempt_number' => $attempt->attempt_number,
                 'score_percentage' => $attempt->score_percentage,
                 'total_questions' => $attempt->total_questions,
@@ -60,7 +60,7 @@ class GenerateFeedbackJob implements ShouldQueue
             
             // Get student mastery data
             $studentAbility = StudentAbility::where('user_id', $attempt->user_id)
-                ->where('subtopic_id', $attempt->subtopic_id)
+                ->where('topic_id', $attempt->topic_id)
                 ->first();
                 
             $userMasteryData = [
@@ -84,7 +84,7 @@ class GenerateFeedbackJob implements ShouldQueue
             // Save feedback
             Feedback::create([
                 'quiz_attempt_id' => $attempt->id,
-                'subtopic_id' => $attempt->subtopic_id,
+                'topic_id' => $attempt->topic_id,
                 'user_id' => $attempt->user_id,
                 'feedback_text' => $feedbackData['overall_feedback'],
                 'strengths' => $feedbackData['strengths'] ?? [],
@@ -111,7 +111,7 @@ class GenerateFeedbackJob implements ShouldQueue
     protected function getPerformanceTrend(QuizAttempt $currentAttempt): string
     {
         $previousAttempts = QuizAttempt::where('user_id', $currentAttempt->user_id)
-            ->where('subtopic_id', $currentAttempt->subtopic_id)
+            ->where('topic_id', $currentAttempt->topic_id)
             ->where('id', '<', $currentAttempt->id)
             ->whereNotNull('completed_at')
             ->orderBy('completed_at', 'desc')

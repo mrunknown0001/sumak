@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Subtopic;
+use App\Models\Topic;
 use App\Models\QuizRegeneration;
 use App\Services\OpenAiService;
 use Illuminate\Http\JsonResponse;

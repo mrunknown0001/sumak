@@ -35,18 +35,17 @@ class OpenAiService
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are an expert educational content analyzer specializing in curriculum design and learning outcome assessment.'
+                    'content' => 'You are an educational content analyst. Your job is to extract 5–8 high-level topics from the provided material. Each topic must include a concise 1–2 sentence description, highlight core concepts, and recommend how many Bloom’s Focus multiple-choice questions (4–6) should be written for that topic. Never invent details that are not supported by the source material.'
                 ],
                 [
                     'role' => 'user',
                     'content' => $prompt
                 ]
             ],
-            // 'temperature' => 0.3,
             'response_format' => ['type' => 'json_object']
         ], 'content_analysis');
 
-        return json_decode($response['content'], true);
+        return json_decode($response['content'], true) ?? [];
     }
 
     /**
@@ -77,26 +76,25 @@ class OpenAiService
     /**
      * Generate quiz questions based on ToS
      */
-    public function generateQuizQuestions(array $tosItems, string $materialContent, int $questionCount = 20): array
+    public function generateQuizQuestions(array $topics, string $materialContent): array
     {
-        $prompt = $this->buildQuizGenerationPrompt($tosItems, $materialContent, $questionCount);
+        $prompt = $this->buildTopicQuizGenerationPrompt($topics, $materialContent);
         
         $response = $this->sendRequest([
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are an expert educational assessment designer who creates high-quality multiple-choice questions aligned with learning outcomes and cognitive levels.'
+                    'content' => 'You are an educational content analyst crafting formative assessments. For each provided topic, create 4–6 Lower-Order Thinking Skill multiple-choice questions that stay faithful to the supplied material. Ensure every question has exactly one correct answer and clear rationales.'
                 ],
                 [
                     'role' => 'user',
                     'content' => $prompt
                 ]
             ],
-            // 'temperature' => 0.5,
             'response_format' => ['type' => 'json_object']
         ], 'quiz_generation');
 
-        return json_decode($response['content'], true);
+        return json_decode($response['content'], true) ?? [];
     }
 
     /**
@@ -295,41 +293,37 @@ class OpenAiService
      */
     private function buildContentAnalysisPrompt(string $content, ?string $obtlContext): string
     {
-        $contextSection = $obtlContext 
-            ? "\n\nOBTL Context:\n$obtlContext" 
+        $contextSection = $obtlContext
+            ? "\n\nOBTL Context:\n$obtlContext"
             : "";
 
         return <<<PROMPT
-Analyze the following learning material and provide a structured analysis.
+Analyze the following learning material and extract only high-level instructional topics suited for LOTS-oriented assessment design.
 
 Learning Material:
 $content
 $contextSection
 
-Please provide your analysis in the following JSON format:
+Output JSON using this schema:
 {
-    "key_concepts": ["concept1", "concept2", ...],
-    "main_topics": [
+    "content_summary": "2-3 sentence synthesis of the material",
+    "topics": [
         {
-            "topic": "topic name",
-            "subtopics": ["subtopic1", "subtopic2", ...],
-            "cognitive_level": "remember|understand|apply",
-            "estimated_difficulty": "easy|medium|hard"
+            "topic": "concise topic title",
+            "description": "1-2 sentence overview of what the learner should understand",
+            "key_concepts": ["concept A", "concept B"],
+            "recommended_question_count": 4-6,
+            "cognitive_emphasis": "remember|understand|apply",
+            "supporting_notes": "short optional note referencing source details"
         }
     ],
-    "suggested_learning_outcomes": [
-        {
-            "outcome": "learning outcome statement",
-            "bloom_level": "remember|understand|apply",
-            "category": "knowledge|comprehension|application"
-        }
-    ],
-    "content_summary": "brief summary of the material",
-    "prerequisite_knowledge": ["prerequisite1", "prerequisite2", ...],
-    "estimated_learning_time": "time in minutes"
+    "analysis_notes": "optional clarifications or assumptions made"
 }
 
-Focus on identifying concepts suitable for Lower-Order Thinking Skills (LOTS) assessment.
+Requirements:
+- Return between 5 and 8 topics when the material permits; otherwise include all defensibly distinct topics.
+- recommended_question_count must be an integer between 4 and 6, inclusive.
+- Only include concepts that are explicitly supported by the provided material.
 PROMPT;
     }
 
@@ -386,57 +380,51 @@ PROMPT;
     /**
      * Build quiz generation prompt
      */
-    private function buildQuizGenerationPrompt(array $tosItems, string $materialContent, int $questionCount): string
+    private function buildTopicQuizGenerationPrompt(array $topics, string $materialContent): string
     {
-        $tosJson = json_encode($tosItems, JSON_PRETTY_PRINT);
+        $topicsJson = json_encode($topics, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         
         return <<<PROMPT
-Generate $questionCount multiple-choice questions based on the following Table of Specification and learning material.
+You are preparing quizzes for the following high-level topics derived from a learning material.
 
-Table of Specification:
-$tosJson
+Topics (with recommended question counts):
+$topicsJson
 
-Learning Material Context:
+Learning Material Reference:
 $materialContent
 
-Requirements for each question:
-1. Must align with the specified cognitive level (LOTS focus)
-2. One correct answer and three plausible distractors
-3. Clear, unambiguous wording
-4. No "all of the above" or "none of the above" options
-5. Distractors should represent common misconceptions
-6. Appropriate difficulty for the cognitive level
+Instructions:
+1. For EACH topic, generate the exact number of multiple-choice questions specified by recommended_question_count.
+2. Every question must target Lower-Order Thinking Skills (remember, understand, apply) and remain faithful to the supplied material.
+3. Provide four answer options labeled A–D, with exactly one correct option.
+4. Include a brief explanation and rationales for distractors when possible.
+5. Avoid "None of the above" or "All of the above."
 
-Please provide the questions in the following JSON format:
+Return JSON in this structure:
 {
-    "questions": [
+    "topics": [
         {
-            "question_number": 1,
-            "subtopic": "from ToS",
-            "cognitive_level": "remember|understand|apply",
-            "learning_outcome": "associated learning outcome",
-            "question_text": "the question",
-            "options": [
+            "topic": "topic title",
+            "questions": [
                 {
-                    "option_letter": "A",
-                    "option_text": "option text",
-                    "is_correct": true/false,
-                    "rationale": "why this is correct/incorrect"
+                    "question_text": "stem",
+                    "cognitive_level": "remember|understand|apply",
+                    "options": [
+                        {"option_letter": "A", "option_text": "choice text", "is_correct": false, "rationale": "brief note"},
+                        {"option_letter": "B", "option_text": "...", "is_correct": true, "rationale": "..."},
+                        {"option_letter": "C", "option_text": "...", "is_correct": false, "rationale": "..."},
+                        {"option_letter": "D", "option_text": "...", "is_correct": false, "rationale": "..."}
+                    ],
+                    "correct_answer": "B",
+                    "explanation": "succinct justification",
+                    "estimated_difficulty": 0.2-0.8,
+                    "time_estimate_seconds": 60
                 }
-            ],
-            "explanation": "explanation of the correct answer",
-            "estimated_difficulty": 0.1-1.0,
-            "time_estimate_seconds": 60
+            ]
         }
     ],
-    "distribution_check": {
-        "remember": count,
-        "understand": count,
-        "apply": count
-    }
+    "quality_notes": "optional validation notes"
 }
-
-Ensure exactly $questionCount questions are generated following the ToS distribution.
 PROMPT;
     }
 
@@ -471,7 +459,7 @@ Please provide the reworded question in the following JSON format:
         "question_text": "the reworded question",
         "options": [
             {
-                "option_letter": "A",
+                "option_letter": "C",
                 "option_text": "reworded option",
                 "is_correct": true/false,
                 "rationale": "explanation"

@@ -17,7 +17,7 @@ class ItemBank extends Model
 
     protected $fillable = [
         'tos_item_id',
-        'subtopic_id',
+        'topic_id',
         'learning_outcome_id',
         'question',
         'options',
@@ -44,11 +44,11 @@ class ItemBank extends Model
     }
 
     /**
-     * Get the subtopic
+     * Get the topic
      */
-    public function subtopic(): BelongsTo
+    public function topic(): BelongsTo
     {
-        return $this->belongsTo(Subtopic::class);
+        return $this->belongsTo(Topic::class);
     }
 
     /**

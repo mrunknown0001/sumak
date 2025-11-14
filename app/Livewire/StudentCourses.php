@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\Course;
+use App\Models\QuizAttempt;
 use App\Models\CourseEnrollment;
 use App\Models\ObtlDocument;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +55,7 @@ class StudentCourses extends Component
         $enrolledIds = $this->enrolledCourses->pluck('id');
 
         $this->availableCourses = Course::whereNotIn('id', $enrolledIds)
+            ->where('user_id' , auth()->id())
             ->with(['obtlDocument', 'user'])
             ->withCount(['documents', 'enrollments'])
             ->orderByDesc('created_at')
@@ -183,14 +185,44 @@ class StudentCourses extends Component
 
     public function unenroll(int $courseId): void
     {
+        DB::beginTransaction();
         $enrollment = CourseEnrollment::where('user_id', auth()->id())
             ->where('course_id', $courseId)
             ->first();
-
+        QuizAttempt::where('user_id', auth()->id())
+            ->whereHas('topic.document', function ($query) use ($courseId) {
+                $query->where('course_id', $courseId);
+            })
+            ->delete();
         if ($enrollment) {
             $enrollment->delete();
             $this->loadCourses();
+            DB::commit();
             session()->flash('message', 'Successfully unenrolled from course.');
+        }
+        DB::rollBack();
+    }
+
+
+    public function deleteCourse(int $courseId)
+    {
+        DB::beginTransaction();
+        
+        try {
+            $course = Course::findOrFail($courseId);
+            $course->delete();
+            
+            DB::commit();
+            
+            $this->dispatch('delete-course', message: "Course deleted successfully");
+            $this->loadCourses();
+            
+            session()->flash('message', 'Course deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            session()->flash('error', 'Unable to delete the course. Please try again.');
+            report($e);
         }
     }
 

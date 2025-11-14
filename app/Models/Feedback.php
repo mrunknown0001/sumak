@@ -16,7 +16,7 @@ class Feedback extends Model
 
     protected $fillable = [
         'quiz_attempt_id',
-        'subtopic_id',
+        'topic_id',
         'user_id',
         'feedback_text',
         'strengths',

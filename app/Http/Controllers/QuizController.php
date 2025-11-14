@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Subtopic;
+use App\Models\Topic;
 use App\Models\QuizAttempt;
 use App\Models\Response;
 use App\Models\StudentAbility;
@@ -21,9 +21,9 @@ class QuizController extends Controller
     }
 
     /**
-     * Start a new quiz for a subtopic
+     * Start a new quiz for a topic
      */
-    public function start(Request $request, Subtopic $subtopic): JsonResponse
+    public function start(Request $request, Topic $topic): JsonResponse
     {
         $validated = $request->validate([
             'is_adaptive' => 'boolean',
@@ -35,12 +35,12 @@ class QuizController extends Controller
         // Get appropriate questions
         if ($isAdaptive) {
             $studentAbility = StudentAbility::firstOrCreate(
-                ['user_id' => $userId, 'subtopic_id' => $subtopic->id],
+                ['user_id' => $userId, 'topic_id' => $topic->id],
                 ['theta' => 0, 'attempts_count' => 0, 'last_updated' => now()]
             );
 
             // Get adaptive questions based on student ability
-            $questions = $subtopic->items()
+            $questions = $topic->items()
                 ->whereBetween('difficulty_b', [
                     $studentAbility->theta - 1,
                     $studentAbility->theta + 1
@@ -50,7 +50,7 @@ class QuizController extends Controller
                 ->get();
         } else {
             // Get initial questions
-            $questions = $subtopic->items()
+            $questions = $topic->items()
                 ->inRandomOrder()
                 ->limit(20)
                 ->get();
@@ -58,19 +58,19 @@ class QuizController extends Controller
 
         if ($questions->isEmpty()) {
             return response()->json([
-                'message' => 'No questions available for this subtopic',
+                'message' => 'No questions available for this topic',
             ], 404);
         }
 
         // Get next attempt number
         $attemptNumber = QuizAttempt::where('user_id', $userId)
-            ->where('subtopic_id', $subtopic->id)
+            ->where('topic_id', $topic->id)
             ->max('attempt_number') + 1;
 
         // Create quiz attempt
         $attempt = QuizAttempt::create([
             'user_id' => $userId,
-            'subtopic_id' => $subtopic->id,
+            'topic_id' => $topic->id,
             'attempt_number' => $attemptNumber,
             'total_questions' => $questions->count(),
             'started_at' => now(),
@@ -79,7 +79,7 @@ class QuizController extends Controller
         return response()->json([
             'data' => [
                 'attempt_id' => $attempt->id,
-                'subtopic' => $subtopic->name,
+                'topic' => $topic->name,
                 'attempt_number' => $attemptNumber,
                 'total_questions' => $questions->count(),
                 'time_limit_per_question' => 60,
@@ -163,7 +163,7 @@ class QuizController extends Controller
             $studentAbility = StudentAbility::firstOrCreate(
                 [
                     'user_id' => $attempt->user_id,
-                    'subtopic_id' => $attempt->subtopic_id
+                    'topic_id' => $attempt->topic_id
                 ],
                 [
                     'theta' => 0,
@@ -221,9 +221,9 @@ class QuizController extends Controller
         $this->authorize('view', $attempt);
 
         $attempt->load([
-            'responses.item.subtopic',
+            'responses.item.topic',
             'feedback',
-            'subtopic',
+            'topic',
         ]);
 
         return response()->json([
@@ -238,9 +238,9 @@ class QuizController extends Controller
                     'passed' => $attempt->isPassed(),
                     'completed_at' => $attempt->completed_at,
                 ],
-                'subtopic' => [
-                    'id' => $attempt->subtopic->id,
-                    'name' => $attempt->subtopic->name,
+                'topic' => [
+                    'id' => $attempt->topic->id,
+                    'name' => $attempt->topic->name,
                 ],
                 'responses' => $attempt->responses->map(fn($r) => [
                     'question' => $r->item->question,

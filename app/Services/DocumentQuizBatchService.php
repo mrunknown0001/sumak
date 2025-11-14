@@ -12,7 +12,7 @@ class DocumentQuizBatchService
         $maxAttempts = (int) config('quiz.max_attempts', 3);
 
         $document->loadMissing([
-            'topics.subtopics' => function ($query) use ($userId) {
+            'topics' => function ($query) use ($userId) {
                 $query->withCount('items')
                     ->withCount([
                         'quizAttempts as user_attempts_count' => function ($attemptQuery) use ($userId) {
@@ -23,20 +23,19 @@ class DocumentQuizBatchService
         ]);
 
         return $document->topics
-            ->flatMap(fn ($topic) => $topic->subtopics)
-            ->filter(fn ($subtopic) => ($subtopic->items_count ?? 0) > 0
-                && (($subtopic->user_attempts_count ?? 0) < $maxAttempts))
+            ->flatMap(fn ($topic) => ($topic->items_count ?? 0) > 0   && (($topic->user_attempts_count ?? 0) < $maxAttempts))
             ->values();
     }
 
-    public function initialiseBatchSession(Document $document, Collection $subtopics): void
+    public function initialiseBatchSession(Document $document, Collection $topics): void
     {
         session()->put('quiz.batch', [
             'document_id' => $document->id,
-            'queue' => $subtopics->pluck('id')->values()->all(),
-            'total' => $subtopics->count(),
+            'queue' => $topics->pluck('id')->values()->all(),
+            'total' => $topics->count(),
             'started_at' => now()->toIso8601String(),
             'timer_mode' => null,
+            'timer_settings' => null,
         ]);
     }
 
@@ -47,7 +46,7 @@ class DocumentQuizBatchService
         return is_array($batch) ? $batch : null;
     }
 
-    public function updateTimerMode(string $timerMode): void
+    public function updateTimerMode(string $timerMode, ?array $timerSettings = null): void
     {
         $batch = $this->currentBatch();
 
@@ -56,6 +55,12 @@ class DocumentQuizBatchService
         }
 
         $batch['timer_mode'] = $timerMode;
+
+        if ($timerSettings !== null) {
+            $batch['timer_settings'] = $timerSettings;
+        } elseif (array_key_exists('timer_settings', $batch)) {
+            unset($batch['timer_settings']);
+        }
 
         session()->put('quiz.batch', $batch);
     }
@@ -67,12 +72,21 @@ class DocumentQuizBatchService
         return $batch['timer_mode'] ?? null;
     }
 
+    public function timerSettings(): ?array
+    {
+        $batch = $this->currentBatch();
+
+        $settings = $batch['timer_settings'] ?? null;
+
+        return is_array($settings) ? $settings : null;
+    }
+
     public function clearBatch(): void
     {
         session()->forget('quiz.batch');
     }
 
-    public function advanceAfterCompletion(int $completedSubtopicId): ?int
+    public function advanceAfterCompletion(int $completedTopicId): ?int
     {
         $batch = $this->currentBatch();
 
@@ -84,7 +98,7 @@ class DocumentQuizBatchService
 
         $queue = array_values(array_filter(
             $batch['queue'],
-            static fn ($subtopicId) => (int) $subtopicId !== (int) $completedSubtopicId,
+            static fn ($topicId) => (int) $topicId !== (int) $completedTopicId,
             ARRAY_FILTER_USE_BOTH
         ));
 

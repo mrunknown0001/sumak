@@ -14,7 +14,7 @@ class QuizAttempt extends Model
 
     protected $fillable = [
         'user_id',
-        'subtopic_id',
+        'topic_id',
         'attempt_number',
         'is_adaptive',
         'total_questions',
@@ -43,11 +43,11 @@ class QuizAttempt extends Model
     }
 
     /**
-     * Get the subtopic
+     * Get the topic
      */
-    public function subtopic(): BelongsTo
+    public function topic(): BelongsTo
     {
-        return $this->belongsTo(Subtopic::class);
+        return $this->belongsTo(Topic::class);
     }
 
     /**

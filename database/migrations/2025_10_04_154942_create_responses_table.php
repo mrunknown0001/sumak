@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('quiz_attempts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('subtopic_id')->constrained()->onDelete('cascade');
+            $table->foreignId('topic_id')->constrained()->onDelete('cascade');
             $table->integer('attempt_number')->default(1);
             $table->integer('total_questions')->default(0);
             $table->integer('correct_answers')->default(0);
@@ -21,7 +21,7 @@ return new class extends Migration
             $table->integer('time_spent_seconds')->default(0);
             $table->timestamps();
             
-            $table->index(['user_id', 'subtopic_id']);
+            $table->index(['user_id', 'topic_id']);
             $table->index(['completed_at']);
         });
 

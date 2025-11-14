@@ -44,7 +44,7 @@ return [
         'cost_per_1k_tokens' => env('OPENAI_COST_PER_1K', 0.00015),
         'max_requests_per_minute' => env('OPENAI_MAX_REQUESTS_PER_MINUTE', 10),
         'hourly_spending_limit' => env('OPENAI_HOURLY_SPENDING_LIMIT', 5.00),
-        'max_content_size' => env('OPENAI_MAX_CONTENT_SIZE', 50000),
+        'max_content_size' => env('OPENAI_MAX_CONTENT_SIZE', 100000),
     ],
 
 ];

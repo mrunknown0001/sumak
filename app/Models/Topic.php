@@ -14,10 +14,13 @@ class Topic extends Model
     protected $fillable = [
         'document_id',
         'name',
+        'description',
+        'metadata',
         'order_index',
     ];
 
     protected $casts = [
+        'metadata' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -31,10 +34,35 @@ class Topic extends Model
     }
 
     /**
-     * Get all subtopics
+     * Get all quiz attempts
      */
-    public function subtopics(): HasMany
+    public function quizAttempts(): HasMany
     {
-        return $this->hasMany(Subtopic::class)->orderBy('order_index');
+        return $this->hasMany(QuizAttempt::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(ItemBank::class);
+    }
+
+    /**
+     * Get all ToS items for this topic
+     */
+    public function tosItems(): HasMany
+    {
+        return $this->hasMany(TosItem::class);
+    }
+
+
+    public function hasCompletedAllInitialQuizzes(int $userId): bool
+    {
+        $completedCount = QuizAttempt::where('user_id', $userId)
+            ->where('topic_id', $this->id)
+            ->where('is_adaptive', false)
+            ->whereNotNull('completed_at')
+            ->count();
+        
+        return $completedCount > 0;
     }
 }

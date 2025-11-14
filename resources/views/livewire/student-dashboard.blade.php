@@ -161,6 +161,55 @@
         </div>
     </div>
 
+    <!-- Performance Analytics -->
+    <div class="space-y-4">
+        <h2 class="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
+            <svg class="h-6 w-6 text-blue-500 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Performance Overview
+        </h2>
+        <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
+            <div class="grid gap-6 md:grid-cols-3">
+                <div class="rounded-xl border border-blue-200/40 bg-blue-50/60 p-4 text-center dark:border-blue-400/30 dark:bg-blue-900/20">
+                    <p class="mb-2 text-sm font-medium text-blue-600 dark:text-blue-200">Current Mastery Level</p>
+                    <p class="text-2xl font-bold text-blue-700 dark:text-blue-100">{{ $overallStats['mastery_level'] }}</p>
+                    <p class="mt-1 text-xs text-blue-500 dark:text-blue-200/80">Based on IRT Analysis</p>
+                </div>
+
+                <div class="rounded-xl border border-emerald-200/40 bg-emerald-50/70 p-4 text-center dark:border-emerald-400/30 dark:bg-emerald-900/20">
+                    <p class="mb-2 text-sm font-medium text-emerald-600 dark:text-emerald-200">Quiz Completion Rate</p>
+                    <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-100">{{ $this->calculateCompletionRate() }}%</p>
+                    <p class="mt-1 text-xs text-emerald-500 dark:text-emerald-200/80">Across all courses</p>
+                </div>
+
+                <div class="rounded-xl border border-purple-200/40 bg-purple-50/70 p-4 text-center dark:border-purple-400/30 dark:bg-purple-900/20">
+                    <p class="mb-2 text-sm font-medium text-purple-600 dark:text-purple-200">Active Courses</p>
+                    <p class="text-2xl font-bold text-purple-700 dark:text-purple-100">{{ count(array_filter($courses, fn($c) => $c['status'] === 'active')) }}</p>
+                    <p class="mt-1 text-xs text-purple-500 dark:text-purple-200/80">Currently enrolled</p>
+                </div>
+            </div>
+
+            <div class="mt-6 rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4 dark:border-slate-800/70 dark:bg-slate-900/60">
+                <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Quick Tips</h3>
+                <ul class="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1 text-blue-500 dark:text-blue-300">•</span>
+                        <span>Each quiz allows up to 3 attempts, be based on Bloom’s Taxonomy adaptive difficulty</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1 text-blue-500 dark:text-blue-300">•</span>
+                        <span>Your ability level is calculated using Item Response Theory (1PL model) for personalized difficulty</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1 text-blue-500 dark:text-blue-300">•</span>
+                        <span>Focus on topics marked &ldquo;Needs Practice&rdquo; to improve your overall mastery level</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <!-- Recent Quizzes -->
     <div id="recent-quizzes" class="space-y-4 scroll-mt-28">
         <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Recent Quiz Results</h2>
@@ -298,52 +347,4 @@
         </div>
     </div> --}}
 
-    <!-- Performance Analytics -->
-    <div class="space-y-4">
-        <h2 class="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
-            <svg class="h-6 w-6 text-blue-500 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-            Performance Overview
-        </h2>
-        <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
-            <div class="grid gap-6 md:grid-cols-3">
-                <div class="rounded-xl border border-blue-200/40 bg-blue-50/60 p-4 text-center dark:border-blue-400/30 dark:bg-blue-900/20">
-                    <p class="mb-2 text-sm font-medium text-blue-600 dark:text-blue-200">Current Mastery Level</p>
-                    <p class="text-2xl font-bold text-blue-700 dark:text-blue-100">{{ $overallStats['mastery_level'] }}</p>
-                    <p class="mt-1 text-xs text-blue-500 dark:text-blue-200/80">Based on IRT Analysis</p>
-                </div>
-
-                <div class="rounded-xl border border-emerald-200/40 bg-emerald-50/70 p-4 text-center dark:border-emerald-400/30 dark:bg-emerald-900/20">
-                    <p class="mb-2 text-sm font-medium text-emerald-600 dark:text-emerald-200">Quiz Completion Rate</p>
-                    <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-100">{{ $this->calculateCompletionRate() }}%</p>
-                    <p class="mt-1 text-xs text-emerald-500 dark:text-emerald-200/80">Across all courses</p>
-                </div>
-
-                <div class="rounded-xl border border-purple-200/40 bg-purple-50/70 p-4 text-center dark:border-purple-400/30 dark:bg-purple-900/20">
-                    <p class="mb-2 text-sm font-medium text-purple-600 dark:text-purple-200">Active Courses</p>
-                    <p class="text-2xl font-bold text-purple-700 dark:text-purple-100">{{ count(array_filter($courses, fn($c) => $c['status'] === 'active')) }}</p>
-                    <p class="mt-1 text-xs text-purple-500 dark:text-purple-200/80">Currently enrolled</p>
-                </div>
-            </div>
-
-            <div class="mt-6 rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4 dark:border-slate-800/70 dark:bg-slate-900/60">
-                <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Quick Tips</h3>
-                <ul class="space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                    <li class="flex items-start gap-2">
-                        <span class="mt-1 text-blue-500 dark:text-blue-300">•</span>
-                        <span>Each quiz allows up to 3 attempts, be based on Bloom’s Taxonomy adaptive difficulty</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="mt-1 text-blue-500 dark:text-blue-300">•</span>
-                        <span>Your ability level is calculated using Item Response Theory (1PL model) for personalized difficulty</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="mt-1 text-blue-500 dark:text-blue-300">•</span>
-                        <span>Focus on topics marked &ldquo;Needs Practice&rdquo; to improve your overall mastery level</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
 </div>

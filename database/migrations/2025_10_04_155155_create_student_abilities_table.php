@@ -11,19 +11,19 @@ return new class extends Migration
         Schema::create('student_abilities', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('subtopic_id')->constrained()->onDelete('cascade');
+            $table->foreignId('topic_id')->constrained()->onDelete('cascade');
             $table->decimal('theta', 8, 4)->default(0); // IRT ability parameter
             $table->integer('attempts_count')->default(0);
             $table->timestamp('last_updated');
             
-            $table->unique(['user_id', 'subtopic_id']);
-            $table->index(['subtopic_id', 'theta']);
+            $table->unique(['user_id', 'topic_id']);
+            $table->index(['topic_id', 'theta']);
         });
 
         Schema::create('feedback', function (Blueprint $table) {
             $table->id();
             $table->foreignId('quiz_attempt_id')->constrained()->onDelete('cascade');
-            $table->foreignId('subtopic_id')->constrained()->onDelete('cascade');
+            $table->foreignId('topic_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->text('feedback_text');
             $table->json('strengths')->nullable();
@@ -34,7 +34,7 @@ return new class extends Migration
             $table->timestamp('generated_at');
             
             $table->index(['quiz_attempt_id']);
-            $table->index(['user_id', 'subtopic_id']);
+            $table->index(['user_id', 'topic_id']);
         });
     }
 

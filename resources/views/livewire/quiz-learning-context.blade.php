@@ -13,8 +13,8 @@
     <div class="rounded-3xl border border-emerald-100/70 bg-white/90 p-8 shadow-lg shadow-emerald-500/5 backdrop-blur dark:border-emerald-500/40 dark:bg-slate-900/70">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div class="space-y-2">
-                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $subtopic->topic->name }}</h1>
-                <p class="text-xl font-medium text-slate-600 dark:text-slate-300">{{ $subtopic->name }}</p>
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $topic->name }}</h1>
+                <p class="text-xl font-medium text-slate-600 dark:text-slate-300">{{ $topic->name }}</p>
 
                 @if($document?->content_summary)
                     <div class="mt-4 rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 text-sm text-blue-900 dark:border-blue-500/40 dark:bg-blue-900/20 dark:text-blue-100">
@@ -53,31 +53,6 @@
                     </div>
                 </dl>
 
-                @if($materialPreviewUrl || $materialDownloadUrl)
-                    <div class="flex flex-col gap-2">
-                        @if($materialPreviewUrl)
-                            <a href="{{ $materialPreviewUrl }}"
-                               target="_blank"
-                               rel="noopener"
-                               class="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300/70 bg-white/80 px-4 py-2 text-xs font-semibold text-emerald-600 shadow-sm transition hover:border-emerald-400 hover:bg-emerald-100/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-emerald-500/40 dark:bg-slate-900/70 dark:text-emerald-200 dark:hover:border-emerald-400/60 dark:hover:bg-emerald-900/30">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-1.138a1 1 0 011.21.978v4.32a1 1 0 01-1.21.978L15 14m0-4v4m0-4H5a2 2 0 00-2 2v0a2 2 0 002 2h10m4-2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                                Open Lecture Material
-                            </a>
-                        @endif
-
-                        @if($materialDownloadUrl)
-                            <a href="{{ $materialDownloadUrl }}"
-                               class="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300/70 bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:from-emerald-400 hover:to-teal-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-emerald-500/40">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
-                                </svg>
-                                Download Lecture Material
-                            </a>
-                        @endif
-                    </div>
-                @endif
             </div>
         </div>
     </div>

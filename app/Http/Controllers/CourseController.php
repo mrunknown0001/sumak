@@ -99,7 +99,7 @@ class CourseController extends Controller
 
         $course->load([
             'obtlDocument.learningOutcomes.subOutcomes',
-            'documents.topics.subtopics',
+            'documents.topics',
             'documents.tableOfSpecification.tosItems',
         ]);
 
@@ -111,7 +111,7 @@ class CourseController extends Controller
                 'description' => $course->description,
                 'obtl_document' => $course->obtlDocument,
                 'documents' => $course->documents,
-                'total_subtopics' => $course->documents->sum('total_subtopics'),
+                'total_topics' => $course->documents->sum('total_topics'),
                 'total_quiz_attempts' => $course->total_quiz_attempts,
                 'created_at' => $course->created_at,
             ],

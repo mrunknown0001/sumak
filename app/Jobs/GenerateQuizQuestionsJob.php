@@ -31,8 +31,8 @@ class GenerateQuizQuestionsJob implements ShouldQueue
     {
         try {
             $document = Document::with([
-                'tableOfSpecification.tosItems.subtopic',
-                'topics.subtopics'
+                'tableOfSpecification.tosItems',
+                'topics'
             ])->findOrFail($this->documentId);
             
             $tos = $document->tableOfSpecification;
@@ -45,19 +45,19 @@ class GenerateQuizQuestionsJob implements ShouldQueue
             // Get document content
             $materialContent = $document->content_summary ?? "Content from {$document->title}";
 
-            $subtopicQuestionCounts = [];
-            $subtopicIds = $tos->tosItems
-                ->pluck('subtopic_id')
+            $topicQuestionCounts = [];
+            $topicIds = $tos->tosItems
+                ->pluck('topic_id')
                 ->filter()
                 ->unique()
                 ->values();
 
-            if ($subtopicIds->isNotEmpty()) {
-                $subtopicQuestionCounts = ItemBank::query()
-                    ->whereIn('subtopic_id', $subtopicIds)
-                    ->selectRaw('subtopic_id, COUNT(*) as aggregate_count')
-                    ->groupBy('subtopic_id')
-                    ->pluck('aggregate_count', 'subtopic_id')
+            if ($topicIds->isNotEmpty()) {
+                $topicQuestionCounts = ItemBank::query()
+                    ->whereIn('topic_id', $topicIds)
+                    ->selectRaw('topic_id, COUNT(*) as aggregate_count')
+                    ->groupBy('topic_id')
+                    ->pluck('aggregate_count', 'topic_id')
                     ->map(fn ($count) => (int) $count)
                     ->toArray();
             }
@@ -83,7 +83,7 @@ class GenerateQuizQuestionsJob implements ShouldQueue
                     $materialContent,
                     $openAiService,
                     $irtService,
-                    $subtopicQuestionCounts
+                    $topicQuestionCounts
                 );
             }
             
@@ -105,10 +105,10 @@ class GenerateQuizQuestionsJob implements ShouldQueue
         string $materialContent,
         OpenAiService $openAiService,
         IrtService $irtService,
-        array &$subtopicQuestionCounts
+        array &$topicQuestionCounts
     ): void {
-        $subtopicId = $tosItem->subtopic_id;
-        $subtopicTotalExisting = $subtopicQuestionCounts[$subtopicId] ?? 0;
+        $topicId = $tosItem->topic_id;
+        $topicTotalExisting = $topicQuestionCounts[$topicId] ?? 0;
 
         // Check if questions already exist
         $existingCount = $tosItem->items()->count();
@@ -116,21 +116,21 @@ class GenerateQuizQuestionsJob implements ShouldQueue
 
         Log::debug('Evaluating ToS item for question generation', [
             'tos_item_id' => $tosItem->id,
-            'subtopic_id' => $subtopicId,
+            'topic_id' => $topicId,
             'existing_questions' => $existingCount,
-            'subtopic_total_questions' => $subtopicTotalExisting,
+            'topic_total_questions' => $topicTotalExisting,
             'required_questions' => $targetQuestionCount,
         ]);
         
-        $needsSubtopicBaseline = $subtopicTotalExisting === 0;
+        $needsTopicBaseline = $topicTotalExisting === 0;
 
-        if (!$needsSubtopicBaseline && $existingCount >= $targetQuestionCount) {
+        if (!$needsTopicBaseline && $existingCount >= $targetQuestionCount) {
             Log::info("Questions already exist for ToS item", ['tos_item_id' => $tosItem->id]);
             return;
         }
         
         $questionsNeeded = max(
-            $needsSubtopicBaseline ? 1 : 0,
+            $needsTopicBaseline ? 1 : 0,
             max(0, $targetQuestionCount - $existingCount)
         );
 
@@ -140,7 +140,7 @@ class GenerateQuizQuestionsJob implements ShouldQueue
         
         // Prepare ToS item data for AI
         $tosItemData = [
-            'subtopic' => $tosItem->subtopic->name,
+            'topic' => $tosItem->topic->name,
             'cognitive_level' => $tosItem->cognitive_level,
             'bloom_category' => $tosItem->bloom_category,
             'num_items' => $questionsNeeded,
@@ -262,7 +262,7 @@ class GenerateQuizQuestionsJob implements ShouldQueue
             
             ItemBank::create([
                 'tos_item_id' => $tosItem->id,
-                'subtopic_id' => $tosItem->subtopic_id,
+                'topic_id' => $tosItem->topic_id,
                 'learning_outcome_id' => $tosItem->learning_outcome_id,
                 'question' => $questionData['question_text'],
                 'options' => $questionData['options'],
@@ -277,13 +277,13 @@ class GenerateQuizQuestionsJob implements ShouldQueue
             $persistedCount++;
         }
         
-        $subtopicQuestionCounts[$subtopicId] = ($subtopicQuestionCounts[$subtopicId] ?? 0) + $persistedCount;
+        $topicQuestionCounts[$topicId] = ($topicQuestionCounts[$topicId] ?? 0) + $persistedCount;
 
         Log::info("Generated questions for ToS item", [
             'tos_item_id' => $tosItem->id,
-            'subtopic_id' => $subtopicId,
+            'topic_id' => $topicId,
             'questions_generated' => $persistedCount,
-            'subtopic_total_questions' => $subtopicQuestionCounts[$subtopicId],
+            'topic_total_questions' => $topicQuestionCounts[$topicId],
         ]);
     }
 
@@ -296,33 +296,33 @@ class GenerateQuizQuestionsJob implements ShouldQueue
             return [];
         }
 
-        $subtopicName = $tosItem->subtopic->name ?? 'this topic';
+        $topicName = $tosItem->topic->name ?? 'this topic';
         $cognitiveLevel = $tosItem->cognitive_level ?? 'remember';
 
         $indicators = collect($this->normalizeSampleIndicators($tosItem->sample_indicators));
         if ($indicators->isEmpty()) {
-            $indicators = collect(["Key concept of {$subtopicName}"]);
+            $indicators = collect(["Key concept of {$topicName}"]);
         }
 
         $distractorPool = [
-            "A statement that only loosely relates to {$subtopicName}.",
-            "An idea that misinterprets {$subtopicName}.",
-            "A detail belonging to a different subtopic.",
-            "An overgeneralization that does not apply to {$subtopicName}.",
-            "A misconception often associated with {$subtopicName}.",
+            "A statement that only loosely relates to {$topicName}.",
+            "An idea that misinterprets {$topicName}.",
+            "A detail belonging to a different topic.",
+            "An overgeneralization that does not apply to {$topicName}.",
+            "A misconception often associated with {$topicName}.",
         ];
 
         return collect(range(1, $count))
-            ->map(function (int $index) use ($indicators, $distractorPool, $subtopicName, $cognitiveLevel) {
+            ->map(function (int $index) use ($indicators, $distractorPool, $topicName, $cognitiveLevel) {
                 $indicatorValue = $indicators->get(($index - 1) % $indicators->count());
                 if (is_array($indicatorValue)) {
                     $indicatorValue = implode(' ', array_filter($indicatorValue, fn ($value) => is_string($value)));
                 }
 
-                $indicatorText = trim((string) ($indicatorValue ?: "a key concept in {$subtopicName}"));
+                $indicatorText = trim((string) ($indicatorValue ?: "a key concept in {$topicName}"));
 
-                $questionText = "Which statement best aligns with {$indicatorText} in {$subtopicName}?";
-                $correctExplanation = "This option directly reflects {$indicatorText} within {$subtopicName}.";
+                $questionText = "Which statement best aligns with {$indicatorText} in {$topicName}?";
+                $correctExplanation = "This option directly reflects {$indicatorText} within {$topicName}.";
 
                 $distractors = collect($distractorPool)
                     ->shuffle()
@@ -344,7 +344,7 @@ class GenerateQuizQuestionsJob implements ShouldQueue
                         'option_letter' => $letters[$i] ?? chr(ord('A') + $i + 1),
                         'option_text' => $distractor,
                         'is_correct' => false,
-                        'rationale' => "This does not accurately describe {$subtopicName}.",
+                        'rationale' => "This does not accurately describe {$topicName}.",
                     ]);
                 }
 

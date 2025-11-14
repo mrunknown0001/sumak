@@ -15,7 +15,7 @@ class QuizRegeneration extends Model
     protected $fillable = [
         'original_item_id',
         'regenerated_item_id',
-        'subtopic_id',
+        'topic_id',
         'regeneration_count',
         'maintains_equivalence',
         'regenerated_at',
@@ -43,10 +43,10 @@ class QuizRegeneration extends Model
     }
 
     /**
-     * Get the subtopic
+     * Get the topic
      */
-    public function subtopic(): BelongsTo
+    public function topic(): BelongsTo
     {
-        return $this->belongsTo(Subtopic::class);
+        return $this->belongsTo(Topic::class);
     }
 }

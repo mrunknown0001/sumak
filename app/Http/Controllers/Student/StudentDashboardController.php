@@ -62,27 +62,26 @@ class StudentDashboardController extends Controller
             ->with(['obtlDocument', 'documents'])
             ->get()
             ->map(function ($course) use ($student) {
-                // Get total subtopics across all documents in this course
-                $totalSubtopics = $course->documents()
-                    ->with('topics.subtopics')
+                // Get total topics across all documents in this course
+                $totalTopics = $course->documents()
+                    ->with('topics')
                     ->get()
                     ->flatMap(fn($doc) => $doc->topics)
-                    ->flatMap(fn($topic) => $topic->subtopics)
                     ->count();
 
                 // Display constraint: Only 20 quizzes are generated per course
                 $maxQuizzesPerCourse = 20;
-                $displayTotalQuizzes = min($totalSubtopics, $maxQuizzesPerCourse);
+                $displayTotalQuizzes = min($totalTopics, $maxQuizzesPerCourse);
 
-                // Get completed subtopics (where student has at least one attempt)
-                $completedSubtopics = QuizAttempt::where('user_id', $student->id)
-                    ->whereHas('subtopic.topic.document', function($q) use ($course) {
+                // Get completed topics (where student has at least one attempt)
+                $completedTopics = QuizAttempt::where('user_id', $student->id)
+                    ->whereHas('topic.document', function($q) use ($course) {
                         $q->where('course_id', $course->id);
                     })
-                    ->distinct('subtopic_id')
-                    ->count('subtopic_id');
+                    ->distinct('topic_id')
+                    ->count('topic_id');
 
-                $displayQuizzesTaken = min($completedSubtopics, $displayTotalQuizzes);
+                $displayQuizzesTaken = min($completedTopics, $displayTotalQuizzes);
 
                 $avgScore = $this->getAverageScore($student, $course);
                 $abilityLevel = $this->calculateAbilityForCourse($student, $course);
@@ -108,23 +107,23 @@ class StudentDashboardController extends Controller
     private function getRecentQuizzes($student, $limit = 10)
     {
         return QuizAttempt::where('user_id', $student->id)
-            ->with(['subtopic.topic.document.course'])
+            ->with(['topic.document.course'])
             ->whereNotNull('completed_at')
             ->orderBy('completed_at', 'desc')
             ->limit($limit)
             ->get()
             ->map(function ($attempt) use ($student) {
                 $attemptsCount = QuizAttempt::where('user_id', $student->id)
-                    ->where('subtopic_id', $attempt->subtopic_id)
+                    ->where('topic_id', $attempt->topic_id)
                     ->count();
 
                 $abilityEstimate = $this->irtService->estimateAbilityFromAttempt($attempt);
 
                 return [
                     'id' => $attempt->id,
-                    'quiz_id' => $attempt->subtopic_id,
-                    'course' => $attempt->subtopic->topic->document->course->course_title,
-                    'topic' => $attempt->subtopic->name,
+                    'quiz_id' => $attempt->topic_id,
+                    'course' => $attempt->topic->document->course->course_title,
+                    'topic' => $attempt->topic->name,
                     'score' => $attempt->correct_answers,
                     'total' => $attempt->total_questions,
                     'date' => $attempt->completed_at->format('Y-m-d'),
@@ -143,7 +142,7 @@ class StudentDashboardController extends Controller
     private function getAIFeedback($student, $limit = 5)
     {
         $recentAttempts = QuizAttempt::where('user_id', $student->id)
-            ->with(['feedback', 'subtopic.topic.document.course'])
+            ->with(['feedback', 'topic.document.course'])
             ->whereNotNull('completed_at')
             ->orderBy('completed_at', 'desc')
             ->limit($limit)
@@ -152,8 +151,8 @@ class StudentDashboardController extends Controller
 
         return $recentAttempts->map(function ($attempt) {
             return [
-                'course' => $attempt->subtopic->topic->document->course->course_title,
-                'topic' => $attempt->subtopic->name,
+                'course' => $attempt->topic->document->course->course_title,
+                'topic' => $attempt->topic->name,
                 'feedback' => $attempt->feedback->feedback_text ?? 'Feedback is being generated...',
                 'recommendations' => $this->normalizeFeedbackField($attempt->feedback->recommendations ?? null),
                 'strengths' => $this->normalizeFeedbackField($attempt->feedback->strengths ?? null),
@@ -198,7 +197,7 @@ class StudentDashboardController extends Controller
     private function getAverageScore($student, $course)
     {
         return QuizAttempt::where('user_id', $student->id)
-            ->whereHas('subtopic.topic.document', function ($query) use ($course) {
+            ->whereHas('topic.document', function ($query) use ($course) {
                 $query->where('course_id', $course->id);
             })
             ->selectRaw('AVG(correct_answers * 100.0 / total_questions) as avg_score')
@@ -211,7 +210,7 @@ class StudentDashboardController extends Controller
     private function calculateAbilityForCourse($student, $course)
     {
         $attempts = QuizAttempt::where('user_id', $student->id)
-            ->whereHas('subtopic.topic.document', function ($query) use ($course) {
+            ->whereHas('topic.document', function ($query) use ($course) {
                 $query->where('course_id', $course->id);
             })
             ->get();

@@ -24,7 +24,7 @@ return new class extends Migration
         Schema::create('tos_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tos_id')->constrained('table_of_specifications')->onDelete('cascade');
-            $table->foreignId('subtopic_id')->constrained()->onDelete('cascade');
+            $table->foreignId('topic_id')->constrained()->onDelete('cascade');
             $table->foreignId('learning_outcome_id')->nullable()->constrained()->onDelete('set null');
             $table->string('cognitive_level', 50); // remember, understand, apply
             $table->string('bloom_category', 50); // knowledge, comprehension, application
@@ -33,7 +33,7 @@ return new class extends Migration
             $table->json('sample_indicators')->nullable();
             $table->timestamps();
             
-            $table->index(['tos_id', 'subtopic_id']);
+            $table->index(['tos_id', 'topic_id']);
         });
     }
 

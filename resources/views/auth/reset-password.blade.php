@@ -1,9 +1,51 @@
+{{-- <!DOCTYPE html>
+<html>
+<head>
+    <title>Reset Password</title>
+</head>
+<body>
+    <h2>Reset Password</h2>
+    
+    @if ($errors->any())
+        <div style="color: red;">
+            @foreach ($errors->all() as $error)
+                <p>{{ $error }}</p>
+            @endforeach
+        </div>
+    @endif
+
+    <form method="POST" action="{{ route('password.update') }}">
+        @csrf
+        <input type="hidden" name="token" value="{{ $token }}">
+        
+        <div>
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" value="{{ old('email') }}" required>
+        </div>
+        
+        <div>
+            <label for="password">New Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        
+        <div>
+            <label for="password_confirmation">Confirm Password:</label>
+            <input type="password" id="password_confirmation" name="password_confirmation" required>
+        </div>
+        
+        <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full">Reset Password</button>
+    </form>
+</body>
+</html> --}}
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - SumakQuiz</title>
+    <title>Reset Password - SumakQuiz</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
@@ -11,7 +53,7 @@
         <div class="max-w-md w-full bg-white rounded-lg shadow-md p-8">
             <div class="text-center mb-8">
                 <h1 class="text-3xl font-bold text-green-600">SumakQuiz</h1>
-                <p class="text-gray-600 mt-2">Create your account</p>
+                <p class="text-gray-600 mt-2">Reset Password</p>
             </div>
 
             @if ($errors->any())
@@ -24,40 +66,9 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('register') }}" id="registerForm">
+            <form method="POST" action="{{ route('password.update') }}" id="resetForm">
                 @csrf
-
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label for="first_name" class="block text-gray-700 text-sm font-bold mb-2">
-                            First Name
-                        </label>
-                        <input 
-                            id="first_name" 
-                            type="text" 
-                            name="first_name" 
-                            value="{{ old('first_name') }}"
-                            required 
-                            autofocus
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        >
-                    </div>
-
-                    <div>
-                        <label for="last_name" class="block text-gray-700 text-sm font-bold mb-2">
-                            Last Name
-                        </label>
-                        <input 
-                            id="last_name" 
-                            type="text" 
-                            name="last_name" 
-                            value="{{ old('last_name') }}"
-                            required
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        >
-                    </div>
-                </div>
-
+                <input type="hidden" name="token" value="{{ $token }}">
                 <div class="mb-4">
                     <label for="email" class="block text-gray-700 text-sm font-bold mb-2">
                         Email
@@ -150,30 +161,14 @@
                     <p id="passwordMatchSuccess" class="text-green-600 text-xs mt-1 hidden">✓ Passwords match</p>
                 </div>
 
-                <div class="mb-4">
-                    <label class="flex items-start">
-                        <input type="checkbox" name="terms" required class="mr-2 mt-1">
-                        <span class="text-sm text-gray-700">
-                            I agree to the <a href="{{ route('terms') }}" target="_blank" class="text-green-600 hover:text-green-800">Terms of Use</a> 
-                            and <a href="{{ route('privacy.policy') }}" target="_blank" class="text-green-600 hover:text-green-800">Privacy Policy</a>
-                        </span>
-                    </label>
-                </div>
-
                 <div class="flex items-center justify-between">
                     <button 
                         type="submit"
                         id="submitBtn"
                         class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
                     >
-                        Sign Up
+                        Reset Password
                     </button>
-                </div>
-
-                <div class="text-center mt-4">
-                    <a href="{{ route('login') }}" class="text-green-600 hover:text-green-800 text-sm">
-                        Already have an account? Sign in
-                    </a>
                 </div>
             </form>
         </div>
@@ -181,7 +176,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('registerForm');
+            const form = document.getElementById('resetForm');
             const emailInput = document.getElementById('email');
             const emailError = document.getElementById('emailError');
             const passwordInput = document.getElementById('password');

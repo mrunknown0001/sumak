@@ -9,6 +9,14 @@
     }
 
     $timerColorClass = $this->timerColorClass();
+    $isPomodoroMode = in_array($timerMode, ['pomodoro', 'custom_pomodoro'], true);
+    $timerModeLabel = match ($timerMode) {
+        'pomodoro' => 'Pomodoro',
+        'custom_pomodoro' => 'Custom Pomodoro',
+        'no_time_limit' => 'Free Time',
+        default => null,
+    };
+    $customTimerSummary = "{$customFocusMinutes} min focus • {$customBreakMinutes} min break";
 @endphp
 
 <div
@@ -16,6 +24,94 @@
 >
     @if($shouldPollTimer)
         <span wire:poll.1s="tickTimer" class="sr-only">Timer ticking…</span>
+    @endif
+
+    @if($showCustomPomodoroModal)
+        <div class="fixed inset-0 z-30 flex items-center justify-center bg-slate-900/70 px-4 py-6 backdrop-blur">
+            <div class="relative w-full max-w-lg rounded-3xl border border-purple-300/60 bg-white/95 p-8 shadow-2xl shadow-purple-600/20 dark:border-purple-500/40 dark:bg-slate-900/80">
+                <button
+                    wire:click="cancelCustomPomodoro"
+                    class="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                    type="button"
+                >
+                    <span class="sr-only">Close</span>
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+
+                <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Customize Your Pomodoro</h2>
+                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                    Set focus and break durations that match your workflow. Minimum duration is 1 minute per interval.
+                </p>
+
+                <form wire:submit.prevent="confirmCustomPomodoro" class="mt-6 space-y-6">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <label class="flex flex-col gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            Focus Minutes
+                            <input
+                                type="number"
+                                min="1"
+                                wire:model.defer="customFocusMinutes"
+                                class="w-full rounded-xl border border-slate-300/70 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm transition focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-300/60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-purple-400/70 dark:focus:ring-purple-500/30"
+                                placeholder="e.g. 30"
+                            />
+                            @error('customFocusMinutes')
+                                <span class="text-xs font-medium text-rose-500">{{ $message }}</span>
+                            @enderror
+                        </label>
+
+                        <label class="flex flex-col gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            Break Minutes
+                            <input
+                                type="number"
+                                min="1"
+                                wire:model.defer="customBreakMinutes"
+                                class="w-full rounded-xl border border-slate-300/70 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm transition focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-300/60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-purple-400/70 dark:focus:ring-purple-500/30"
+                                placeholder="e.g. 10"
+                            />
+                            @error('customBreakMinutes')
+                                <span class="text-xs font-medium text-rose-500">{{ $message }}</span>
+                            @enderror
+                        </label>
+                    </div>
+
+                    <div class="rounded-2xl border border-purple-200/70 bg-purple-50/70 p-5 text-sm font-medium text-purple-800 dark:border-purple-500/40 dark:bg-purple-900/20 dark:text-purple-200">
+                        <p>Current Settings:</p>
+                        <p class="mt-1 text-base font-semibold">
+                            <span class="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-purple-600 ring-1 ring-purple-200 dark:bg-slate-900/60 dark:text-purple-200 dark:ring-purple-500/50">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3" />
+                                </svg>
+                                {{ $customFocusMinutes }} min focus
+                            </span>
+                            <span class="ml-2 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-purple-600 ring-1 ring-purple-200 dark:bg-slate-900/60 dark:text-purple-200 dark:ring-purple-500/50">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6" />
+                                </svg>
+                                {{ $customBreakMinutes }} min break
+                            </span>
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col gap-3 sm:flex-row">
+                        <button
+                            type="button"
+                            wire:click="cancelCustomPomodoro"
+                            class="flex-1 rounded-xl border border-slate-300/70 bg-slate-100/70 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            class="flex-1 rounded-xl bg-purple-600 px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-purple-500 dark:bg-purple-500 dark:hover:bg-purple-400"
+                        >
+                            Save Timer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     @endif
     @if($hasReachedAttemptLimit && !$quizStarted && !$attempt)
         <div class="mx-auto max-w-3xl">
@@ -46,8 +142,8 @@
     @elseif(!$timerMode)
         <div class="mx-auto max-w-4xl">
             <div class="rounded-3xl border border-emerald-200/70 bg-white/90 p-10 shadow-xl shadow-emerald-500/10 backdrop-blur dark:border-emerald-500/40 dark:bg-slate-900/70">
-                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</h1>
-                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">{{ $subtopic->topic->name }}</p>
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $topic->name }}</h1>
+                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">{{ $topic->name }}</p>
 
                 <h2 class="mt-8 text-2xl font-semibold text-slate-900 dark:text-slate-100">Choose Your Quiz Timer Mode</h2>
 
@@ -66,14 +162,36 @@
                         </div>
                         <p class="text-sm font-medium text-slate-600 dark:text-slate-300">Focused 25-minute sessions with 5-minute breaks.</p>
                         <ul class="mt-4 space-y-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            <li>✓ 25 min work sessions</li>
+                            <li>✓ 25 min focus time</li>
                             <li>✓ 5 min breaks</li>
-                            <li>✓ Best for deep focus</li>
+                            <li>✓ Best for deep work</li>
                         </ul>
                     </button>
 
                     <button
-                        wire:click="selectTimerMode('free')"
+                        wire:click="selectTimerMode('custom_pomodoro')"
+                        class="group rounded-2xl border-2 border-purple-300/40 bg-gradient-to-br from-purple-50 via-white to-amber-50 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-purple-400 hover:shadow-xl dark:border-purple-400/40 dark:from-purple-900/20 dark:via-slate-900/40 dark:to-amber-900/20 dark:hover:border-purple-300/60"
+                    >
+                        <div class="mb-4 flex items-center gap-3">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-200">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <span class="text-lg font-semibold text-slate-900 dark:text-slate-100">Custom Pomodoro</span>
+                        </div>
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-300">
+                            Configure your own focus & break durations to match your study rhythm.
+                        </p>
+                        <ul class="mt-4 space-y-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            <li>✓ Tailored intervals</li>
+                            <li>✓ Saves your preferences</li>
+                            <li>✓ Ideal for personalized pacing</li>
+                        </ul>
+                    </button>
+
+                    <button
+                        wire:click="selectTimerMode('no_time_limit')"
                         class="group rounded-2xl border-2 border-emerald-300/60 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-emerald-400 hover:shadow-xl dark:border-emerald-500/40 dark:from-emerald-900/30 dark:via-slate-900/50 dark:to-slate-900/30 dark:hover:border-emerald-400/60"
                     >
                         <div class="mb-4 flex items-center gap-3">
@@ -91,34 +209,14 @@
                             <li>✓ Ideal for mastery</li>
                         </ul>
                     </button>
-
-                    <button
-                        wire:click="selectTimerMode('standard')"
-                        class="group rounded-2xl border-2 border-emerald-300/60 bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-emerald-400 hover:shadow-xl dark:border-emerald-500/40 dark:from-emerald-900/30 dark:via-slate-900/50 dark:to-blue-900/30 dark:hover:border-emerald-400/60"
-                    >
-                        <div class="mb-4 flex items-center gap-3">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-200">
-                                <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                            </div>
-                            <span class="text-lg font-semibold text-slate-900 dark:text-slate-100">Standard</span>
-                        </div>
-                        <p class="text-sm font-medium text-slate-600 dark:text-slate-300">Timed challenge with 60 seconds per question.</p>
-                        <ul class="mt-4 space-y-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            <li>✓ 60s per question</li>
-                            <li>✓ Auto-submit when time ends</li>
-                            <li>✓ Boost rapid recall</li>
-                        </ul>
-                    </button>
                 </div>
             </div>
         </div>
     @elseif(!$quizStarted)
         <div class="mx-auto max-w-2xl">
             <div class="rounded-3xl border border-emerald-200/70 bg-white/90 p-8 shadow-xl shadow-emerald-500/10 backdrop-blur dark:border-emerald-500/40 dark:bg-slate-900/70">
-                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $subtopic->name }}</h1>
-                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">{{ $subtopic->topic->name }}</p>
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $topic->name }}</h1>
+                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">{{ $topic->name }}</p>
 
                 <div class="mt-6 rounded-2xl border border-emerald-200/70 bg-emerald-50/80 p-6 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-100">
                     <h2 class="mb-3 text-lg font-semibold flex items-center gap-2">
@@ -129,13 +227,13 @@
                     </h2>
                     <ul class="space-y-2 font-medium">
                         {{-- <li>• 20 multiple-choice questions</li> --}}
-                        <li>• Timer Mode: <strong class="capitalize">{{ $timerMode }}</strong></li>
+                        <li>• Timer Mode: <strong class="capitalize">{{ $timerModeLabel }}</strong></li>
                         @if($timerMode === 'pomodoro')
                             <li>• 25-minute focus sessions with 5-minute breaks</li>
-                        @elseif($timerMode === 'free')
+                        @elseif($timerMode === 'custom_pomodoro')
+                            <li>• {{ $customTimerSummary }}</li>
+                        @elseif($timerMode === 'no_time_limit')
                             <li>• No time limit for each question</li>
-                        @else
-                            <li>• 60 seconds per question with automated submission</li>
                         @endif
                         <li>• Immediate feedback after submission</li>
                     </ul>
@@ -224,12 +322,17 @@
         </div>
     @else
         <div class="mx-auto max-w-3xl space-y-6">
-            @if($timerMode !== 'free')
+            @if($timerMode !== 'no_time_limit')
                 <div class="rounded-2xl border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
                     <div class="mb-2 flex items-center justify-between text-sm font-semibold text-slate-600 dark:text-slate-300">
                         <span>Question {{ $currentQuestionIndex + 1 }} of {{ $items->count() }}</span>
-                        @if($timerMode === 'pomodoro')
-                            <span class="text-purple-600 dark:text-purple-300">Session: {{ $this->formatSeconds($timeRemaining) }}</span>
+                        @if($isPomodoroMode)
+                            <span class="inline-flex items-center gap-1 rounded-full bg-purple-50 px-3 py-1 text-purple-600 ring-1 ring-purple-200 dark:bg-purple-500/10 dark:text-purple-200 dark:ring-purple-500/40">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3" />
+                                </svg>
+                                <span>{{ $this->formatSeconds($timeRemaining) }}</span>
+                            </span>
                         @else
                             <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

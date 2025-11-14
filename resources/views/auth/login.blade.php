@@ -13,7 +13,9 @@
                 <h1 class="text-3xl font-bold text-green-600">SumakQuiz</h1>
                 <p class="text-gray-600 mt-2">Sign in to your account</p>
             </div>
-
+            @if (session('status'))
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">{{ session('status') }}</div>
+            @endif
             @if ($errors->any())
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     <ul>
@@ -64,7 +66,9 @@
                         </button>
                     </div>
                 </div>
-
+                <div class="mb-4">
+                    <a class="text-green-600 hover:text-green-800" href="{{ route('password.request') }}">Forgot Password? Click Here</a>
+                </div>
                 <div class="mb-4">
                     <label class="flex items-center">
                         <input type="checkbox" name="remember" class="mr-2">

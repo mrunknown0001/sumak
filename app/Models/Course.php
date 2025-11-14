@@ -123,11 +123,10 @@ class Course extends Model
     public function getTotalQuizAttemptsAttribute(): int
     {
         return $this->documents()
-            ->with('topics.subtopics.quizAttempts')
+            ->with('topics.quizAttempts')
             ->get()
             ->flatMap(fn($doc) => $doc->topics)
-            ->flatMap(fn($topic) => $topic->subtopics)
-            ->flatMap(fn($subtopic) => $subtopic->quizAttempts)
+            ->flatMap(fn($topic) => $topic->quizAttempts)
             ->count();
     }
 }

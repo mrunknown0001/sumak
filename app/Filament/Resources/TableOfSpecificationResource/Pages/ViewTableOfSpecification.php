@@ -24,18 +24,18 @@ class ViewTableOfSpecification extends ViewRecord
         $record = $this->getRecord()->loadMissing([
             'document.course',
             'document.topics',
-            'tosItems.subtopic.topic',
+            'tosItems.topic',
             'tosItems.learningOutcome',
         ]);
 
         $items = $record->tosItems
             ->sortBy(function ($item) {
-                $topicOrder = $item->subtopic?->topic?->order_index ?? PHP_INT_MAX;
-                $subtopicOrder = $item->subtopic?->order_index ?? PHP_INT_MAX;
+                $topicOrder = $item->topic?->order_index ?? PHP_INT_MAX;
+                // $subtopicOrder = $item->subtopic?->order_index ?? PHP_INT_MAX;
 
                 return [
                     $topicOrder,
-                    $subtopicOrder,
+                    // $subtopicOrder,
                     $item->id,
                 ];
             })
