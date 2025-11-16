@@ -14,7 +14,7 @@
     $maxAttemptsAllowed = $maxAttempts ?? config('quiz.max_attempts', 3);
 @endphp
 
-<div class="mx-auto max-w-5xl space-y-8 text-slate-900 dark:text-slate-100">
+<div wire:poll.5s="pollObtlStatus" class="mx-auto max-w-5xl space-y-8 text-slate-900 dark:text-slate-100">
     @if (session()->has('message'))
         <div class="rounded-xl border border-emerald-400/40 bg-emerald-100/70 px-4 py-3 text-emerald-800 shadow-sm dark:border-emerald-500/40 dark:bg-emerald-900/40 dark:text-emerald-100">
             {{ session('message') }}
@@ -173,9 +173,112 @@
                         </dl>
                     </div>
                     @if ($obtlStatus !== ObtlDocument::PROCESSING_COMPLETED)
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">
-                            OBTL extraction is running. You will be notified once processing finishes. Learning materials upload remains locked until completion.
-                        </p>
+                        <div class="space-y-3">
+                            <div class="rounded-xl border border-blue-200/60 bg-blue-50/80 p-4 dark:border-blue-500/30 dark:bg-blue-900/20">
+                                <div class="flex items-start gap-3">
+                                    <div class="flex-shrink-0">
+                                        @if($this->pollingStatus === 'checking')
+                                            <div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                                                <svg class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                                </svg>
+                                                <span class="text-sm font-semibold">Checking status...</span>
+                                            </div>
+                                        @elseif($this->pollingStatus === 'waiting')
+                                            <div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span class="text-sm font-semibold">Waiting...</span>
+                                            </div>
+                                        @else
+                                            <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span class="text-sm font-semibold">Status monitoring inactive</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div class="flex-1">
+                                        @if($this->pollingActive)
+                                            <p class="text-xs text-blue-600 dark:text-blue-300">
+                                                ⏱️ Processing time: <strong>{{ $this->elapsedTime }}</strong> •
+                                                Last checked: <strong>{{ $this->lastPolledAt }}</strong> •
+                                                Attempts: <strong>{{ $this->pollCount }}</strong>
+                                            </p>
+                                            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                                                OBTL extraction is running. This page will automatically refresh when processing completes. Learning materials upload remains locked until completion.
+                                            </p>
+                                        @else
+                                            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                OBTL extraction is running. Learning materials upload remains locked until completion.
+                                            </p>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            @if($this->pollingActive)
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <button
+                                            wire:click="stopPolling"
+                                            class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                                        >
+                                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                                            </svg>
+                                            Pause
+                                        </button>
+                                        <button
+                                            wire:click="startPolling"
+                                            class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600 transition hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+                                        >
+                                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.586a1 1 0 01.707.293l1.414 1.414a1 1 0 00.707.293H15M9 10V9a2 2 0 012-2h2a2 2 0 012 2v1M9 10v4a2 2 0 002 2h2a2 2 0 002-2v-4M9 10V9a2 2 0 012-2h2a2 2 0 012 2v1" />
+                                            </svg>
+                                            Resume
+                                        </button>
+                                    </div>
+                                </div>
+                            @else
+                                @if($this->course->obtlDocument && $this->course->obtlDocument->processing_status !== ObtlDocument::PROCESSING_COMPLETED)
+                                    <button
+                                        wire:click="startPolling"
+                                        class="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+                                    >
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Start Auto-Refresh
+                                    </button>
+                                @endif
+                            @endif
+                        </div>
+                    @endif
+
+                    @if($pollingErrors)
+                        <div class="rounded-xl border border-red-200/60 bg-red-50/80 p-4 dark:border-red-500/30 dark:bg-red-900/20">
+                            <div class="flex items-start gap-3">
+                                <svg class="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <div class="flex-1">
+                                    @foreach($pollingErrors as $error)
+                                        <p class="text-sm font-medium text-red-700 dark:text-red-300 mb-1">{{ $error }}</p>
+                                    @endforeach
+                                    <button
+                                        wire:click="clearPollingErrors"
+                                        class="mt-2 text-xs font-semibold text-red-600 underline hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
+                                    >
+                                        Clear errors
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     @endif
                 </div>
             @endif
@@ -195,7 +298,6 @@
                     {{ $course->materials_uploaded_at ? $course->materials_uploaded_at->diffForHumans() : 'Awaiting uploads' }}
                 </div>
             </header>
-
             @if (!$obtlDocument)
                 <div class="rounded-2xl border border-amber-200/60 bg-amber-50/70 p-4 text-sm text-amber-700 shadow-inner dark:border-amber-500/30 dark:bg-amber-900/20 dark:text-amber-200">
                     Upload the OBTL document first to unlock learning material uploads.

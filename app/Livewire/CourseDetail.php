@@ -37,6 +37,14 @@ class CourseDetail extends Component
         'hours_taught' => null,
     ];
 
+    public bool $pollingActive = false;
+    public array $pollingErrors = [];
+    public $pollingStartedAt = null;
+    public bool $hasProcessingDocuments = false;
+    public bool $isPolling = false;
+    public string $lastPolledAt = '';
+    public int $pollCount = 0;
+
     public function boot(DocumentQuizBatchService $documentQuizBatchService): void
     {
         $this->documentQuizBatchService = $documentQuizBatchService;
@@ -51,6 +59,11 @@ class CourseDetail extends Component
             redirect()->route('student.courses')
                 ->with('error', 'You must enroll in this course first.')
                 ->send();
+        }
+
+        if ($this->course->obtlDocument && $this->course->obtlDocument->processing_status !== ObtlDocument::PROCESSING_COMPLETED) {
+            $this->pollingActive = true;
+            $this->pollingStartedAt = now();
         }
     }
 
@@ -108,6 +121,10 @@ class CourseDetail extends Component
         }
 
         ExtractObtlDocumentJob::dispatch($obtlDocument->id);
+
+        $this->pollingActive = true;
+        $this->pollingStartedAt = now();
+        $this->pollingErrors = [];
 
         $this->reset('obtlUpload');
         $this->refreshCourseState();
@@ -181,6 +198,103 @@ class CourseDetail extends Component
         $this->refreshCourseState();
 
         session()->flash('message', 'Learning material uploaded successfully. Processing has started.');
+    }
+
+    public function pollObtlStatus()
+    {
+        if (!$this->pollingActive) {
+            return;
+        }
+
+        $this->isPolling = true;
+        $this->pollCount++;
+        $this->lastPolledAt = now()->format('H:i:s');
+
+        try {
+            $this->course->refresh()->load('obtlDocument');
+            $status = $this->course->obtlDocument?->processing_status;
+
+            if ($status === ObtlDocument::PROCESSING_COMPLETED) {
+                $this->pollingActive = false;
+                $this->pollingStartedAt = null;
+                $this->isPolling = false;
+                session()->flash('message', '✅ OBTL processing completed successfully! You can now upload learning materials.');
+            } elseif ($status === ObtlDocument::PROCESSING_FAILED) {
+                $this->pollingActive = false;
+                $this->isPolling = false;
+                $this->pollingStartedAt = null;
+                $this->pollingErrors[] = '❌ OBTL processing failed. Please try uploading again or contact support if the issue persists.';
+            } elseif ($this->pollingStartedAt && now()->diffInSeconds($this->pollingStartedAt) > 300) {
+                $this->pollingActive = false;
+                $this->isPolling = false;
+                $this->pollingStartedAt = null;
+                $this->pollingErrors[] = '⏰ OBTL processing timed out after 5 minutes. The document may still be processing in the background. Please refresh manually or try uploading again.';
+            }
+        } catch (\Exception $e) {
+            $this->pollingErrors[] = '🔄 Error checking OBTL status: ' . $e->getMessage();
+            
+            // Log the error but don't stop polling for temporary issues
+            report($e);
+            
+            // If we've had too many consecutive errors, stop polling
+            if ($this->pollCount >= 5) {
+                $this->pollingActive = false;
+                $this->isPolling = false;
+                $this->pollingErrors[] = '🛑 Stopping automatic updates due to repeated errors. Please refresh the page manually.';
+            }
+        } finally {
+            $this->isPolling = false;
+        }
+    }
+
+    public function startPolling(): void
+    {
+        if (!$this->course->obtlDocument) {
+            return;
+        }
+
+        $this->pollingActive = true;
+        $this->pollingStartedAt = now();
+        $this->pollCount = 0;
+        $this->pollingErrors = [];
+        $this->lastPolledAt = now()->format('H:i:s');
+        
+        session()->flash('message', '🔄 Started monitoring OBTL processing status. Updates will appear automatically.');
+    }
+
+    public function stopPolling(): void
+    {
+        $this->pollingActive = false;
+        $this->isPolling = false;
+        $this->pollingStartedAt = null;
+        $this->pollCount = 0;
+    }
+
+    public function clearPollingErrors(): void
+    {
+        $this->pollingErrors = [];
+    }
+
+    public function getElapsedTimeProperty(): string
+    {
+        if (!$this->pollingStartedAt) {
+            return '0s';
+        }
+
+        return now()->diffForHumans($this->pollingStartedAt, true);
+    }
+
+    public function getPollingStatusProperty(): string
+    {
+        if (!$this->pollingActive) {
+            return 'inactive';
+        }
+
+        if ($this->isPolling) {
+            return 'checking';
+        }
+
+        return 'waiting';
     }
 
     public function startMaterialQuizBatch(int $documentId): RedirectResponse|Redirector|null
@@ -260,6 +374,8 @@ class CourseDetail extends Component
         $activeBatch = $this->documentQuizBatchService->currentBatch();
         $this->activeQuizBatch = $activeBatch;
         $this->documentBatchMeta = $this->buildDocumentBatchMeta($documents, $userId, $activeBatch)->toArray();
+
+        $this->hasProcessingDocuments = $documents->where('processing_status', '!=', Document::PROCESSING_COMPLETED)->isNotEmpty();
 
         return view('livewire.course-detail', [
             'documents' => $documents,
@@ -372,4 +488,6 @@ class CourseDetail extends Component
     {
         return $this->course->user_id === auth()->id();
     }
+
+
 }

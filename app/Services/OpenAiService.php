@@ -84,7 +84,9 @@ class OpenAiService
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are an educational content analyst crafting formative assessments. For each provided topic, create 4–6 Lower-Order Thinking Skill multiple-choice questions that stay faithful to the supplied material. Ensure every question has exactly one correct answer and clear rationales.'
+                    'content' => 'You are an expert educator tasked with generating high-quality, multiple-choice quiz questions based on provided learning material and topics. 
+                    Your goal is to create questions that are relevant, meaningful, and directly derived from the content, ensuring they test comprehension, application, 
+                    and critical thinking without introducing nonsensical or irrelevant elements.'
                 ],
                 [
                     'role' => 'user',
@@ -347,15 +349,15 @@ Total Quiz Items: $totalItems
 
 Requirements:
 - Focus primarily on Lower-Order Thinking Skills (LOTS): Remember, Understand, and Apply
-- Distribute items across subtopics proportionally to their importance
+- Distribute items across topics proportionally to their importance
 - Ensure balanced coverage of all learning outcomes
-- Each ToS item should specify the subtopic, cognitive level, and number of questions
+- Each ToS item should specify the topic, cognitive level, and number of questions
 
 Please provide the ToS in the following JSON format:
 {
     "table_of_specification": [
         {
-            "subtopic": "subtopic name",
+            "topic": "topic name",
             "learning_outcome": "associated learning outcome",
             "cognitive_level": "remember|understand|apply",
             "bloom_category": "knowledge|comprehension|application",
@@ -383,48 +385,45 @@ PROMPT;
     private function buildTopicQuizGenerationPrompt(array $topics, string $materialContent): string
     {
         $topicsJson = json_encode($topics, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        
-        return <<<PROMPT
-You are preparing quizzes for the following high-level topics derived from a learning material.
 
-Topics (with recommended question counts):
+        // Calculate total questions needed
+        $totalQuestions = collect($topics)->sum('num_items');
+
+        return <<<PROMPT
+You are an expert educator tasked with generating high-quality, multiple-choice quiz questions based on provided learning material and topics. Your goal is to create questions that are relevant, meaningful, and directly derived from the content, ensuring they test comprehension, application, and critical thinking without introducing nonsensical or irrelevant elements.
+
+### Key Guidelines:
+- **Relevance**: Each question must directly relate to the specified topics and the material content. Avoid generic or off-topic questions. Base questions on key concepts, facts, or ideas explicitly mentioned or implied in the material.
+- **Meaningfulness**: Questions should be clear, coherent, and grammatically correct. Ensure they form proper interrogative sentences (e.g., starting with "What", "How", "Why", or similar). Avoid vague, ambiguous, or illogical phrasing.
+- **Cognitive Depth**: Aim for a mix of recall, understanding, and application levels. For example, include questions that require explanation, comparison, or problem-solving based on the material.
+- **Structure**: Generate exactly the specified number of questions. Each question must have:
+  - A clear, concise question text.
+  - Exactly 4 options (A, B, C, D), with one correct answer and three plausible distractors. Distractors should be realistic but incorrect, drawn from common misconceptions or related but inaccurate information in the material.
+  - Indicate the correct option explicitly.
+- **Content Fidelity**: Do not invent facts or concepts not present in the material. Stick closely to the provided content to ensure accuracy.
+- **Diversity**: Vary question types (e.g., factual, analytical, scenario-based) to cover different aspects of the topics.
+- **Output Format**: Respond with a valid JSON array of objects, where each object represents a question in this exact structure:
+  [
+    {
+      "question_text": "What is the primary function of X in the context of Y?",
+      "options": [
+        {"option_letter": "A", "option_text": "Correct answer here", "is_correct": true},
+        {"option_letter": "B", "option_text": "Distractor 1", "is_correct": false},
+        {"option_letter": "C", "option_text": "Distractor 2", "is_correct": false},
+        {"option_letter": "D", "option_text": "Distractor 3", "is_correct": false}
+      ]
+    },
+    // Additional questions...
+  ]
+- **Quality Checks**: Before finalizing, ensure questions are not repetitive, do not contradict the material, and promote learning.
+
+### Topics:
 $topicsJson
 
-Learning Material Reference:
+### Material Content:
 $materialContent
 
-Instructions:
-1. For EACH topic, generate the exact number of multiple-choice questions specified by recommended_question_count.
-2. Every question must target Lower-Order Thinking Skills (remember, understand, apply) and remain faithful to the supplied material.
-3. Provide four answer options labeled A–D, with exactly one correct option.
-4. Include a brief explanation and rationales for distractors when possible.
-5. Avoid "None of the above" or "All of the above."
-
-Return JSON in this structure:
-{
-    "topics": [
-        {
-            "topic": "topic title",
-            "questions": [
-                {
-                    "question_text": "stem",
-                    "cognitive_level": "remember|understand|apply",
-                    "options": [
-                        {"option_letter": "A", "option_text": "choice text", "is_correct": false, "rationale": "brief note"},
-                        {"option_letter": "B", "option_text": "...", "is_correct": true, "rationale": "..."},
-                        {"option_letter": "C", "option_text": "...", "is_correct": false, "rationale": "..."},
-                        {"option_letter": "D", "option_text": "...", "is_correct": false, "rationale": "..."}
-                    ],
-                    "correct_answer": "B",
-                    "explanation": "succinct justification",
-                    "estimated_difficulty": 0.2-0.8,
-                    "time_estimate_seconds": 60
-                }
-            ]
-        }
-    ],
-    "quality_notes": "optional validation notes"
-}
+Generate $totalQuestions questions following these guidelines. Ensure all questions are meaningful and relevant to the topics and material.
 PROMPT;
     }
 
@@ -496,14 +495,14 @@ Please provide comprehensive feedback in the following JSON format:
     "score_interpretation": "what the score indicates about learning",
     "strengths": [
         {
-            "area": "subtopic or skill",
+            "area": "topic or skill",
             "description": "what the student did well",
             "evidence": "specific questions or patterns"
         }
     ],
     "areas_for_improvement": [
         {
-            "area": "subtopic or skill",
+            "area": "topic or skill",
             "current_level": "description of current understanding",
             "gap_analysis": "what's missing",
             "priority": "high|medium|low"
@@ -512,7 +511,7 @@ Please provide comprehensive feedback in the following JSON format:
     "specific_recommendations": [
         {
             "recommendation": "actionable study suggestion",
-            "subtopic": "related subtopic",
+            ""topic: "related topic",
             "estimated_time": "time needed",
             "resources": ["suggested study materials or approaches"]
         }

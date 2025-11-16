@@ -137,7 +137,7 @@
                             @foreach($recommendations as $recommendation)
                                 <li class="mb-3">
                                     <strong>Recommendation:</strong> {{ $recommendation['recommendation'] }}<br/>
-                                    <strong>Topic:</strong> {{ $recommendation['subtopic'] }}<br/>
+                                    <strong>Topic:</strong> {{ $recommendation['topic'] }}<br/>
                                     <strong>Reference:</strong> <a href="{{ $recommendation['resources'][0] ?? "#" }}" target="_blank">{{ $recommendation['resources'][1] ?? "N/A"}}</a><br/>
                                     <strong>Time:</strong> {{ $recommendation['estimated_time'] }}<br/>
                                 </li>

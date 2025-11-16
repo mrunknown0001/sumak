@@ -149,11 +149,11 @@ class GenerateQuizQuestionsJob implements ShouldQueue
         // Generate questions using AI
         $questionsData = $openAiService->generateQuizQuestions(
             [$tosItemData],
-            $materialContent,
-            rand(1,3) // TODO: Statically Assigned Values
+            $materialContent
         );
 
-        $generatedQuestions = collect($questionsData['questions'] ?? [])
+        $generatedQuestions = collect($questionsData ?? [])
+            ->filter(fn($item) => is_array($item))
             ->map(function (array $questionData) {
                 $questionText = trim($questionData['question_text'] ?? '');
 
@@ -192,23 +192,33 @@ class GenerateQuizQuestionsJob implements ShouldQueue
                     return null;
                 }
 
+                // Randomize the order of options
+                $shuffledOptions = $options->shuffle()->values();
+
+                // Reassign option letters A-D and find new correct answer letter
+                $letters = ['A', 'B', 'C', 'D'];
+                $newCorrectLetter = null;
+                $mappedOptions = $shuffledOptions->map(function (array $option, int $index) use ($letters, &$newCorrectLetter) {
+                    $letter = $letters[$index];
+                    if ($option['is_correct']) {
+                        $newCorrectLetter = $letter;
+                    }
+                    return [
+                        'option_letter' => $letter,
+                        'option_text' => $option['option_text'],
+                        'is_correct' => $option['is_correct'],
+                        'rationale' => $option['rationale'],
+                    ];
+                })->toArray();
+
                 return [
                     'question_text' => $questionText,
-                    'options' => $options->map(function (array $option) {
-                        return [
-                            'option_letter' => $option['option_letter'],
-                            'option_text' => $option['option_text'],
-                            'is_correct' => $option['is_correct'],
-                            'rationale' => $option['rationale'],
-                        ];
-                    })->toArray(),
-                    'correct_answer_letter' => $correctOption['option_letter'],
+                    'options' => $mappedOptions,
+                    'correct_answer_letter' => $newCorrectLetter,
                     'explanation' => $questionData['explanation'] ?? null,
-                    'cognitive_level' => $questionData['cognitive_level'] ?? null,
-                    'estimated_difficulty' => is_numeric($questionData['estimated_difficulty'] ?? null)
-                        ? (float) $questionData['estimated_difficulty']
-                        : 0.5,
-                    'time_estimate_seconds' => (int) ($questionData['time_estimate_seconds'] ?? 60),
+                    'cognitive_level' => $questionData['cognitive_level'] ?? 'understand',
+                    'estimated_difficulty' => 0.5,
+                    'time_estimate_seconds' => 60,
                 ];
             })
             ->filter()
@@ -321,7 +331,20 @@ class GenerateQuizQuestionsJob implements ShouldQueue
 
                 $indicatorText = trim((string) ($indicatorValue ?: "a key concept in {$topicName}"));
 
-                $questionText = "Which statement best aligns with {$indicatorText} in {$topicName}?";
+                // Use interrogatives: what, where, which, how
+                $interrogatives = ['What', 'Where', 'Which', 'How'];
+                $interrogative = $interrogatives[$index % count($interrogatives)];
+
+                if ($interrogative === 'What') {
+                    $questionText = "What is the primary aspect of {$indicatorText} in {$topicName}?";
+                } elseif ($interrogative === 'Where') {
+                    $questionText = "Where does {$indicatorText} fit within {$topicName}?";
+                } elseif ($interrogative === 'Which') {
+                    $questionText = "Which statement best describes {$indicatorText} in {$topicName}?";
+                } elseif ($interrogative === 'How') {
+                    $questionText = "How does {$indicatorText} relate to {$topicName}?";
+                }
+
                 $correctExplanation = "This option directly reflects {$indicatorText} within {$topicName}.";
 
                 $distractors = collect($distractorPool)
@@ -348,15 +371,29 @@ class GenerateQuizQuestionsJob implements ShouldQueue
                     ]);
                 }
 
-                return [
-                    'question_text' => $questionText,
-                    'options' => $options->map(fn ($option) => [
-                        'option_letter' => $option['option_letter'],
+                // Randomize the order of options
+                $shuffledOptions = $options->shuffle()->values();
+
+                // Reassign option letters A-D and find new correct answer letter
+                $letters = ['A', 'B', 'C', 'D'];
+                $newCorrectLetter = null;
+                $mappedOptions = $shuffledOptions->map(function (array $option, int $index) use ($letters, &$newCorrectLetter) {
+                    $letter = $letters[$index];
+                    if ($option['is_correct']) {
+                        $newCorrectLetter = $letter;
+                    }
+                    return [
+                        'option_letter' => $letter,
                         'option_text' => $option['option_text'],
                         'is_correct' => $option['is_correct'],
                         'rationale' => $option['rationale'],
-                    ])->toArray(),
-                    'correct_answer_letter' => 'A',
+                    ];
+                })->toArray();
+
+                return [
+                    'question_text' => $questionText,
+                    'options' => $mappedOptions,
+                    'correct_answer_letter' => $newCorrectLetter,
                     'explanation' => $correctExplanation,
                     'cognitive_level' => $cognitiveLevel,
                     'estimated_difficulty' => 0.25,
