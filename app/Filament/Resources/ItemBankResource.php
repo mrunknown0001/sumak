@@ -40,16 +40,20 @@ class ItemBankResource extends Resource
                 Tables\Columns\TextColumn::make('correct_answer')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('learningOutcome.outcome_code')
-                    ->label('Learning Outcome Code')
+                Tables\Columns\TextColumn::make('topic.name')
+                    ->label('Topic')
                     ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('learningOutcome.description')
-                    ->hidden()
-                    ->searchable(),                
+                    ->sortable(),    
+                Tables\Columns\TextColumn::make('topic.document.title') 
+                    ->label('Document')
+                    ->searchable()
+                    ->sortable()
             ])
+            ->recordUrl(null)
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('topic.document')
+                    ->relationship('topic.document', 'title')
+                    ->searchable(),
             ])
             ->actions([
                 // Tables\Actions\EditAction::make(),
