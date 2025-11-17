@@ -35,7 +35,9 @@ class OpenAiService
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are an educational content analyst. Your job is to extract 5–8 high-level topics from the provided material. Each topic must include a concise 1–2 sentence description, highlight core concepts, and recommend how many Bloom’s Focus multiple-choice questions (4–6) should be written for that topic. Never invent details that are not supported by the source material.'
+                    'content' => 'You are an expert educational content analyst. Your job is to extract 5–8 high-level topics from the provided material. 
+                    Each topic must include a concise 1–2 sentence description, highlight core concepts, and recommend how many Bloom’s Focus multiple-choice 
+                    questions (4–6) should be written for that topic. Never invent details that are not supported by the source material.'
                 ],
                 [
                     'role' => 'user',
@@ -49,7 +51,7 @@ class OpenAiService
     }
 
     /**
-     * Generate Table of Specification (ToS) focused on LOTS
+     * Generate Table of Specification (ToS) focused on Bloom's
      */
     public function generateToS(array $learningOutcomes, string $materialSummary, int $totalItems = 20): array
     {
@@ -59,7 +61,7 @@ class OpenAiService
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are an expert in creating Tables of Specification for educational assessments, with deep knowledge of Bloom\'s Taxonomy and Lower-Order Thinking Skills (LOTS).'
+                    'content' => 'You are an expert in creating Tables of Specification for educational assessments, with deep knowledge of Bloom\'s Taxonomy.'
                 ],
                 [
                     'role' => 'user',
@@ -76,9 +78,14 @@ class OpenAiService
     /**
      * Generate quiz questions based on ToS
      */
-    public function generateQuizQuestions(array $topics, string $materialContent): array
-    {
-        $prompt = $this->buildTopicQuizGenerationPrompt($topics, $materialContent);
+    public function generateQuizQuestions(
+        array $topics,
+        string $materialContent,
+        array $questionTypes = ['multiple_choice'],
+        array $difficultyLevels = ['easy', 'medium', 'hard'],
+        bool $enableValidation = true
+    ): array {
+        $prompt = $this->buildTopicQuizGenerationPrompt($topics, $materialContent, $questionTypes, $difficultyLevels, $enableValidation);
         
         $response = $this->sendRequest([
             'messages' => [
@@ -300,7 +307,7 @@ class OpenAiService
             : "";
 
         return <<<PROMPT
-Analyze the following learning material and extract only high-level instructional topics suited for LOTS-oriented assessment design.
+Analyze the following learning material and extract only high-level instructional topics suited for Bloom's Focus assessment design.
 
 Learning Material:
 $content
@@ -348,7 +355,7 @@ $materialSummary
 Total Quiz Items: $totalItems
 
 Requirements:
-- Focus primarily on Lower-Order Thinking Skills (LOTS): Remember, Understand, and Apply
+- Focus primarily on Lower-Order Thinking Skills (Bloom's Focus): Remember, Understand, and Apply
 - Distribute items across topics proportionally to their importance
 - Ensure balanced coverage of all learning outcomes
 - Each ToS item should specify the topic, cognitive level, and number of questions
@@ -382,40 +389,79 @@ PROMPT;
     /**
      * Build quiz generation prompt
      */
-    private function buildTopicQuizGenerationPrompt(array $topics, string $materialContent): string
-    {
+    private function buildTopicQuizGenerationPrompt(
+        array $topics,
+        string $materialContent,
+        array $questionTypes = ['multiple_choice'],
+        array $difficultyLevels = ['easy', 'medium', 'hard'],
+        bool $enableValidation = true
+    ): string {
         $topicsJson = json_encode($topics, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         // Calculate total questions needed
         $totalQuestions = collect($topics)->sum('num_items');
 
-        return <<<PROMPT
-You are an expert educator tasked with generating high-quality, multiple-choice quiz questions based on provided learning material and topics. Your goal is to create questions that are relevant, meaningful, and directly derived from the content, ensuring they test comprehension, application, and critical thinking without introducing nonsensical or irrelevant elements.
+        // Build question type instructions
+        $questionTypeInstructions = $this->buildQuestionTypeInstructions($questionTypes);
 
-### Key Guidelines:
-- **Relevance**: Each question must directly relate to the specified topics and the material content. Avoid generic or off-topic questions. Base questions on key concepts, facts, or ideas explicitly mentioned or implied in the material.
-- **Meaningfulness**: Questions should be clear, coherent, and grammatically correct. Ensure they form proper interrogative sentences (e.g., starting with "What", "How", "Why", or similar). Avoid vague, ambiguous, or illogical phrasing.
-- **Cognitive Depth**: Aim for a mix of recall, understanding, and application levels. For example, include questions that require explanation, comparison, or problem-solving based on the material.
-- **Structure**: Generate exactly the specified number of questions. Each question must have:
-  - A clear, concise question text.
-  - Exactly 4 options (A, B, C, D), with one correct answer and three plausible distractors. Distractors should be realistic but incorrect, drawn from common misconceptions or related but inaccurate information in the material.
-  - Indicate the correct option explicitly.
-- **Content Fidelity**: Do not invent facts or concepts not present in the material. Stick closely to the provided content to ensure accuracy.
-- **Diversity**: Vary question types (e.g., factual, analytical, scenario-based) to cover different aspects of the topics.
-- **Output Format**: Respond with a valid JSON array of objects, where each object represents a question in this exact structure:
-  [
-    {
-      "question_text": "What is the primary function of X in the context of Y?",
-      "options": [
-        {"option_letter": "A", "option_text": "Correct answer here", "is_correct": true},
-        {"option_letter": "B", "option_text": "Distractor 1", "is_correct": false},
-        {"option_letter": "C", "option_text": "Distractor 2", "is_correct": false},
-        {"option_letter": "D", "option_text": "Distractor 3", "is_correct": false}
-      ]
-    },
-    // Additional questions...
-  ]
-- **Quality Checks**: Before finalizing, ensure questions are not repetitive, do not contradict the material, and promote learning.
+        // Build difficulty instructions
+        $difficultyInstructions = $this->buildDifficultyInstructions($difficultyLevels);
+
+        // Build validation instructions
+        $validationInstructions = $enableValidation ? $this->buildValidationInstructions() : '';
+
+        return <<<PROMPT
+You are an expert educator tasked with generating high-quality quiz questions based on provided learning material and topics. Your goal is to create questions that are relevant, meaningful, and directly derived from the content, ensuring they test comprehension, application, and critical thinking while promoting educational objectives.
+
+### Core Principles:
+- **Educational Alignment**: Questions must align with Bloom's Taxonomy levels appropriate for the specified difficulty and cognitive emphasis in topics.
+- **Content Accuracy**: Base all questions strictly on the provided material. Do not invent facts, concepts, or scenarios not explicitly supported by the content.
+- **Question Variety**: Incorporate diverse question types and difficulty levels as specified to maintain engagement and assess different cognitive skills.
+- **Quality Assurance**: Ensure each question is clear, unambiguous, grammatically correct, and pedagogically sound.
+
+### Question Types Supported:
+$questionTypeInstructions
+
+### Difficulty Levels:
+$difficultyInstructions
+
+### Generation Requirements:
+- Generate exactly $totalQuestions questions distributed across the specified topics.
+- Balance question types and difficulty levels proportionally to create a comprehensive assessment.
+- Each question must include a difficulty level and question type indicator.
+- Ensure questions progress logically through topics and maintain consistent quality.
+
+### Output Format:
+Respond with a valid JSON array of objects. Each object represents a question with the following flexible structure based on question type:
+
+### Example Context
+Earth is the third planet from the Sun, known for being the only known planet to support life.
+
+### Example Question to be generated based on context
+What is the third planet from the Sun, know for being the only know planet to support life?
+
+A. Mercury
+B. Venus
+C. Earth
+D. Mars
+
+For multiple_choice questions:
+{
+  "question_text": "Clear, concise question",
+  "question_type": "multiple_choice",
+  "difficulty": "easy|medium|hard",
+  "topic": "associated topic name",
+  "cognitive_level": "remember|understand|apply",
+  "options": [
+    {"option_letter": "A", "option_text": "Option text", "is_correct": true},
+    {"option_letter": "B", "option_text": "Distractor", "is_correct": false},
+    {"option_letter": "C", "option_text": "Distractor", "is_correct": false},
+    {"option_letter": "D", "option_text": "Distractor", "is_correct": false}
+  ],
+  "explanation": "Brief explanation of correct answer"
+}
+
+$validationInstructions
 
 ### Topics:
 $topicsJson
@@ -423,8 +469,64 @@ $topicsJson
 ### Material Content:
 $materialContent
 
-Generate $totalQuestions questions following these guidelines. Ensure all questions are meaningful and relevant to the topics and material.
+Generate $totalQuestions questions following all guidelines above. Ensure comprehensive coverage and educational effectiveness.
 PROMPT;
+    }
+
+    /**
+     * Build question type specific instructions
+     */
+    private function buildQuestionTypeInstructions(array $questionTypes): string
+    {
+        $instructions = [];
+
+        if (in_array('multiple_choice', $questionTypes)) {
+            $instructions[] = "**Multiple Choice**: Provide 4 options (A-D) with one correct answer and three plausible distractors. Distractors should be based on common misconceptions or related incorrect information from the material.";
+        }
+
+        return implode("\n", $instructions);
+    }
+
+    /**
+     * Build difficulty level instructions
+     */
+    private function buildDifficultyInstructions(array $difficultyLevels): string
+    {
+        $instructions = [];
+
+        if (in_array('easy', $difficultyLevels)) {
+            $instructions[] = "**Easy**: Basic recall and recognition of facts, definitions, or simple concepts from the material.";
+        }
+
+        if (in_array('medium', $difficultyLevels)) {
+            $instructions[] = "**Medium**: Understanding and application of concepts, requiring explanation or connection of ideas.";
+        }
+
+        if (in_array('hard', $difficultyLevels)) {
+            $instructions[] = "**Hard**: Analysis, evaluation, or synthesis requiring critical thinking and deeper comprehension.";
+        }
+
+        return implode("\n", $instructions);
+    }
+
+    /**
+     * Build validation instructions for content quality
+     */
+    private function buildValidationInstructions(): string
+    {
+        return <<<VALIDATION
+### Content Validation Checklist:
+Before finalizing questions, validate each one against these criteria:
+- **Accuracy**: Does the question and correct answer directly reflect information in the material?
+- **Clarity**: Is the question unambiguous and clearly worded?
+- **Relevance**: Does it directly relate to the assigned topic and learning objectives?
+- **Cognitive Appropriateness**: Does the difficulty level match the cognitive demands?
+- **Distractor Quality** (for multiple choice): Are incorrect options plausible but clearly wrong?
+- **Educational Value**: Does the question promote meaningful learning rather than trivial recall?
+- **Non-Contradiction**: Does nothing in the question contradict the source material?
+
+If any question fails validation, revise it immediately to meet all criteria.
+VALIDATION;
     }
 
     /**
