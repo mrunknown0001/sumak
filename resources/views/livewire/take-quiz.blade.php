@@ -170,7 +170,7 @@
 
                     <button
                         wire:click="selectTimerMode('custom_pomodoro')"
-                        class="group rounded-2xl border-2 border-purple-300/40 bg-gradient-to-br from-purple-50 via-white to-amber-50 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-purple-400 hover:shadow-xl dark:border-purple-400/40 dark:from-purple-900/20 dark:via-slate-900/40 dark:to-amber-900/20 dark:hover:border-purple-300/60"
+                        class="group rounded-2xl border-2 border-purple-300/60 bg-gradient-to-br from-purple-50 via-white to-emerald-50 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-purple-400 hover:shadow-xl dark:border-purple-500/40 dark:from-purple-900/30 dark:via-slate-900/50 dark:to-emerald-900/30 dark:hover:border-purple-400/60"
                     >
                         <div class="mb-4 flex items-center gap-3">
                             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-200">
