@@ -389,79 +389,119 @@ PROMPT;
     /**
      * Build quiz generation prompt
      */
-    private function buildTopicQuizGenerationPrompt(
-        array $topics,
-        string $materialContent,
-        array $questionTypes = ['multiple_choice'],
-        array $difficultyLevels = ['easy', 'medium', 'hard'],
-        bool $enableValidation = true
-    ): string {
-        $topicsJson = json_encode($topics, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+private function buildTopicQuizGenerationPrompt(
+    array $topics,
+    string $materialContent,
+    array $questionTypes = ['multiple_choice'],
+    array $difficultyLevels = ['easy', 'medium', 'hard'],
+    bool $enableValidation = true
+): string {
+    $topicsJson = json_encode($topics, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-        // Calculate total questions needed
-        $totalQuestions = collect($topics)->sum('num_items');
+    // Calculate total questions needed
+    $totalQuestions = collect($topics)->sum('num_items');
 
-        // Build question type instructions
-        $questionTypeInstructions = $this->buildQuestionTypeInstructions($questionTypes);
+    // Build question type instructions
+    $questionTypeInstructions = $this->buildQuestionTypeInstructions($questionTypes);
 
-        // Build difficulty instructions
-        $difficultyInstructions = $this->buildDifficultyInstructions($difficultyLevels);
+    // Build difficulty instructions
+    $difficultyInstructions = $this->buildDifficultyInstructions($difficultyLevels);
 
-        // Build validation instructions
-        $validationInstructions = $enableValidation ? $this->buildValidationInstructions() : '';
+    // Build validation instructions
+    $validationInstructions = $enableValidation ? $this->buildValidationInstructions() : '';
 
-        return <<<PROMPT
-You are an expert educator tasked with generating high-quality quiz questions based on provided learning material and topics. Your goal is to create questions that are relevant, meaningful, and directly derived from the content, ensuring they test comprehension, application, and critical thinking while promoting educational objectives.
+    return <<<PROMPT
+You are an expert educator and assessment designer. Your task: generate high-quality quiz questions strictly *based on the provided material and topics*. Do not invent facts, do not introduce content not present in the material, and do not make assumptions beyond the provided text.
 
-### Core Principles:
-- **Educational Alignment**: Questions must align with Bloom's Taxonomy levels appropriate for the specified difficulty and cognitive emphasis in topics.
-- **Content Accuracy**: Base all questions strictly on the provided material. Do not invent facts, concepts, or scenarios not explicitly supported by the content.
-- **Question Variety**: Incorporate diverse question types and difficulty levels as specified to maintain engagement and assess different cognitive skills.
-- **Quality Assurance**: Ensure each question is clear, unambiguous, grammatically correct, and pedagogically sound.
+IMPORTANT — strict rules (must follow exactly):
+1. Base every question and every answer option only on the text from the "Material Content" section. If information required to make a question is not present in the material, do not create that question.
+2. Do not add context, historical facts, numbers, dates, or items not present in the material.
+3. Output *only* a valid JSON array (no preamble, no commentary). The response must be parseable as JSON.
+4. Generate exactly {TOTAL_QUESTIONS} questions in the JSON array (replace {TOTAL_QUESTIONS} below with the computed total).
+5. Distribute questions across the topics as specified in the provided "Topics" JSON; each question must include a "topic" field that exactly matches one of the topic names from the Topics JSON.
+6. For multiple-choice questions: provide exactly 4 options labeled "A", "B", "C", "D". Exactly one option must be correct.
+7. For other question types (match, short_answer, true_false), follow the schema below.
+8. Every question must include: question_text, question_type, difficulty, topic, cognitive_level, and an explanation that references the part of the material supporting the correct answer.
+9. For traceability, include a "source_excerpt" field (a short verbatim excerpt from the material, <= 40 words) that the question is directly derived from. If no single excerpt supports the question, do NOT generate that question.
+10. Keep language, terminology, and units exactly as used in the material. Do not paraphrase names/terms wrongly.
+11. Keep question_text ≤ 120 characters where possible. Explanations may be up to 40 words.
+12. Do not include HTML, Markdown, or code fences — raw JSON only.
+13. If you cannot produce the full number of required questions without inventing facts, produce as many valid, material-supported questions as possible and include a top-level field "incomplete": true. (But only do this if absolutely necessary.)
 
-### Question Types Supported:
-$questionTypeInstructions
+SCHEMA — each array element must be an object matching this schema exactly:
 
-### Difficulty Levels:
-$difficultyInstructions
-
-### Generation Requirements:
-- Generate exactly $totalQuestions questions distributed across the specified topics.
-- Balance question types and difficulty levels proportionally to create a comprehensive assessment.
-- Each question must include a difficulty level and question type indicator.
-- Ensure questions progress logically through topics and maintain consistent quality.
-
-### Output Format:
-Respond with a valid JSON array of objects. Each object represents a question with the following flexible structure based on question type:
-
-### Example Context
-Earth is the third planet from the Sun, known for being the only known planet to support life.
-
-### Example Question to be generated based on context
-What is the third planet from the Sun, know for being the only know planet to support life?
-
-A. Mercury
-B. Venus
-C. Earth
-D. Mars
-
-For multiple_choice questions:
+For multiple_choice:
 {
-  "question_text": "Clear, concise question",
+  "question_text": "string",
   "question_type": "multiple_choice",
   "difficulty": "easy|medium|hard",
-  "topic": "associated topic name",
-  "cognitive_level": "remember|understand|apply",
+  "topic": "topic name exactly as in Topics JSON",
+  "cognitive_level": "remember|understand|apply|analyze|evaluate|create",
   "options": [
-    {"option_letter": "A", "option_text": "Option text", "is_correct": true},
-    {"option_letter": "B", "option_text": "Distractor", "is_correct": false},
-    {"option_letter": "C", "option_text": "Distractor", "is_correct": false},
-    {"option_letter": "D", "option_text": "Distractor", "is_correct": false}
+    {"option_letter": "A", "option_text": "string", "is_correct": true|false},
+    {"option_letter": "B", "option_text": "string", "is_correct": true|false},
+    {"option_letter": "C", "option_text": "string", "is_correct": true|false},
+    {"option_letter": "D", "option_text": "string", "is_correct": true|false}
   ],
-  "explanation": "Brief explanation of correct answer"
+  "explanation": "one-sentence explanation (1-40 words) citing the source_excerpt",
+  "source_excerpt": "verbatim excerpt (<=40 words) from the material"
 }
 
-$validationInstructions
+For true_false:
+{
+  "question_text": "string",
+  "question_type": "true_false",
+  "difficulty": "easy|medium|hard",
+  "topic": "topic name",
+  "cognitive_level": "...",
+  "answer": true|false,
+  "explanation": "1-40 words citing the source_excerpt",
+  "source_excerpt": "verbatim excerpt (<=40 words) from the material"
+}
+
+For short_answer:
+{
+  "question_text": "string",
+  "question_type": "short_answer",
+  "difficulty": "easy|medium|hard",
+  "topic": "topic name",
+  "cognitive_level": "...",
+  "answer": "concise answer string (<=40 words)",
+  "explanation": "1-40 words citing the source_excerpt",
+  "source_excerpt": "verbatim excerpt (<=40 words) from the material"
+}
+
+GLOBAL OUTPUT:
+Return a JSON object with these keys:
+{
+  "questions": [ ...array of question objects above... ],
+  "metadata": {
+     "total_requested": {TOTAL_QUESTIONS},
+     "total_generated": <integer>,
+     "notes": "string (only if needed, e.g., why fewer questions were generated)"
+  }
+}
+
+REPLACE the token {TOTAL_QUESTIONS} with the integer: $totalQuestions
+Make sure "total_generated" equals the actual number of generated question objects.
+
+Example (for a short, material-based example):
+Material Content:
+"Photosynthesis is the process by which green plants use sunlight to synthesize foods from carbon dioxide and water. Chlorophyll captures light energy."
+
+A valid question derived from the material:
+{
+  "question_text": "What does chlorophyll capture?",
+  "question_type": "short_answer",
+  "difficulty": "easy",
+  "topic": "Photosynthesis",
+  "cognitive_level": "remember",
+  "answer": "Light energy",
+  "explanation": "The material states that chlorophyll captures light energy.",
+  "source_excerpt": "Chlorophyll captures light energy."
+}
+
+Now generate the JSON described above using these instructions.
 
 ### Topics:
 $topicsJson
@@ -469,9 +509,9 @@ $topicsJson
 ### Material Content:
 $materialContent
 
-Generate $totalQuestions questions following all guidelines above. Ensure comprehensive coverage and educational effectiveness.
+Generate the questions now.
 PROMPT;
-    }
+}
 
     /**
      * Build question type specific instructions
