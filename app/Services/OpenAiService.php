@@ -35,7 +35,9 @@ class OpenAiService
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are an educational content analyst. Your job is to extract 5–8 high-level topics from the provided material. Each topic must include a concise 1–2 sentence description, highlight core concepts, and recommend how many Bloom’s Focus multiple-choice questions (4–6) should be written for that topic. Never invent details that are not supported by the source material.'
+                    'content' => 'You are an expert educational content analyst. Your job is to extract 5–8 high-level topics from the provided material. 
+                    Each topic must include a concise 1–2 sentence description, highlight core concepts, and recommend how many Bloom’s Focus multiple-choice 
+                    questions (4–6) should be written for that topic. Never invent details that are not supported by the source material.'
                 ],
                 [
                     'role' => 'user',
@@ -49,7 +51,7 @@ class OpenAiService
     }
 
     /**
-     * Generate Table of Specification (ToS) focused on LOTS
+     * Generate Table of Specification (ToS) focused on Bloom's
      */
     public function generateToS(array $learningOutcomes, string $materialSummary, int $totalItems = 20): array
     {
@@ -59,7 +61,7 @@ class OpenAiService
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are an expert in creating Tables of Specification for educational assessments, with deep knowledge of Bloom\'s Taxonomy and Lower-Order Thinking Skills (LOTS).'
+                    'content' => 'You are an expert in creating Tables of Specification for educational assessments, with deep knowledge of Bloom\'s Taxonomy.'
                 ],
                 [
                     'role' => 'user',
@@ -76,15 +78,22 @@ class OpenAiService
     /**
      * Generate quiz questions based on ToS
      */
-    public function generateQuizQuestions(array $topics, string $materialContent): array
-    {
-        $prompt = $this->buildTopicQuizGenerationPrompt($topics, $materialContent);
+    public function generateQuizQuestions(
+        array $topics,
+        string $materialContent,
+        array $questionTypes = ['multiple_choice'],
+        array $difficultyLevels = ['easy', 'medium', 'hard'],
+        bool $enableValidation = true
+    ): array {
+        $prompt = $this->buildTopicQuizGenerationPrompt($topics, $materialContent, $questionTypes, $difficultyLevels, $enableValidation);
         
         $response = $this->sendRequest([
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are an educational content analyst crafting formative assessments. For each provided topic, create 4–6 Lower-Order Thinking Skill multiple-choice questions that stay faithful to the supplied material. Ensure every question has exactly one correct answer and clear rationales.'
+                    'content' => 'You are an expert educator tasked with generating high-quality, multiple-choice quiz questions based on provided learning material and topics. 
+                    Your goal is to create questions that are relevant, meaningful, and directly derived from the content, ensuring they test comprehension, application, 
+                    and critical thinking without introducing nonsensical or irrelevant elements.'
                 ],
                 [
                     'role' => 'user',
@@ -298,7 +307,7 @@ class OpenAiService
             : "";
 
         return <<<PROMPT
-Analyze the following learning material and extract only high-level instructional topics suited for LOTS-oriented assessment design.
+Analyze the following learning material and extract only high-level instructional topics suited for Bloom's Focus assessment design.
 
 Learning Material:
 $content
@@ -346,16 +355,16 @@ $materialSummary
 Total Quiz Items: $totalItems
 
 Requirements:
-- Focus primarily on Lower-Order Thinking Skills (LOTS): Remember, Understand, and Apply
-- Distribute items across subtopics proportionally to their importance
+- Focus primarily on Lower-Order Thinking Skills (Bloom's Focus): Remember, Understand, and Apply
+- Distribute items across topics proportionally to their importance
 - Ensure balanced coverage of all learning outcomes
-- Each ToS item should specify the subtopic, cognitive level, and number of questions
+- Each ToS item should specify the topic, cognitive level, and number of questions
 
 Please provide the ToS in the following JSON format:
 {
     "table_of_specification": [
         {
-            "subtopic": "subtopic name",
+            "topic": "topic name",
             "learning_outcome": "associated learning outcome",
             "cognitive_level": "remember|understand|apply",
             "bloom_category": "knowledge|comprehension|application",
@@ -380,52 +389,184 @@ PROMPT;
     /**
      * Build quiz generation prompt
      */
-    private function buildTopicQuizGenerationPrompt(array $topics, string $materialContent): string
-    {
-        $topicsJson = json_encode($topics, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        
-        return <<<PROMPT
-You are preparing quizzes for the following high-level topics derived from a learning material.
+private function buildTopicQuizGenerationPrompt(
+    array $topics,
+    string $materialContent,
+    array $questionTypes = ['multiple_choice'],
+    array $difficultyLevels = ['easy', 'medium', 'hard'],
+    bool $enableValidation = true
+): string {
+    $topicsJson = json_encode($topics, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-Topics (with recommended question counts):
+    // Calculate total questions needed
+    $totalQuestions = collect($topics)->sum('num_items');
+
+    // Build question type instructions
+    $questionTypeInstructions = $this->buildQuestionTypeInstructions($questionTypes);
+
+    // Build difficulty instructions
+    $difficultyInstructions = $this->buildDifficultyInstructions($difficultyLevels);
+
+    // Build validation instructions
+    $validationInstructions = $enableValidation ? $this->buildValidationInstructions() : '';
+
+    return <<<PROMPT
+You are an expert educator and assessment designer. Your task: generate high-quality quiz questions strictly *based on the provided material and topics*. Do not invent facts, do not introduce content not present in the material, and do not make assumptions beyond the provided text.
+
+IMPORTANT — strict rules (must follow exactly):
+1. Base every question and every answer option only on the text from the "Material Content" section. If information required to make a question is not present in the material, do not create that question.
+2. Do not add context, historical facts, numbers, dates, or items not present in the material.
+3. Output *only* a valid JSON array (no preamble, no commentary). The response must be parseable as JSON.
+4. Generate exactly {TOTAL_QUESTIONS} questions in the JSON array (replace {TOTAL_QUESTIONS} below with the computed total).
+5. Distribute questions across the topics as specified in the provided "Topics" JSON; each question must include a "topic" field that exactly matches one of the topic names from the Topics JSON.
+6. For multiple-choice questions: provide exactly 4 options labeled "A", "B", "C", "D". Exactly one option must be correct.
+7. For other question types (match, short_answer, true_false), follow the schema below.
+8. Every question must include: question_text, question_type, difficulty, topic, cognitive_level, and an explanation that references the part of the material supporting the correct answer.
+9. For traceability, include a "source_excerpt" field (a short verbatim excerpt from the material, <= 40 words) that the question is directly derived from. If no single excerpt supports the question, do NOT generate that question.
+10. Keep language, terminology, and units exactly as used in the material. Do not paraphrase names/terms wrongly.
+11. Keep question_text ≤ 120 characters where possible. Explanations may be up to 40 words.
+12. Do not include HTML, Markdown, or code fences — raw JSON only.
+13. If you cannot produce the full number of required questions without inventing facts, produce as many valid, material-supported questions as possible and include a top-level field "incomplete": true. (But only do this if absolutely necessary.)
+
+SCHEMA — each array element must be an object matching this schema exactly:
+
+For multiple_choice:
+{
+  "question_text": "string",
+  "question_type": "multiple_choice",
+  "difficulty": "easy|medium|hard",
+  "topic": "topic name exactly as in Topics JSON",
+  "cognitive_level": "remember|understand|apply|analyze|evaluate|create",
+  "options": [
+    {"option_letter": "A", "option_text": "string", "is_correct": true|false},
+    {"option_letter": "B", "option_text": "string", "is_correct": true|false},
+    {"option_letter": "C", "option_text": "string", "is_correct": true|false},
+    {"option_letter": "D", "option_text": "string", "is_correct": true|false}
+  ],
+  "explanation": "one-sentence explanation (1-40 words) citing the source_excerpt",
+  "source_excerpt": "verbatim excerpt (<=40 words) from the material"
+}
+
+For true_false:
+{
+  "question_text": "string",
+  "question_type": "true_false",
+  "difficulty": "easy|medium|hard",
+  "topic": "topic name",
+  "cognitive_level": "...",
+  "answer": true|false,
+  "explanation": "1-40 words citing the source_excerpt",
+  "source_excerpt": "verbatim excerpt (<=40 words) from the material"
+}
+
+For short_answer:
+{
+  "question_text": "string",
+  "question_type": "short_answer",
+  "difficulty": "easy|medium|hard",
+  "topic": "topic name",
+  "cognitive_level": "...",
+  "answer": "concise answer string (<=40 words)",
+  "explanation": "1-40 words citing the source_excerpt",
+  "source_excerpt": "verbatim excerpt (<=40 words) from the material"
+}
+
+GLOBAL OUTPUT:
+Return a JSON object with these keys:
+{
+  "questions": [ ...array of question objects above... ],
+  "metadata": {
+     "total_requested": {TOTAL_QUESTIONS},
+     "total_generated": <integer>,
+     "notes": "string (only if needed, e.g., why fewer questions were generated)"
+  }
+}
+
+REPLACE the token {TOTAL_QUESTIONS} with the integer: $totalQuestions
+Make sure "total_generated" equals the actual number of generated question objects.
+
+Example (for a short, material-based example):
+Material Content:
+"Photosynthesis is the process by which green plants use sunlight to synthesize foods from carbon dioxide and water. Chlorophyll captures light energy."
+
+A valid question derived from the material:
+{
+  "question_text": "What does chlorophyll capture?",
+  "question_type": "short_answer",
+  "difficulty": "easy",
+  "topic": "Photosynthesis",
+  "cognitive_level": "remember",
+  "answer": "Light energy",
+  "explanation": "The material states that chlorophyll captures light energy.",
+  "source_excerpt": "Chlorophyll captures light energy."
+}
+
+Now generate the JSON described above using these instructions.
+
+### Topics:
 $topicsJson
 
-Learning Material Reference:
+### Material Content:
 $materialContent
 
-Instructions:
-1. For EACH topic, generate the exact number of multiple-choice questions specified by recommended_question_count.
-2. Every question must target Lower-Order Thinking Skills (remember, understand, apply) and remain faithful to the supplied material.
-3. Provide four answer options labeled A–D, with exactly one correct option.
-4. Include a brief explanation and rationales for distractors when possible.
-5. Avoid "None of the above" or "All of the above."
-
-Return JSON in this structure:
-{
-    "topics": [
-        {
-            "topic": "topic title",
-            "questions": [
-                {
-                    "question_text": "stem",
-                    "cognitive_level": "remember|understand|apply",
-                    "options": [
-                        {"option_letter": "A", "option_text": "choice text", "is_correct": false, "rationale": "brief note"},
-                        {"option_letter": "B", "option_text": "...", "is_correct": true, "rationale": "..."},
-                        {"option_letter": "C", "option_text": "...", "is_correct": false, "rationale": "..."},
-                        {"option_letter": "D", "option_text": "...", "is_correct": false, "rationale": "..."}
-                    ],
-                    "correct_answer": "B",
-                    "explanation": "succinct justification",
-                    "estimated_difficulty": 0.2-0.8,
-                    "time_estimate_seconds": 60
-                }
-            ]
-        }
-    ],
-    "quality_notes": "optional validation notes"
-}
+Generate the questions now.
 PROMPT;
+}
+
+    /**
+     * Build question type specific instructions
+     */
+    private function buildQuestionTypeInstructions(array $questionTypes): string
+    {
+        $instructions = [];
+
+        if (in_array('multiple_choice', $questionTypes)) {
+            $instructions[] = "**Multiple Choice**: Provide 4 options (A-D) with one correct answer and three plausible distractors. Distractors should be based on common misconceptions or related incorrect information from the material.";
+        }
+
+        return implode("\n", $instructions);
+    }
+
+    /**
+     * Build difficulty level instructions
+     */
+    private function buildDifficultyInstructions(array $difficultyLevels): string
+    {
+        $instructions = [];
+
+        if (in_array('easy', $difficultyLevels)) {
+            $instructions[] = "**Easy**: Basic recall and recognition of facts, definitions, or simple concepts from the material.";
+        }
+
+        if (in_array('medium', $difficultyLevels)) {
+            $instructions[] = "**Medium**: Understanding and application of concepts, requiring explanation or connection of ideas.";
+        }
+
+        if (in_array('hard', $difficultyLevels)) {
+            $instructions[] = "**Hard**: Analysis, evaluation, or synthesis requiring critical thinking and deeper comprehension.";
+        }
+
+        return implode("\n", $instructions);
+    }
+
+    /**
+     * Build validation instructions for content quality
+     */
+    private function buildValidationInstructions(): string
+    {
+        return <<<VALIDATION
+### Content Validation Checklist:
+Before finalizing questions, validate each one against these criteria:
+- **Accuracy**: Does the question and correct answer directly reflect information in the material?
+- **Clarity**: Is the question unambiguous and clearly worded?
+- **Relevance**: Does it directly relate to the assigned topic and learning objectives?
+- **Cognitive Appropriateness**: Does the difficulty level match the cognitive demands?
+- **Distractor Quality** (for multiple choice): Are incorrect options plausible but clearly wrong?
+- **Educational Value**: Does the question promote meaningful learning rather than trivial recall?
+- **Non-Contradiction**: Does nothing in the question contradict the source material?
+
+If any question fails validation, revise it immediately to meet all criteria.
+VALIDATION;
     }
 
     /**
@@ -496,14 +637,14 @@ Please provide comprehensive feedback in the following JSON format:
     "score_interpretation": "what the score indicates about learning",
     "strengths": [
         {
-            "area": "subtopic or skill",
+            "area": "topic or skill",
             "description": "what the student did well",
             "evidence": "specific questions or patterns"
         }
     ],
     "areas_for_improvement": [
         {
-            "area": "subtopic or skill",
+            "area": "topic or skill",
             "current_level": "description of current understanding",
             "gap_analysis": "what's missing",
             "priority": "high|medium|low"
@@ -512,7 +653,7 @@ Please provide comprehensive feedback in the following JSON format:
     "specific_recommendations": [
         {
             "recommendation": "actionable study suggestion",
-            "subtopic": "related subtopic",
+            ""topic: "related topic",
             "estimated_time": "time needed",
             "resources": ["suggested study materials or approaches"]
         }

@@ -17,9 +17,9 @@
                         <span class="rounded-full border border-white/20 bg-white/10 px-3 py-1 backdrop-blur-sm">
                             {{ $record->document?->title ?? 'Learning material unavailable' }}
                         </span>
-                        <span class="rounded-full border border-white/20 bg-white/10 px-3 py-1 backdrop-blur-sm">
-                            {{ $record->lots_percentage ? number_format((float) $record->lots_percentage, 0) . '%' : '—' }} LOTS
-                        </span>
+                        {{-- <span class="rounded-full border border-white/20 bg-white/10 px-3 py-1 backdrop-blur-sm">
+                            {{ $record->lots_percentage ? number_format((float) $record->lots_percentage, 0) . '%' : '—' }} Bloom's Focus
+                        </span> --}}
                     </div>
                 </div>
             </div>
@@ -48,7 +48,7 @@
                     </div>
 
                     <div class="rounded-2xl bg-slate-50/80 p-5 text-sm font-medium text-slate-600 shadow-inner shadow-white/40 transition dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-300">
-                        <dt class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">LOTS Focus</dt>
+                        <dt class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Bloom's Focus</dt>
                         <dd class="mt-2 text-base font-semibold text-slate-800 dark:text-white">
                             {{ $record->lots_percentage ? number_format((float) $record->lots_percentage, 0) . '%' : '—' }}
                         </dd>
