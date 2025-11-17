@@ -17,116 +17,120 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
+            background: #fff;
         }
 
-        /* Navigation */
+        /* === NAVIGATION (MOBILE-FIRST) === */
         nav {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            padding: 1rem 5%;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 1rem 1.25rem;
             position: sticky;
             top: 0;
             z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            max-width: 1200px;
+            margin: auto;
         }
 
+        /* Logo */
         .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             color: white;
+            font-weight: bold;
+            font-size: 1.25rem;
             text-decoration: none;
         }
 
+        .logo img {
+            height: 28px;
+        }
+
+        /* Mobile Navigation Hidden by Default */
         .nav-links {
-            display: flex;
-            gap: 2rem;
             list-style: none;
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1rem;
         }
 
         .nav-links a {
             color: white;
             text-decoration: none;
-            transition: opacity 0.3s;
+            font-size: 1rem;
+            opacity: 0.9;
         }
 
         .nav-links a:hover {
-            opacity: 0.8;
+            opacity: 1;
         }
 
+        /* Login Button */
         .btn-login {
             background: white;
             color: #10b981;
-            padding: 0.5rem 1.5rem;
-            border-radius: 25px;
+            padding: 0.4rem 1.2rem;
+            border-radius: 20px;
             text-decoration: none;
             font-weight: 600;
-            transition: transform 0.3s;
+            font-size: 0.9rem;
         }
 
-        .btn-login:hover {
-            transform: scale(1.05);
-        }
-
-        /* Hero Section */
+        /* HERO */
         .hero {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
-            padding: 6rem 5% 4rem;
             text-align: center;
+            padding: 4rem 1.5rem;
         }
 
         .hero-content {
             max-width: 800px;
-            margin: 0 auto;
+            margin: auto;
         }
 
         .hero h1 {
-            font-size: 3rem;
+            font-size: 2rem;
             margin-bottom: 1rem;
             animation: fadeInUp 0.8s ease-out;
         }
 
         .hero p {
-            font-size: 1.25rem;
-            margin-bottom: 2rem;
-            opacity: 0.95;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
             animation: fadeInUp 0.8s ease-out 0.2s backwards;
         }
 
         .cta-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
+            /* display: flex; */
+            flex-direction: column;
+            gap: 0.75rem;
+            align-items: center;
             animation: fadeInUp 0.8s ease-out 0.4s backwards;
         }
 
+
+        /* BUTTONS */
         .btn {
-            padding: 1rem 2rem;
+            padding: 0.9rem 1.5rem;
             border-radius: 30px;
             text-decoration: none;
             font-weight: 600;
-            transition: all 0.3s;
             border: none;
             cursor: pointer;
-            font-size: 1rem;
         }
 
         .btn-primary {
             background: white;
             color: #10b981;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
         }
 
         .btn-secondary {
@@ -135,175 +139,149 @@
             border: 2px solid white;
         }
 
-        .btn-secondary:hover {
-            background: white;
-            color: #10b981;
-        }
-
-        /* Features Section */
+        /* FEATURES */
         .features {
-            padding: 5rem 5%;
+            padding: 3rem 1.5rem;
             background: #f8f9fa;
         }
 
         .section-title {
             text-align: center;
-            font-size: 2.5rem;
-            margin-bottom: 3rem;
-            color: #333;
+            font-size: 1.75rem;
+            margin-bottom: 2.5rem;
         }
 
         .features-grid {
-            max-width: 1200px;
-            margin: 0 auto;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
+            gap: 1.5rem;
+            grid-template-columns: 1fr;
+            max-width: 1200px;
+            margin: auto;
         }
 
         .feature-card {
             background: white;
-            padding: 2rem;
+            padding: 1.5rem;
             border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s, box-shadow 0.3s;
             text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
         }
 
         .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 40px rgba(16, 185, 129, 0.2);
+            transform: translateY(-8px);
         }
 
         .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
         }
 
         .feature-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
             color: #10b981;
         }
 
-        .feature-card p {
-            color: #666;
-        }
-
-        /* How It Works Section */
+        /* HOW IT WORKS */
         .how-it-works {
-            padding: 5rem 5%;
+            padding: 3rem 1.5rem;
             max-width: 1200px;
-            margin: 0 auto;
+            margin: auto;
         }
 
         .steps {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-
-        .step {
-            text-align: center;
-            position: relative;
+            gap: 1.5rem;
         }
 
         .step-number {
+            width: 55px;
+            height: 55px;
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
-            width: 60px;
-            height: 60px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             font-size: 1.5rem;
-            font-weight: bold;
-            margin: 0 auto 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 0.75rem;
         }
 
-        .step h3 {
-            font-size: 1.3rem;
-            margin-bottom: 0.5rem;
-            color: #333;
-        }
-
-        .step p {
-            color: #666;
-        }
-
-        /* CTA Section */
+        /* CTA SECTION */
         .cta-section {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
-            padding: 5rem 5%;
+            padding: 3rem 1.5rem;
             text-align: center;
         }
 
         .cta-section h2 {
-            font-size: 2.5rem;
+            font-size: 1.8rem;
             margin-bottom: 1rem;
         }
 
-        .cta-section p {
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
-            opacity: 0.95;
-        }
-
-        /* Footer */
+        /* FOOTER */
         footer {
             background: #2d3748;
             color: white;
-            padding: 2rem 5%;
+            padding: 2rem 1rem;
             text-align: center;
         }
 
-        footer p {
-            opacity: 0.8;
-        }
-
-        /* Animations */
+        /* ANIMATIONS */
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2rem;
-            }
+        /* === RESPONSIVE BREAKPOINTS === */
 
-            .hero p {
-                font-size: 1rem;
-            }
+        /* Tablet (≥ 600px) */
+        @media (min-width: 600px) {
+            .hero h1 { font-size: 2.5rem; }
+            .hero p { font-size: 1.2rem; }
+        }
 
+        /* Tablet Large (≥ 768px) */
+        @media (min-width: 768px) {
+
+            /* Navigation shows inline links */
             .nav-links {
-                gap: 1rem;
+                display: flex;
+                flex-direction: row;
+                gap: 2rem;
+                margin-top: 0;
             }
 
-            .section-title {
-                font-size: 2rem;
+            .cta-buttons {
+                flex-direction: row;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .steps {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
-        .logo {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
-        }
-        .logo img {
-        height: 30px;
+        /* Desktop (≥ 1024px) */
+        @media (min-width: 1024px) {
+            .hero {
+                padding: 6rem 2rem;
+            }
+
+            .hero h1 { font-size: 3rem; }
+
+            .features-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .steps {
+                grid-template-columns: repeat(4, 1fr);
+            }
         }
     </style>
 </head>
@@ -417,9 +395,14 @@
         <h2>Ready to Transform Your Learning?</h2>
         <p>Join thousands of students who are mastering their courses with AI-powered personalized quizzes.</p>
         @if(auth()->check())
-            <a href="{{ route('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+            <p>
+                <a href="{{ route('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+            </p>
         @else
-            <a href="{{ route('register') }}" class="btn btn-primary">Start Learning Today</a>
+            <p>
+                <br/>
+                <a href="{{ route('register') }}" class="btn btn-primary"">Start Learning Today</a>
+            </p>
         @endif
     </section>
 
