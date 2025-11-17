@@ -314,7 +314,7 @@ Return JSON only with this structure:
       "description": "1-2 sentence overview referencing the material",
       "key_concepts": ["explicit concept 1", "explicit concept 2"],
       "recommended_question_count": 4,
-      "cognitive_emphasis": "remember|understand|apply",
+      "cognitive_emphasis": "remember|understand|apply|analyze|evaluate|create",
       "supporting_notes": "short note referencing the exact spot in the material"
     }
   ],
@@ -352,7 +352,7 @@ Return JSON only with this structure:
     {
       "topic": "topic name",
       "learning_outcome": "linked learning outcome",
-      "cognitive_level": "remember|understand|apply",
+      "cognitive_level": "remember|understand|apply|analyze|evaluate|create",
       "bloom_category": "knowledge|comprehension|application",
       "num_items": 2,
       "weight_percentage": 10,
@@ -360,9 +360,12 @@ Return JSON only with this structure:
     }
   ],
   "cognitive_distribution": {
-    "remember": 40,
-    "understand": 40,
-    "apply": 20
+    "remember": 20,
+    "understand": 30,
+    "apply": 10,
+    "analyze": 10,
+    "evaluate": 10,
+    "create": 20,
   },
   "total_items": $totalItems,
   "assessment_focus": "short description"
@@ -411,7 +414,7 @@ Return this JSON object:
       "question_type": "multiple_choice",
       "difficulty": "easy|medium|hard",
       "topic": "topic name (exact match)",
-      "cognitive_level": "remember|understand|apply",
+      "cognitive_level": "remember|understand|apply|analyze|evaluate|create",
       "options": [
         {"option_letter":"A","option_text":"...","is_correct":true|false},
         {"option_letter":"B","option_text":"...","is_correct":true|false},
