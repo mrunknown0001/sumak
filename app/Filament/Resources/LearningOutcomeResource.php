@@ -39,7 +39,8 @@ class LearningOutcomeResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('outcome_code')->label('Outcome Code')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('description')->label('Description')->sortable()->searchable()
-                    ->limit(100),
+                    ->limit(100)
+                    ->tooltip(fn (?string $state) => $state),
                 Tables\Columns\TextColumn::make('bloom_level')->label('Bloom Level')->sortable()->searchable()
                     ->formatStateUsing(fn ($state) => ucfirst($state)),
             ])

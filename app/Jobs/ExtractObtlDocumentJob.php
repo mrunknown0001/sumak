@@ -66,7 +66,7 @@ class ExtractObtlDocumentJob implements ShouldQueue
             // Extract learning outcomes, topics, subtopics, and assessment methods
             $extraction = $openAiService->parseObtlDocument($text);
             // Log::debug('OBTL Document extraction result', ['extraction' => $extraction]);
-            $obtlDocument->title = $extraction['course_info']['course_title'] ?? 'Untitled OBTL Document';
+            $obtlDocument->title = $extraction['title_info']['title'] ?? 'Untitled OBTL Document';
             $obtlDocument->save();
 
             // check if extraction has learning outcomes
@@ -90,14 +90,14 @@ class ExtractObtlDocumentJob implements ShouldQueue
 
             $obtlDocument->refresh();
 
-            Log::info('ExtractObtlDocumentJob finished', [
-                'obtl_document_id' => $this->ObtlDocumentId,
-                'status_before' => $initialStatus,
-                'status_after' => $obtlDocument->processing_status,
-                'processed_at' => optional($obtlDocument->processed_at)?->toDateTimeString(),
-                'title' => $obtlDocument->title,
-                'learning_outcomes_created' => $obtlDocument->learningOutcomes()->count(),
-            ]);
+            // Log::info('ExtractObtlDocumentJob finished', [
+            //     'obtl_document_id' => $this->ObtlDocumentId,
+            //     'status_before' => $initialStatus,
+            //     'status_after' => $obtlDocument->processing_status,
+            //     'processed_at' => optional($obtlDocument->processed_at)?->toDateTimeString(),
+            //     'title' => $obtlDocument->title,
+            //     'learning_outcomes_created' => $obtlDocument->learningOutcomes()->count(),
+            // ]);
         } catch (\Exception $e) {
             DB::rollBack();
 

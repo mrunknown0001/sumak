@@ -74,7 +74,7 @@ class OpenAiService
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are an expert in creating Tables of Specification for assessments, using Bloom\'s taxonomy to guide distribution and alignment.'
+                    'content' => 'You are an expert educational assessment designer specializing in Bloom’s taxonomy and test blueprinting.'
                 ],
                 [
                     'role' => 'user',
@@ -88,6 +88,7 @@ class OpenAiService
 
         return json_decode($response['content'] ?? '{}', true) ?? [];
     }
+
 
     /**
      * Generate quiz questions (STRICT engine)
@@ -336,46 +337,79 @@ PROMPT;
         $outcomesJson = json_encode($learningOutcomes, JSON_PRETTY_PRINT);
 
         return <<<PROMPT
-Create a Table of Specification (ToS) aligned to Bloom's Taxonomy for the quiz described below.
+    Create a full Table of Specification (ToS) using the learning outcomes and material summary below.
 
-Learning Outcomes:
-$outcomesJson
+    The ToS MUST follow the Revised Bloom's Taxonomy:
+    - remember
+    - understand
+    - apply
+    - analyze
+    - evaluate
+    - create
 
-Material Summary:
-$materialSummary
+    Learning Outcomes:
+    $outcomesJson
 
-Total Quiz Items: $totalItems
+    Material Summary:
+    $materialSummary
 
-Return JSON only with this structure:
-{
-  "table_of_specification": [
+    Total Number of Quiz Items: $totalItems
+
+    ------------------------------------------------
+    STRICT REQUIREMENTS (DO NOT VIOLATE)
+    ------------------------------------------------
+
+    1. **You MUST infer the cognitive level from the verb** of each learning outcome  
+    Example mapping:
+    - remember → define, list, identify  
+    - understand → explain, summarize, describe  
+    - apply → compute, solve, demonstrate  
+    - analyze → compare, differentiate, categorize  
+    - evaluate → judge, critique, justify  
+    - create → design, construct, formulate  
+
+    2. **YOU MAY NOT assign all learning outcomes to the same cognitive level.**
+    Each outcome must use the correct Bloom level based on its verb.
+
+    3. **Final cognitive distribution must include at least FOUR different Bloom levels.**
+    You may NEVER produce a distribution that is only 1–2 levels.
+
+    4. **No cognitive level may exceed 40% of the total items.**
+
+    5. **Every cognitive level must have a minimum of 10% allocation.**  
+    (Example for 20 items → at least 2 items per level)
+
+    6. The sum of all num_items MUST equal exactly **$totalItems**.
+
+    7. Weight percentage must sum to **100%**.
+
+    8. DO NOT invent content beyond the learning outcomes and material summary.
+
+    ------------------------------------------------
+    RETURN JSON EXACTLY IN THIS FORMAT:
     {
-      "topic": "topic name",
-      "learning_outcome": "linked learning outcome",
-      "cognitive_level": "remember|understand|apply|analyze|evaluate|create",
-      "bloom_category": "knowledge|comprehension|application",
-      "num_items": 2,
-      "weight_percentage": 10,
-      "sample_indicators": ["brief indicator"]
+    "table_of_specification": [
+        {
+        "topic": "topic name",
+        "learning_outcome": "specific outcome text",
+        "cognitive_level": "remember|understand|apply|analyze|evaluate|create",
+        "num_items": 2,
+        "weight_percentage": 10,
+        "sample_indicators": ["short observable competency"]
+        }
+    ],
+    "cognitive_distribution": {
+        "remember": 20,
+        "understand": 20,
+        "apply": 20,
+        "analyze": 20,
+        "evaluate": 10,
+        "create": 10
+    },
+    "total_items": $totalItems,
+    "assessment_focus": "2–3 sentence justification of how the ToS aligns with Bloom's taxonomy and the learning outcomes."
     }
-  ],
-  "cognitive_distribution": {
-    "remember": 20,
-    "understand": 30,
-    "apply": 10,
-    "analyze": 10,
-    "evaluate": 10,
-    "create": 20,
-  },
-  "total_items": $totalItems,
-  "assessment_focus": "short description"
-}
-
-Requirements:
-- Distribute num_items so sum equals $totalItems.
-- Favor lower-order skills (remember, understand, apply) as specified.
-- Use only content supported by material.
-PROMPT;
+    PROMPT;
     }
 
     /**
@@ -595,11 +629,49 @@ PROMPT;
     private function buildObtlParsingPrompt(string $obtlContent): string
     {
         return <<<PROMPT
-Extract explicit learning outcomes from the OBTL document below. For each outcome, produce outcome_code (if present), outcome_statement, cognitive_level inferred from action verbs (remember|understand|apply|analyze|evaluate|create), bloom_category, and suggested assessment methods. Return JSON only.
-OBTL Document:
-$obtlContent
-PROMPT;
+    From the OBTL document below, extract BOTH:
+
+    1. **Document Title Information**
+    - title
+    - course_code (if any)
+    - subtitle (if any)
+    - full_title (course_code + title if applicable)
+    - confidence ("high" | "medium" | "low")
+
+    2. **Learning Outcomes**
+    For each outcome:
+    - outcome_code (if present)
+    - outcome_statement
+    - cognitive_level (remember|understand|apply|analyze|evaluate|create)
+    - bloom_category
+    - suggested_assessment_methods
+
+    Return JSON ONLY in this format:
+
+    {
+    "title_info": {
+        "title": "",
+        "course_code": "",
+        "subtitle": "",
+        "full_title": "",
+        "confidence": ""
+    },
+    "learning_outcomes": [
+        {
+        "outcome_code": "",
+        "outcome_statement": "",
+        "cognitive_level": "",
+        "bloom_category": "",
+        "suggested_assessment_methods": []
+        }
+    ]
     }
+
+    OBTL Document:
+    $obtlContent
+    PROMPT;
+    }
+
 
     /* ---------------------------------------------------------
      | Post-response validation & utilities (strict quiz logic)

@@ -109,9 +109,9 @@
                         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                             <div>
                                 <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                                    {{ $summary['outcome']->outcome_code ?? 'Learning Outcome' }}
+                                    {{-- {{ $summary['outcome']->outcome_code ?? 'Learning Outcome' }} --}}
+                                    <small>{{ $summary['outcome']->description }}</small>
                                 </h3>
-                                <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ $summary['outcome']->description }}</p>
                             </div>
                             @if($summary['cognitive_levels']->isNotEmpty())
                                 <div class="flex flex-wrap gap-2">

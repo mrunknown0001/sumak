@@ -96,9 +96,8 @@
                             @php
                                 $item = $row['model'];
                                 $learningOutcome = $item->learningOutcome?->description ?? $item->learningOutcome?->outcome_statement ?? '—';
-                                $topic = $item->subtopic?->topic?->name;
-                                $subtopic = $item->subtopic?->name;
-                                $coverage = collect([$topic, $subtopic])->filter()->unique()->implode(' • ');
+                                $topic = $item->topic?->name;
+                                $coverage = collect([$topic])->filter()->unique()->implode(' • ');
                                 $sampleRange = $row['sample_range'] ?? null;
                             @endphp
                             <article class="space-y-3 rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/70 dark:bg-slate-950/60">
@@ -182,9 +181,8 @@
                                         @php
                                             $item = $row['model'];
                                             $learningOutcome = $item->learningOutcome?->description ?? $item->learningOutcome?->outcome_statement ?? '—';
-                                            $topic = $item->subtopic?->topic?->name;
-                                            $subtopic = $item->subtopic?->name;
-                                            $coverage = collect([$topic, $subtopic])->filter()->unique()->implode(' • ');
+                                            $topic = $item->topic?->name;
+                                            $coverage = collect([$topic])->filter()->unique()->implode(' • ');
                                             $sampleRange = $row['sample_range'] ?? null;
                                         @endphp
                                         <tr class="transition-colors hover:bg-slate-50 dark:hover:bg-slate-600">
