@@ -30,6 +30,7 @@ class TakeQuiz extends Component
     public int $currentQuestionIndex = 0;
     public ?string $selectedAnswer = null;
     public int $timeRemaining = 1500;
+    public bool $timerStarted = false;
     public bool $quizStarted = false;
     public bool $quizCompleted = false;
     public bool $showFeedback = false;
@@ -90,7 +91,10 @@ class TakeQuiz extends Component
         $this->items = collect();
         $this->refreshAttemptLimitState();
         $this->loadCustomPomodoroFromSession();
-        $this->hydrateTimerFromBatch();
+        if (! $this->timerStarted) {
+            $this->hydrateTimerFromBatch();
+        }
+
     }
 
     public function selectTimerMode(string $mode): void
@@ -305,7 +309,10 @@ class TakeQuiz extends Component
             'current_question_index' => $this->currentQuestionIndex,
         ]);
 
-        $this->resetTimer();
+                if (! in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
+            $this->resetTimer();
+        }
+
         $this->dispatchTimerStream('start_quiz', [
             'question_count' => $this->items->count(),
             'current_question_index' => $this->currentQuestionIndex,
@@ -723,13 +730,7 @@ class TakeQuiz extends Component
 
         $this->showFeedback = true;
 
-        $this->dispatchTimerStream('answer_submitted', [
-            'forced_submission' => $forced,
-            'was_correct' => $this->isCorrect,
-            'selected_answer' => $this->selectedAnswer,
-            'correct_answer' => $this->correctAnswer,
-        ]);
-    }
+            }
 
     protected function calculateTimeTaken(): int
     {
@@ -751,11 +752,11 @@ class TakeQuiz extends Component
             return $this->completeQuiz();
         }
 
-        $this->resetTimer();
-        $this->dispatchTimerStream('next_question', [
-            'current_question_index' => $this->currentQuestionIndex,
-        ]);
+                if (! in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
+            $this->resetTimer();
+        }
 
+        
         return null;
     }
 
@@ -914,7 +915,10 @@ class TakeQuiz extends Component
             'timer_mode' => $this->timerMode,
         ]);
 
-        $this->resetTimer();
+                if (! in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
+            $this->resetTimer();
+        }
+
         $this->dispatch('endBreak');
         $this->dispatchTimerStream('end_break');
     }
@@ -1024,11 +1028,14 @@ class TakeQuiz extends Component
 
     protected function syncTimerForCurrentMode(): void
     {
+        if ($this->timeRemaining > 0 && $this->timerStarted) {
+            return;
+        }
         if (in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
             $this->timeRemaining = $this->isBreakTime
                 ? $this->pomodoroBreakTime
                 : $this->pomodoroSessionTime;
-
+            $this->timerStarted = true;
             return;
         }
 
