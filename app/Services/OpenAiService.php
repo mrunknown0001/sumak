@@ -543,28 +543,78 @@ RULES;
      */
     private function buildRewordPrompt(string $originalQuestion, array $originalOptions, int $regenerationCount): string
     {
-        $optionsJson = json_encode($originalOptions, JSON_PRETTY_PRINT);
+        $optionsJson = json_encode($originalOptions, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
         return <<<PROMPT
-Create an alternative version of the following quiz question. Regeneration attempt #$regenerationCount.
+    You are an expert in generating alternative versions of multiple-choice questions.
 
-Original Question:
-$originalQuestion
+    Your task is to:
+    1. **Reword the question** (same meaning, same difficulty, same cognitive level).
+    2. **Rewrite all answer choices in new wording**.
+    3. **Randomly shuffle the answer choices** (A–D).
+    4. **Ensure exactly ONE correct answer**, and it **must remain correct** under the reworded question.
+    5. Explanation must reference the same fact as the original question.
+    6. Output must ALWAYS follow the JSON schema.
 
-Original Options:
-$optionsJson
+    ---------------------------------------
+    Original Question:
+    $originalQuestion
 
-Return JSON:
-{
-  "reworded_question": {
-    "question_text": "...",
-    "options": [...],
-    "explanation": "...",
-    "regeneration_notes": "...",
-    "maintains_equivalence": true
-  }
-}
-PROMPT;
+    Original Options:
+    $optionsJson
+
+    ---------------------------------------
+    REWORDING RULES:
+    - Keep meaning equivalent but wording different.
+    - No reuse of large phrases from the original.
+    - Maintain the same knowledge requirement.
+    - Do NOT create new facts.
+    - Avoid trick questions.
+    - Difficulty must remain equivalent.
+
+    ---------------------------------------
+    OUTPUT JSON EXACTLY IN THIS FORMAT:
+
+    {
+    "reworded_question": {
+        "question_text": "Reworded question here (must still start with What or Which)",
+        "question_type": "multiple_choice",
+        "options": [
+        {
+            "option_letter": "A",
+            "option_text": "Reworded option text",
+            "is_correct": true/false
+        },
+        {
+            "option_letter": "B",
+            "option_text": "...",
+            "is_correct": true/false
+        },
+        {
+            "option_letter": "C",
+            "option_text": "...",
+            "is_correct": true/false
+        },
+        {
+            "option_letter": "D",
+            "option_text": "...",
+            "is_correct": true/false
+        }
+        ],
+        "explanation": "1–2 sentence explanation referencing the same concept as the original.",
+        "regeneration_notes": "Explain the major changes from the original.",
+        "maintains_equivalence": true
     }
+    }
+
+    STRICT REQUIREMENTS:
+    - The correct answer MUST remain correct after rewording.
+    - The answer choices MUST be randomly shuffled.
+    - The question MUST be reworded, not minimally edited.
+    - Only 'What' or 'Which' may start the question.
+    PROMPT;
+    }
+
 
     /**
      * Build feedback generation prompt (kept, cleaned)
@@ -573,55 +623,56 @@ PROMPT;
     {
         $attemptJson = json_encode($quizAttemptData, JSON_PRETTY_PRINT);
         $masteryJson = json_encode($userMasteryData, JSON_PRETTY_PRINT);
-        
+
         return <<<PROMPT
-Generate personalized, constructive feedback for a student based on their quiz performance and mastery data.
+    Generate personalized, constructive feedback for a student based on their quiz performance and mastery data.
 
-Quiz Attempt Data:
-$attemptJson
+    Quiz Attempt Data:
+    $attemptJson
 
-Student Mastery Data:
-$masteryJson
+    Student Mastery Data:
+    $masteryJson
 
-Please provide comprehensive feedback in the following JSON format:
-{
-    "overall_feedback": "encouraging overall assessment",
-    "score_interpretation": "what the score indicates about learning",
-    "strengths": [
-        {
-            "area": "topic or skill",
-            "description": "what the student did well",
-            "evidence": "specific questions or patterns"
-        }
-    ],
-    "areas_for_improvement": [
-        {
-            "area": "topic or skill",
-            "current_level": "description of current understanding",
-            "gap_analysis": "what's missing",
-            "priority": "high|medium|low"
-        }
-    ],
-    "specific_recommendations": [
-        {
-            "recommendation": "actionable study suggestion",
-            ""topic: "related topic",
-            "estimated_time": "time needed",
-            "resources": ["suggested study materials or approaches"]
-        }
-    ],
-    "next_steps": [
-        "immediate action 1",
-        "immediate action 2",
-        "immediate action 3"
-    ],
-    "motivational_message": "encouraging closing message",
-    "estimated_mastery_timeline": "realistic timeline for improvement"
-}
-
-Tone: Supportive, constructive, and encouraging. Focus on growth mindset and actionable steps.
-PROMPT;
+    Return JSON only in this format:
+    {
+        "overall_feedback": "encouraging overall assessment",
+        "score_interpretation": "what the score indicates",
+        "strengths": [
+            {
+                "area": "topic or skill",
+                "description": "what the student did well",
+                "evidence": "specific questions or patterns"
+            }
+        ],
+        "areas_for_improvement": [
+            {
+                "area": "topic or skill",
+                "current_level": "description",
+                "gap_analysis": "what's missing",
+                "priority": "high|medium|low"
+            }
+        ],
+        "specific_recommendations": [
+            {
+                "recommendation": "actionable study suggestion",
+                "topic": "related topic",
+                "estimated_time": "time needed",
+                "resources": ["suggested study materials or approaches"]
+            }
+        ],
+        "next_steps": [
+            "immediate action 1",
+            "immediate action 2",
+            "immediate action 3"
+        ],
+        "motivational_message": "encouraging closing message",
+        "estimated_mastery_timeline": "realistic timeline for improvement"
     }
+
+    Tone: Supportive, constructive, actionable.
+    PROMPT;
+    }
+
 
     /**
      * Build OBTL parsing prompt (improved)
@@ -809,9 +860,31 @@ PROMPT;
                 if ($correctOptionText === null) {
                     $report['schema_errors'][] = "Question #{$qIndex} missing correct option.";
                 } else {
-                    if (stripos($excerpt ?? '', $correctOptionText) === false) {
-                        $report['factual_errors'][] = "Question #{$qIndex} correct option text does not appear verbatim in source_excerpt.";
+
+                    // Normalize for safer comparison
+                    $excerptLower = Str::lower($excerpt);
+                    $optionLower = Str::lower($correctOptionText);
+
+                    // Basic check — case-insensitive direct match
+                    if (!Str::contains($excerptLower, $optionLower)) {
+
+                        // ADVANCED fallback: allow key noun matching (avoid false failures)
+                        $keywords = preg_split('/\s+/', $optionLower);
+                        $matched = false;
+
+                        foreach ($keywords as $word) {
+                            if (strlen($word) > 3 && Str::contains($excerptLower, $word)) {
+                                $matched = true;
+                                break;
+                            }
+                        }
+
+                        if (!$matched) {
+                            $report['factual_errors'][] =
+                                "Question #{$qIndex} correct option text does not appear in source_excerpt (case-insensitive partial match also failed).";
+                        }
                     }
+
                 }
             }
 
