@@ -18,6 +18,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\Features\SupportRedirects\Redirector;
+use Carbon\Carbon;
 
 class TakeQuiz extends Component
 {
