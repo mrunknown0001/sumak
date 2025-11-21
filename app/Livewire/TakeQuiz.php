@@ -718,27 +718,44 @@ class TakeQuiz extends Component
         $this->isCorrect = $answer !== null && $answer !== '' && $item['correct_answer'] === $answer;
         $this->correctAnswer = $item['correct_answer'];
 
+        // compute time taken using shown_at when available, otherwise fallback
+        $timeTakenSeconds = $this->calculateTimeTaken($item);
+
         Response::create([
             'quiz_attempt_id' => $this->attempt->id,
             'item_id' => $item['id'],
             'user_id' => auth()->id(),
             'user_answer' => $answerValue,
             'is_correct' => $this->isCorrect,
-            'time_taken_seconds' => $this->calculateTimeTaken(),
+            'time_taken_seconds' => $timeTakenSeconds,
             'response_at' => now(),
         ]);
 
         $this->showFeedback = true;
+    }
 
-            }
 
-    protected function calculateTimeTaken(): int
+    protected function calculateTimeTaken(array $item = null): int
     {
+        // 1) If the item has a shown_at timestamp, compute elapsed time between shown_at and now
+        if ($item && !empty($item['shown_at'])) {
+            try {
+                $shownAt = Carbon::parse($item['shown_at']);
+                $now = Carbon::now();
+                // ensure non-negative
+                return max(0, $now->diffInSeconds($shownAt));
+            } catch (\Throwable $e) {
+                // parsing failed - fall through to fallback logic
+            }
+        }
+
+        // 2) Fallback (original behavior): For pomodoro modes compute from pomodoroSessionTime - timeRemaining
         return match ($this->timerMode) {
             'pomodoro', 'custom_pomodoro' => $this->isBreakTime ? 0 : max(0, $this->pomodoroSessionTime - $this->timeRemaining),
             default => 0,
         };
     }
+
 
     public function nextQuestion(): RedirectResponse|Redirector|null
     {
@@ -1079,6 +1096,22 @@ class TakeQuiz extends Component
 
         $this->dispatch('streamTimeRemaining', $payload);
     }
+
+
+    protected function markItemShown(int $index): void
+    {
+        if (!isset($this->items[$index])) {
+            return;
+        }
+
+        // Only set shown_at once per item
+        if (!isset($this->items[$index]['shown_at']) || empty($this->items[$index]['shown_at'])) {
+            // store an ISO timestamp so it can be parsed reliably later
+            $this->items[$index]['shown_at'] = Carbon::now()->toIso8601String();
+        }
+    }
+
+
 
     public function render()
     {
