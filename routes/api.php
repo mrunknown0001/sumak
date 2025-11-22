@@ -156,3 +156,15 @@ Route::prefix('webhooks')->group(function () {
         return response()->json(['received' => true]);
     });
 });
+
+Route::get('/learning-outcomes', function () {
+    $lo = \App\Models\LearningOutcome::all();
+
+    return $lo;
+});
+
+Route::get('/tos-items', function() {
+    $tositems = \App\Models\TosItem::all();
+
+    return $tositems;
+});

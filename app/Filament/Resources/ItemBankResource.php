@@ -52,7 +52,12 @@ class ItemBankResource extends Resource
             ->recordUrl(null)
             ->filters([
                 Tables\Filters\SelectFilter::make('topic.document')
+                    ->label('Document Material')
                     ->relationship('topic.document', 'title')
+                    ->searchable(),
+                Tables\Filters\SelectFilter::make('topic')
+                    ->label('Topic')
+                    ->relationship('topic', 'name')
                     ->searchable(),
             ])
             ->actions([

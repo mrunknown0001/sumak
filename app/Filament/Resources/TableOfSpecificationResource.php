@@ -56,8 +56,14 @@ class TableOfSpecificationResource extends Resource
                     ->counts('tosItems')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('lots_percentage')
-                    ->label('LOTS Focus')
-                    ->formatStateUsing(fn ($state) => filled($state) ? number_format((float) $state, 0) . '% LOTS' : '—')
+                    ->label('Focus')
+                    // ->formatStateUsing(fn ($state) => filled($state) ? number_format((float) $state, 0) . '% LOTS' : '—')
+                    ->formatStateUsing(function (TableOfSpecification $tos) {
+                        $distribution = $tos->cognitive_level_distribution;
+                        $lots = $distribution['remember'] + $distribution['understand'] + $distribution['apply'];
+                        $hots = $distribution['analyze'] + $distribution['evaluate'] + $distribution['create'];
+                        return $lots . '% LOTS | '. $hots . '% HOTS';
+                    })
                     ->sortable(),
             ])
             ->defaultSort('generated_at', 'desc')

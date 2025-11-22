@@ -18,6 +18,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\Features\SupportRedirects\Redirector;
+use Carbon\Carbon;
 
 class TakeQuiz extends Component
 {
@@ -30,6 +31,7 @@ class TakeQuiz extends Component
     public int $currentQuestionIndex = 0;
     public ?string $selectedAnswer = null;
     public int $timeRemaining = 1500;
+    public bool $timerStarted = false;
     public bool $quizStarted = false;
     public bool $quizCompleted = false;
     public bool $showFeedback = false;
@@ -90,7 +92,10 @@ class TakeQuiz extends Component
         $this->items = collect();
         $this->refreshAttemptLimitState();
         $this->loadCustomPomodoroFromSession();
-        $this->hydrateTimerFromBatch();
+        if (! $this->timerStarted) {
+            $this->hydrateTimerFromBatch();
+        }
+
     }
 
     public function selectTimerMode(string $mode): void
@@ -305,7 +310,10 @@ class TakeQuiz extends Component
             'current_question_index' => $this->currentQuestionIndex,
         ]);
 
-        $this->resetTimer();
+                if (! in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
+            $this->resetTimer();
+        }
+
         $this->dispatchTimerStream('start_quiz', [
             'question_count' => $this->items->count(),
             'current_question_index' => $this->currentQuestionIndex,
@@ -711,33 +719,44 @@ class TakeQuiz extends Component
         $this->isCorrect = $answer !== null && $answer !== '' && $item['correct_answer'] === $answer;
         $this->correctAnswer = $item['correct_answer'];
 
+        // compute time taken using shown_at when available, otherwise fallback
+        $timeTakenSeconds = $this->calculateTimeTaken($item);
+
         Response::create([
             'quiz_attempt_id' => $this->attempt->id,
             'item_id' => $item['id'],
             'user_id' => auth()->id(),
             'user_answer' => $answerValue,
             'is_correct' => $this->isCorrect,
-            'time_taken_seconds' => $this->calculateTimeTaken(),
+            'time_taken_seconds' => $timeTakenSeconds,
             'response_at' => now(),
         ]);
 
         $this->showFeedback = true;
-
-        $this->dispatchTimerStream('answer_submitted', [
-            'forced_submission' => $forced,
-            'was_correct' => $this->isCorrect,
-            'selected_answer' => $this->selectedAnswer,
-            'correct_answer' => $this->correctAnswer,
-        ]);
     }
 
-    protected function calculateTimeTaken(): int
+
+    protected function calculateTimeTaken(array $item = null): int
     {
+        // 1) If the item has a shown_at timestamp, compute elapsed time between shown_at and now
+        if ($item && !empty($item['shown_at'])) {
+            try {
+                $shownAt = Carbon::parse($item['shown_at']);
+                $now = Carbon::now();
+                // ensure non-negative
+                return max(0, $now->diffInSeconds($shownAt));
+            } catch (\Throwable $e) {
+                // parsing failed - fall through to fallback logic
+            }
+        }
+
+        // 2) Fallback (original behavior): For pomodoro modes compute from pomodoroSessionTime - timeRemaining
         return match ($this->timerMode) {
             'pomodoro', 'custom_pomodoro' => $this->isBreakTime ? 0 : max(0, $this->pomodoroSessionTime - $this->timeRemaining),
             default => 0,
         };
     }
+
 
     public function nextQuestion(): RedirectResponse|Redirector|null
     {
@@ -751,11 +770,11 @@ class TakeQuiz extends Component
             return $this->completeQuiz();
         }
 
-        $this->resetTimer();
-        $this->dispatchTimerStream('next_question', [
-            'current_question_index' => $this->currentQuestionIndex,
-        ]);
+                if (! in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
+            $this->resetTimer();
+        }
 
+        
         return null;
     }
 
@@ -914,7 +933,10 @@ class TakeQuiz extends Component
             'timer_mode' => $this->timerMode,
         ]);
 
-        $this->resetTimer();
+                if (! in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
+            $this->resetTimer();
+        }
+
         $this->dispatch('endBreak');
         $this->dispatchTimerStream('end_break');
     }
@@ -1024,11 +1046,14 @@ class TakeQuiz extends Component
 
     protected function syncTimerForCurrentMode(): void
     {
+        if ($this->timeRemaining > 0 && $this->timerStarted) {
+            return;
+        }
         if (in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
             $this->timeRemaining = $this->isBreakTime
                 ? $this->pomodoroBreakTime
                 : $this->pomodoroSessionTime;
-
+            $this->timerStarted = true;
             return;
         }
 
@@ -1072,6 +1097,22 @@ class TakeQuiz extends Component
 
         $this->dispatch('streamTimeRemaining', $payload);
     }
+
+
+    protected function markItemShown(int $index): void
+    {
+        if (!isset($this->items[$index])) {
+            return;
+        }
+
+        // Only set shown_at once per item
+        if (!isset($this->items[$index]['shown_at']) || empty($this->items[$index]['shown_at'])) {
+            // store an ISO timestamp so it can be parsed reliably later
+            $this->items[$index]['shown_at'] = Carbon::now()->toIso8601String();
+        }
+    }
+
+
 
     public function render()
     {

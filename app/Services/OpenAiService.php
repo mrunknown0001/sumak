@@ -74,7 +74,7 @@ class OpenAiService
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are an expert in creating Tables of Specification for assessments, using Bloom\'s taxonomy to guide distribution and alignment.'
+                    'content' => 'You are an expert educational assessment designer specializing in Bloom’s taxonomy and test blueprinting.'
                 ],
                 [
                     'role' => 'user',
@@ -88,6 +88,7 @@ class OpenAiService
 
         return json_decode($response['content'] ?? '{}', true) ?? [];
     }
+
 
     /**
      * Generate quiz questions (STRICT engine)
@@ -336,46 +337,79 @@ PROMPT;
         $outcomesJson = json_encode($learningOutcomes, JSON_PRETTY_PRINT);
 
         return <<<PROMPT
-Create a Table of Specification (ToS) aligned to Bloom's Taxonomy for the quiz described below.
+    Create a full Table of Specification (ToS) using the learning outcomes and material summary below.
 
-Learning Outcomes:
-$outcomesJson
+    The ToS MUST follow the Revised Bloom's Taxonomy:
+    - remember
+    - understand
+    - apply
+    - analyze
+    - evaluate
+    - create
 
-Material Summary:
-$materialSummary
+    Learning Outcomes:
+    $outcomesJson
 
-Total Quiz Items: $totalItems
+    Material Summary:
+    $materialSummary
 
-Return JSON only with this structure:
-{
-  "table_of_specification": [
+    Total Number of Quiz Items: $totalItems
+
+    ------------------------------------------------
+    STRICT REQUIREMENTS (DO NOT VIOLATE)
+    ------------------------------------------------
+
+    1. **You MUST infer the cognitive level from the verb** of each learning outcome  
+    Example mapping:
+    - remember → define, list, identify  
+    - understand → explain, summarize, describe  
+    - apply → compute, solve, demonstrate  
+    - analyze → compare, differentiate, categorize  
+    - evaluate → judge, critique, justify  
+    - create → design, construct, formulate  
+
+    2. **YOU MAY NOT assign all learning outcomes to the same cognitive level.**
+    Each outcome must use the correct Bloom level based on its verb.
+
+    3. **Final cognitive distribution must include at least FOUR different Bloom levels.**
+    You may NEVER produce a distribution that is only 1–2 levels.
+
+    4. **No cognitive level may exceed 40% of the total items.**
+
+    5. **Every cognitive level must have a minimum of 10% allocation.**  
+    (Example for 20 items → at least 2 items per level)
+
+    6. The sum of all num_items MUST equal exactly **$totalItems**.
+
+    7. Weight percentage must sum to **100%**.
+
+    8. DO NOT invent content beyond the learning outcomes and material summary.
+
+    ------------------------------------------------
+    RETURN JSON EXACTLY IN THIS FORMAT:
     {
-      "topic": "topic name",
-      "learning_outcome": "linked learning outcome",
-      "cognitive_level": "remember|understand|apply|analyze|evaluate|create",
-      "bloom_category": "knowledge|comprehension|application",
-      "num_items": 2,
-      "weight_percentage": 10,
-      "sample_indicators": ["brief indicator"]
+    "table_of_specification": [
+        {
+        "topic": "topic name",
+        "learning_outcome": "specific outcome text",
+        "cognitive_level": "remember|understand|apply|analyze|evaluate|create",
+        "num_items": 2,
+        "weight_percentage": 10,
+        "sample_indicators": ["short observable competency"]
+        }
+    ],
+    "cognitive_distribution": {
+        "remember": 20,
+        "understand": 20,
+        "apply": 20,
+        "analyze": 20,
+        "evaluate": 10,
+        "create": 10
+    },
+    "total_items": $totalItems,
+    "assessment_focus": "2–3 sentence justification of how the ToS aligns with Bloom's taxonomy and the learning outcomes."
     }
-  ],
-  "cognitive_distribution": {
-    "remember": 20,
-    "understand": 30,
-    "apply": 10,
-    "analyze": 10,
-    "evaluate": 10,
-    "create": 20,
-  },
-  "total_items": $totalItems,
-  "assessment_focus": "short description"
-}
-
-Requirements:
-- Distribute num_items so sum equals $totalItems.
-- Favor lower-order skills (remember, understand, apply) as specified.
-- Use only content supported by material.
-PROMPT;
+    PROMPT;
     }
 
     /**
@@ -390,57 +424,195 @@ PROMPT;
         $materialSnippet = $this->shortenMaterialForPrompt($materialContent);
 
         return <<<PROMPT
-You are an expert educational assessment designer. STRICTLY follow these instructions.
+        You are an expert educational assessment designer. STRICTLY follow these instructions.
 
-OUTPUT:
-Return ONLY a JSON object (no commentary, no markdown) matching the schema in the end.
+        OUTPUT FORMAT:
+        Return ONLY a JSON object (no commentary, no markdown) that matches the schema shown at the end.
 
-RULES:
-1) Generate EXACTLY {$totalQuestions} questions based ONLY on the Material Content below.
-2) Use ONLY "What" and "Which" question forms. Do NOT use How/Why/Where/When/Explain or hypothetical language.
-3) Only multiple-choice questions (4 options labeled A-D). Exactly ONE correct option and make sure the correct option is randomized without pattern.
-4) Each question MUST be directly supported by a VERBATIM source_excerpt (<= 40 words) copied from the material. The correct option MUST appear verbatim in the source_excerpt.
-5) Topic field must match one of the provided topics.
-6) Keep question_text concise (<= 120 chars preferred). explanation <= 40 words.
-7) If you cannot generate the full number of questions without inventing facts, produce as many valid, material-supported questions as possible and set metadata.incomplete = true and explain which topics lacked support in metadata.notes.
-8) Do not include the word material in the question
+        GOAL:
+        Generate clear, simple, fact-based multiple-choice questions that come DIRECTLY from the material.  
+        Questions should resemble classroom factual recall items such as:
+        - "How many ...?"
+        - "What is the ...?"
+        - "Which planet ...?"
 
-SCHEMA:
-Return this JSON object:
-{
-  "questions": [
-    {
-      "question_text": "What ... or Which ...",
-      "question_type": "multiple_choice",
-      "difficulty": "easy|medium|hard",
-      "topic": "topic name (exact match)",
-      "cognitive_level": "remember|understand|apply|analyze|evaluate|create",
-      "options": [
-        {"option_letter":"A","option_text":"...","is_correct":true|false},
-        {"option_letter":"B","option_text":"...","is_correct":true|false},
-        {"option_letter":"C","option_text":"...","is_correct":true|false},
-        {"option_letter":"D","option_text":"...","is_correct":true|false}
-      ],
-      "explanation":"1-40 words referencing the source_excerpt",
-      "source_excerpt":"exact excerpt <= 40 words from the material"
-    }
-  ],
-  "metadata": {
-    "total_requested": {$totalQuestions},
-    "total_generated": 0,
-    "incomplete": false,
-    "notes": ""
-  }
-}
+        RULES:
+        1) Generate EXACTLY {$totalQuestions} questions based ONLY on factual statements found in the Material Content.
+        If insufficient material exists, generate only valid questions and set metadata.incomplete = true.
 
-TOPICS:
-{$topicsJson}
+        2) Allowed question_text starters are ONLY:
+        - “What”
+        - “Which”
+        - “How many”
+        - “How much”
+        NO other interrogatives allowed.
 
-MATERIAL:
-{$materialSnippet}
+        3) “How many” or “How much” questions are ONLY allowed when the material contains an explicit number or clearly countable quantity.
+        If no number exists, do NOT generate them.
 
-Generate the JSON now.
-PROMPT;
+        4) Use 4 answer options (A–D). Exactly ONE correct option.
+
+        5) CORRECT OPTION RANDOMIZATION:
+        - The correct option MUST be randomly placed in A/B/C/D.
+        - The correct option MUST NOT always be A.
+        - No predictable patterns or sequences.
+        - Distribute correct answers across different letters.
+
+        6) The correct option MUST appear WORD-FOR-WORD in the source_excerpt.
+        If the correct option text is not present in the excerpt, you MUST NOT use it.
+
+        7) If a question cannot be supported by a verbatim excerpt, do NOT generate the question.
+        Reduce total_generated and set metadata.incomplete=true.
+
+        8) Options must be short (1–6 words only).
+
+        9) The source_excerpt must be copied exactly from the material (<= 40 words).
+
+        10) Explanation must reference the source_excerpt (1–40 words).
+
+        11) Question_text must be concise (< 120 chars).
+
+        12) Do NOT use the word "material" inside the question_text.
+
+        IMPORTANT:
+        The following examples are ONLY STYLE EXAMPLES.
+        DO NOT copy or reuse any facts, topics, terms, or content from the examples.
+        Use ONLY the actual Material Content when generating questions.
+
+
+        FEW-SHOT EXAMPLES (Follow these patterns exactly):
+
+        Example 1:
+        Material excerpt:
+        "The solar system has 8 planets. The smallest is Mercury and the largest is Jupiter."
+
+        Valid generated question:
+        {
+        "question_text": "How many planets are in the solar system?",
+        "question_type": "multiple_choice",
+        "difficulty": "easy",
+        "topic": "Astronomy",
+        "cognitive_level": "remember",
+        "options": [
+            {"option_letter":"A","option_text":"6","is_correct":false},
+            {"option_letter":"B","option_text":"8","is_correct":true},
+            {"option_letter":"C","option_text":"10","is_correct":false},
+            {"option_letter":"D","option_text":"4","is_correct":false}
+        ],
+        "explanation":"The excerpt states there are 8 planets.",
+        "source_excerpt":"The solar system has 8 planets."
+        }
+
+        Example 2:
+        Material excerpt:
+        "The smallest planet is Mercury, and Jupiter is the largest planet."
+
+        Valid generated question:
+        {
+        "question_text": "Which planet is the largest?",
+        "question_type": "multiple_choice",
+        "difficulty": "easy",
+        "topic": "Astronomy",
+        "cognitive_level": "remember",
+        "options": [
+            {"option_letter":"A","option_text":"Mercury","is_correct":false},
+            {"option_letter":"B","option_text":"Earth","is_correct":false},
+            {"option_letter":"C","option_text":"Jupiter","is_correct":true},
+            {"option_letter":"D","option_text":"Mars","is_correct":false}
+        ],
+        "explanation":"The excerpt directly states Jupiter is the largest planet.",
+        "source_excerpt":"Jupiter is the largest planet."
+        }
+
+        Example 3:
+        Material excerpt:
+        "Photosynthesis uses sunlight to convert carbon dioxide and water into glucose."
+
+        Valid generated question:
+        {
+        "question_text": "What does photosynthesis produce?",
+        "question_type": "multiple_choice",
+        "difficulty": "easy",
+        "topic": "Biology",
+        "cognitive_level": "understand",
+        "options": [
+            {"option_letter":"A","option_text":"Oxygen","is_correct":false},
+            {"option_letter":"B","option_text":"Glucose","is_correct":true},
+            {"option_letter":"C","option_text":"Protein","is_correct":false},
+            {"option_letter":"D","option_text":"Nitrogen","is_correct":false}
+        ],
+        "explanation":"The excerpt says it converts materials into glucose.",
+        "source_excerpt":"convert carbon dioxide and water into glucose."
+        }
+
+        Example 4 (Randomized correct letter is required):
+        Material excerpt:
+        "Water boils at 100 degrees Celsius at standard pressure."
+
+        Valid generated question:
+        {
+        "question_text": "What is the boiling point of water at standard pressure?",
+        "question_type": "multiple_choice",
+        "difficulty": "easy",
+        "topic": "Science",
+        "cognitive_level": "remember",
+        "options": [
+            {"option_letter":"A","option_text":"50°C","is_correct":false},
+            {"option_letter":"B","option_text":"90°C","is_correct":false},
+            {"option_letter":"C","option_text":"100°C","is_correct":true},
+            {"option_letter":"D","option_text":"120°C","is_correct":false}
+        ],
+        "explanation":"The excerpt states water boils at 100°C.",
+        "source_excerpt":"Water boils at 100 degrees Celsius."
+        }
+
+        These examples demonstrate:
+        - Allowed question forms (“How many,” “What,” “Which”)
+        - Simple factual recall
+        - Random correct-answer placement
+        - Short option_text values
+        - Correct answers that appear verbatim in the source_excerpt
+        - Proper JSON structure
+        - No invented content
+
+
+
+        SCHEMA:
+        {
+        "questions": [
+            {
+            "question_text": "How many ...? / What ...? / Which ...?",
+            "question_type": "multiple_choice",
+            "difficulty": "easy|medium|hard",
+            "topic": "topic name (exact match)",
+            "cognitive_level": "remember|understand|apply|analyze|evaluate|create",
+            "options": [
+                {"option_letter":"A","option_text":"...","is_correct":true|false},
+                {"option_letter":"B","option_text":"...","is_correct":true|false},
+                {"option_letter":"C","option_text":"...","is_correct":true|false},
+                {"option_letter":"D","option_text":"...","is_correct":true|false}
+            ],
+            "explanation":"1-40 words referencing the source_excerpt",
+            "source_excerpt":"exact excerpt <= 40 words from the material"
+            }
+        ],
+        "metadata": {
+            "total_requested": {$totalQuestions},
+            "total_generated": 0,
+            "incomplete": false,
+            "notes": ""
+        }
+        }
+
+        TOPICS:
+        {$topicsJson}
+
+        MATERIAL:
+        {$materialSnippet}
+
+        Generate the JSON now.
+        PROMPT;
+
     }
 
     /**
@@ -509,28 +681,78 @@ RULES;
      */
     private function buildRewordPrompt(string $originalQuestion, array $originalOptions, int $regenerationCount): string
     {
-        $optionsJson = json_encode($originalOptions, JSON_PRETTY_PRINT);
+        $optionsJson = json_encode($originalOptions, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
         return <<<PROMPT
-Create an alternative version of the following quiz question. Regeneration attempt #$regenerationCount.
+    You are an expert in generating alternative versions of multiple-choice questions.
 
-Original Question:
-$originalQuestion
+    Your task is to:
+    1. **Reword the question** (same meaning, same difficulty, same cognitive level).
+    2. **Rewrite all answer choices in new wording**.
+    3. **Randomly shuffle the answer choices** (A–D).
+    4. **Ensure exactly ONE correct answer**, and it **must remain correct** under the reworded question.
+    5. Explanation must reference the same fact as the original question.
+    6. Output must ALWAYS follow the JSON schema.
 
-Original Options:
-$optionsJson
+    ---------------------------------------
+    Original Question:
+    $originalQuestion
 
-Return JSON:
-{
-  "reworded_question": {
-    "question_text": "...",
-    "options": [...],
-    "explanation": "...",
-    "regeneration_notes": "...",
-    "maintains_equivalence": true
-  }
-}
-PROMPT;
+    Original Options:
+    $optionsJson
+
+    ---------------------------------------
+    REWORDING RULES:
+    - Keep meaning equivalent but wording different.
+    - No reuse of large phrases from the original.
+    - Maintain the same knowledge requirement.
+    - Do NOT create new facts.
+    - Avoid trick questions.
+    - Difficulty must remain equivalent.
+
+    ---------------------------------------
+    OUTPUT JSON EXACTLY IN THIS FORMAT:
+
+    {
+    "reworded_question": {
+        "question_text": "Reworded question here (must still start with What or Which)",
+        "question_type": "multiple_choice",
+        "options": [
+        {
+            "option_letter": "A",
+            "option_text": "Reworded option text",
+            "is_correct": true/false
+        },
+        {
+            "option_letter": "B",
+            "option_text": "...",
+            "is_correct": true/false
+        },
+        {
+            "option_letter": "C",
+            "option_text": "...",
+            "is_correct": true/false
+        },
+        {
+            "option_letter": "D",
+            "option_text": "...",
+            "is_correct": true/false
+        }
+        ],
+        "explanation": "1–2 sentence explanation referencing the same concept as the original.",
+        "regeneration_notes": "Explain the major changes from the original.",
+        "maintains_equivalence": true
     }
+    }
+
+    STRICT REQUIREMENTS:
+    - The correct answer MUST remain correct after rewording.
+    - The answer choices MUST be randomly shuffled.
+    - The question MUST be reworded, not minimally edited.
+    - Only 'What' or 'Which' may start the question.
+    PROMPT;
+    }
+
 
     /**
      * Build feedback generation prompt (kept, cleaned)
@@ -539,55 +761,56 @@ PROMPT;
     {
         $attemptJson = json_encode($quizAttemptData, JSON_PRETTY_PRINT);
         $masteryJson = json_encode($userMasteryData, JSON_PRETTY_PRINT);
-        
+
         return <<<PROMPT
-Generate personalized, constructive feedback for a student based on their quiz performance and mastery data.
+    Generate personalized, constructive feedback for a student based on their quiz performance and mastery data.
 
-Quiz Attempt Data:
-$attemptJson
+    Quiz Attempt Data:
+    $attemptJson
 
-Student Mastery Data:
-$masteryJson
+    Student Mastery Data:
+    $masteryJson
 
-Please provide comprehensive feedback in the following JSON format:
-{
-    "overall_feedback": "encouraging overall assessment",
-    "score_interpretation": "what the score indicates about learning",
-    "strengths": [
-        {
-            "area": "topic or skill",
-            "description": "what the student did well",
-            "evidence": "specific questions or patterns"
-        }
-    ],
-    "areas_for_improvement": [
-        {
-            "area": "topic or skill",
-            "current_level": "description of current understanding",
-            "gap_analysis": "what's missing",
-            "priority": "high|medium|low"
-        }
-    ],
-    "specific_recommendations": [
-        {
-            "recommendation": "actionable study suggestion",
-            ""topic: "related topic",
-            "estimated_time": "time needed",
-            "resources": ["suggested study materials or approaches"]
-        }
-    ],
-    "next_steps": [
-        "immediate action 1",
-        "immediate action 2",
-        "immediate action 3"
-    ],
-    "motivational_message": "encouraging closing message",
-    "estimated_mastery_timeline": "realistic timeline for improvement"
-}
-
-Tone: Supportive, constructive, and encouraging. Focus on growth mindset and actionable steps.
-PROMPT;
+    Return JSON only in this format:
+    {
+        "overall_feedback": "encouraging overall assessment",
+        "score_interpretation": "what the score indicates",
+        "strengths": [
+            {
+                "area": "topic or skill",
+                "description": "what the student did well",
+                "evidence": "specific questions or patterns"
+            }
+        ],
+        "areas_for_improvement": [
+            {
+                "area": "topic or skill",
+                "current_level": "description",
+                "gap_analysis": "what's missing",
+                "priority": "high|medium|low"
+            }
+        ],
+        "specific_recommendations": [
+            {
+                "recommendation": "actionable study suggestion",
+                "topic": "related topic",
+                "estimated_time": "time needed",
+                "resources": ["suggested study materials or approaches"]
+            }
+        ],
+        "next_steps": [
+            "immediate action 1",
+            "immediate action 2",
+            "immediate action 3"
+        ],
+        "motivational_message": "encouraging closing message",
+        "estimated_mastery_timeline": "realistic timeline for improvement"
     }
+
+    Tone: Supportive, constructive, actionable.
+    PROMPT;
+    }
+
 
     /**
      * Build OBTL parsing prompt (improved)
@@ -595,11 +818,49 @@ PROMPT;
     private function buildObtlParsingPrompt(string $obtlContent): string
     {
         return <<<PROMPT
-Extract explicit learning outcomes from the OBTL document below. For each outcome, produce outcome_code (if present), outcome_statement, cognitive_level inferred from action verbs (remember|understand|apply|analyze|evaluate|create), bloom_category, and suggested assessment methods. Return JSON only.
-OBTL Document:
-$obtlContent
-PROMPT;
+    From the OBTL document below, extract BOTH:
+
+    1. **Document Title Information**
+    - title
+    - course_code (if any)
+    - subtitle (if any)
+    - full_title (course_code + title if applicable)
+    - confidence ("high" | "medium" | "low")
+
+    2. **Learning Outcomes**
+    For each outcome:
+    - outcome_code (if present)
+    - outcome_statement
+    - cognitive_level (remember|understand|apply|analyze|evaluate|create)
+    - bloom_category
+    - suggested_assessment_methods
+
+    Return JSON ONLY in this format:
+
+    {
+    "title_info": {
+        "title": "",
+        "course_code": "",
+        "subtitle": "",
+        "full_title": "",
+        "confidence": ""
+    },
+    "learning_outcomes": [
+        {
+        "outcome_code": "",
+        "outcome_statement": "",
+        "cognitive_level": "",
+        "bloom_category": "",
+        "suggested_assessment_methods": []
+        }
+    ]
     }
+
+    OBTL Document:
+    $obtlContent
+    PROMPT;
+    }
+
 
     /* ---------------------------------------------------------
      | Post-response validation & utilities (strict quiz logic)
@@ -737,9 +998,31 @@ PROMPT;
                 if ($correctOptionText === null) {
                     $report['schema_errors'][] = "Question #{$qIndex} missing correct option.";
                 } else {
-                    if (stripos($excerpt ?? '', $correctOptionText) === false) {
-                        $report['factual_errors'][] = "Question #{$qIndex} correct option text does not appear verbatim in source_excerpt.";
+
+                    // Normalize for safer comparison
+                    $excerptLower = Str::lower($excerpt);
+                    $optionLower = Str::lower($correctOptionText);
+
+                    // Basic check — case-insensitive direct match
+                    if (!Str::contains($excerptLower, $optionLower)) {
+
+                        // ADVANCED fallback: allow key noun matching (avoid false failures)
+                        $keywords = preg_split('/\s+/', $optionLower);
+                        $matched = false;
+
+                        foreach ($keywords as $word) {
+                            if (strlen($word) > 3 && Str::contains($excerptLower, $word)) {
+                                $matched = true;
+                                break;
+                            }
+                        }
+
+                        if (!$matched) {
+                            $report['factual_errors'][] =
+                                "Question #{$qIndex} correct option text does not appear in source_excerpt (case-insensitive partial match also failed).";
+                        }
                     }
+
                 }
             }
 

@@ -184,21 +184,20 @@ class ProcessDocumentJob implements ShouldQueue
             $totalItems = max(1, $topics->count() * 4);
         }
 
-        $distribution = $this->buildCognitiveDistribution($topics, $totalItems);
-
-        $tos = TableOfSpecification::create([
-            'document_id' => $document->id,
-            'total_items' => $totalItems,
-            'lots_percentage' => 100,
-            'cognitive_level_distribution' => $distribution,
-            'assessment_focus' => 'Topic-aligned LOTS assessment',
-            'generated_at' => now(),
-        ]);
+        // Collect entries first: resolve learning outcome per topic and determine cognitive level (from LO when available)
+        $tosEntries = [];
+        $counts = [
+            'remember' => 0,
+            'understand' => 0,
+            'apply' => 0,
+            'analyze' => 0,
+            'evaluate' => 0,
+            'create' => 0,
+        ];
 
         foreach ($topics as $topic) {
             $metadata = $topic->metadata ?? [];
             $recommended = (int) ($metadata['recommended_question_count'] ?? 4);
-            $cognitive = $metadata['cognitive_emphasis'] ?? 'understand';
             $keyConcepts = $metadata['key_concepts'] ?? [];
 
             $learningOutcome = $this->resolveLearningOutcomeForTopic($topic, $learningOutcomes);
@@ -212,12 +211,47 @@ class ProcessDocumentJob implements ShouldQueue
                 $learningOutcome = $learningOutcomes->first();
             }
 
-            Log::debug('Resolved learning outcome for topic', [
-                'document_id' => $document->id,
-                'topic_id' => $topic->id,
-                'learning_outcome_id' => $learningOutcome?->id,
-                'learning_outcome_code' => $learningOutcome?->outcome_code,
-            ]);
+            // Prefer learning outcome's bloom_level if available; otherwise use topic metadata or default to 'understand'
+            $rawCognitiveSource = $learningOutcome->bloom_level ?? ($metadata['cognitive_emphasis'] ?? null);
+            $cognitive = $this->normalizeCognitiveLevel($rawCognitiveSource ?? 'understand');
+
+            // Accumulate counts for distribution
+            if (! array_key_exists($cognitive, $counts)) {
+                $cognitive = 'understand';
+            }
+            $counts[$cognitive] += $recommended;
+
+            $tosEntries[] = [
+                'topic' => $topic,
+                'learningOutcome' => $learningOutcome,
+                'cognitive' => $cognitive,
+                'keyConcepts' => $keyConcepts,
+                'recommended' => $recommended,
+            ];
+        }
+
+        // Compute percentages distribution
+        $distribution = [];
+        foreach ($counts as $level => $count) {
+            $distribution[$level] = $totalItems > 0 ? round(($count / $totalItems) * 100, 2) : 0;
+        }
+
+        $tos = TableOfSpecification::create([
+            'document_id' => $document->id,
+            'total_items' => $totalItems,
+            'lots_percentage' => 100,
+            'cognitive_level_distribution' => $distribution,
+            'assessment_focus' => 'LOTS and HOTS Focus',
+            'generated_at' => now(),
+        ]);
+
+        // Persist TosItems using resolved cognitive levels and bloom categories
+        foreach ($tosEntries as $entry) {
+            $topic = $entry['topic'];
+            $learningOutcome = $entry['learningOutcome'];
+            $cognitive = $entry['cognitive'];
+            $recommended = $entry['recommended'];
+            $keyConcepts = $entry['keyConcepts'];
 
             TosItem::create([
                 'tos_id' => $tos->id,
@@ -236,6 +270,7 @@ class ProcessDocumentJob implements ShouldQueue
             'tos_id' => $tos->id,
             'total_items' => $totalItems,
             'topic_count' => $topics->count(),
+            'distribution' => $distribution,
         ]);
 
         return $tos;
@@ -254,9 +289,14 @@ class ProcessDocumentJob implements ShouldQueue
     {
         $level = is_string($value) ? strtolower(trim($value)) : '';
 
+        // Normalize known variations and synonyms to the canonical six levels
         return match ($level) {
-            'remember', 'recall' => 'remember',
+            'remember', 'recall', 'knowledge' => 'remember',
+            'understand', 'comprehension', 'comprehend' => 'understand',
             'apply', 'application' => 'apply',
+            'analyze', 'analysis', 'analyse' => 'analyze',
+            'evaluate', 'evaluation', 'assess', 'assessment' => 'evaluate',
+            'create', 'synthesis', 'synthesise', 'design', 'develop' => 'create',
             default => 'understand',
         };
     }
@@ -366,20 +406,28 @@ class ProcessDocumentJob implements ShouldQueue
             ->values();
     }
 
+    // NOTE: buildCognitiveDistribution is no longer used for the primary computation,
+    // but we keep it available (and corrected) if other parts of the code rely on it.
     protected function buildCognitiveDistribution(Collection $topics, int $totalItems): array
     {
         $counts = [
             'remember' => 0,
             'understand' => 0,
             'apply' => 0,
+            'analyze' => 0,
+            'evaluate' => 0,
+            'create' => 0,
         ];
+
+        $cognitive_level = ['remember', 'understand', 'apply', 'analyze','evaluate','create'];
 
         foreach ($topics as $topic) {
             $metadata = $topic->metadata ?? [];
             $cognitive = $metadata['cognitive_emphasis'] ?? 'understand';
 
-            if (!array_key_exists($cognitive, $counts)) {
-                $cognitive = 'understand';
+            if (!in_array($cognitive, $cognitive_level, true)) {
+                // pick a random valid cognitive level if invalid value found
+                $cognitive = $cognitive_level[array_rand($cognitive_level)];
             }
 
             $counts[$cognitive] += (int)($metadata['recommended_question_count'] ?? 4);
@@ -398,7 +446,11 @@ class ProcessDocumentJob implements ShouldQueue
     {
         return match ($cognitiveLevel) {
             'remember' => 'knowledge',
+            'understand' => 'comprehension',
             'apply' => 'application',
+            'analyze' => 'analysis',
+            'evaluate' => 'evaluation',
+            'create' => 'synthesis',
             default => 'comprehension',
         };
     }

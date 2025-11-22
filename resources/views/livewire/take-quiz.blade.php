@@ -308,7 +308,7 @@
                 <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Take a moment to recharge before the next session.</p>
 
                 <div class="mt-6">
-                    <p class="text-4xl font-semibold text-slate-900 dark:text-slate-100">{{ $this->formatSeconds($timeRemaining) }}</p>
+                    <p class="text-4xl font-semibold text-slate-900 dark:text-slate-100"><span data-take-quiz-timer>{{ $this->formatSeconds($timeRemaining) }}</span></p>
                     <p class="mt-1 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Time remaining in break</p>
                 </div>
 
@@ -419,3 +419,25 @@
         </div>
     @endif
 </div>
+
+
+<script>
+if (!window.__takeQuizTimerBound) {
+    window.__takeQuizTimerBound = true;
+    window.addEventListener('streamTimeRemaining', function (e) {
+        try {
+            const payload = e.detail || {};
+            if (payload.timeRemaining !== undefined) {
+                const el = document.querySelector('[data-take-quiz-timer]');
+                if (el) {
+                    // Prefer formatted value if provided
+                    el.textContent = payload.formattedTime ?? payload.timeRemaining + 's';
+                }
+            }
+        } catch (err) {
+            // noop
+            console.error('streamTimeRemaining handler error', err);
+        }
+    });
+}
+</script>
