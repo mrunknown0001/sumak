@@ -329,40 +329,6 @@
                             @enderror
                         </div>
 
-                        {{-- <div class="space-y-2">
-                            <label for="lectureNumber" class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Lecture Number
-                            </label>
-                            <input
-                                id="lectureNumber"
-                                type="text"
-                                wire:model.defer="newMaterial.lecture_number"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-500/40"
-                                placeholder="Optional reference (e.g., Lecture 05)"
-                            />
-                            @error('newMaterial.lecture_number')
-                                <p class="text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div class="space-y-2">
-                            <label for="hoursTaught" class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Hours Taught
-                            </label>
-                            <input
-                                id="hoursTaught"
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                wire:model.defer="newMaterial.hours_taught"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-500/40"
-                                placeholder="Optional (0-100)"
-                            />
-                            @error('newMaterial.hours_taught')
-                                <p class="text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
-                            @enderror
-                        </div> --}}
-
                         <div class="space-y-2 sm:col-span-2">
                             <label for="materialUpload" class="text-sm font-medium text-slate-700 dark:text-slate-300">
                                 Upload File <span class="text-red-500">*</span>
@@ -435,11 +401,6 @@
                         <p class="text-sm text-slate-500 dark:text-slate-400">
                             Uploaded {{ $document->uploaded_at->diffForHumans() }} • {{ $document->formatted_file_size }}
                         </p>
-                        @if ($document->content_summary)
-                            <p class="text-xs font-medium text-slate-400 dark:text-slate-500">
-                                {{ Str::limit($document->content_summary, 160) }}
-                            </p>
-                        @endif
                     </div>
                     <div class="flex flex-col items-end gap-3 sm:flex-row sm:items-center">
                         <div>
@@ -454,17 +415,74 @@
                                 {{ Str::headline($document->processing_status) }}
                             </span>
                         </div>
-                        {{-- @can('view', $document)
-                            <a href="{{ route('student.document.download', $document->id) }}"
-                               class="inline-flex items-center gap-2 rounded-xl border border-emerald-300/70 bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:from-emerald-400 hover:to-teal-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-emerald-500/40">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
-                                </svg>
-                                Download
-                            </a>
-                        @endcan --}}
                     </div>
                 </div>
+
+
+
+                @if($document->content_summary)
+                    <div class="mt-4 rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 text-sm text-blue-100 dark:border-blue-500/40 dark:bg-blue-900/20 dark:text-blue-900">
+                        <h4 class="mb-2 flex items-center gap-2 text-sm font-semibold">
+                            <svg class="h-4 w-4 text-blue-300 dark:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c1.657 0 3-1.343 3-3S13.657 2 12 2 9 3.343 9 5s1.343 3 3 3zm0 0v13m-7-6a4 4 0 018 0" />
+                            </svg>
+                            Lecture Summary
+                        </h4>
+                        <p>{{ $document->content_summary }}</p>
+                    </div>
+                @endif
+
+                @if($document->hasTos() && $document->topics->isNotEmpty())
+                    <div class="mt-6 space-y-4">
+                        <h4 class="flex items-center gap-2 text-lg font-semibold text-slate-100 dark:text-slate-900">
+                            <svg class="h-5 w-5 text-emerald-500 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                            Available Topics
+                        </h4>
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            @foreach($document->topics as $topic)
+                                @if($topic->items()->count() > 0)
+                                    @php
+                                        $attemptCount = $topic->user_attempts_count ?? 0;
+                                        $maxAttempts = 3;
+                                        $canRetake = $attemptCount < $maxAttempts;
+                                    @endphp
+
+                                    @if($canRetake)
+                                        <a href="{{ route('student.quiz.context', $topic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-100 dark:text-slate-900">{{ $topic->name }}</p>
+                                                {{-- <p class="text-xs text-slate-500 dark:text-slate-400">📚 {{ $topic->name }}</p> --}}
+                                                {{-- <p class="mt-2 text-xs font-semibold text-emerald-300 dark:text-green-900">
+                                                    Available • {{ $attemptCount }} / {{ $maxAttempts }} attempts used
+                                                </p> --}}
+                                            </div>
+                                            {{-- <div class="rounded-xl border border-emerald-300/70 bg-white/80 px-3 py-2 text-center shadow-sm dark:border-emerald-500/40 dark:bg-slate-900/70">
+                                                <p class="text-lg font-bold text-emerald-600 dark:text-emerald-300">{{ $topic->items_count ?? $topic->items()->count() }}</p>
+                                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">questions</span>
+                                            </div> --}}
+                                        </a>
+                                    @else
+                                        <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-slate-100/70 p-4 opacity-70 shadow-sm transition cursor-not-allowed dark:border-slate-700 dark:bg-slate-800/70">
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ $topic->name }}</p>
+                                                <p class="text-xs text-slate-400 dark:text-slate-500">📚 {{ $topic->name }}</p>
+                                                <p class="mt-2 text-xs font-semibold text-red-500 dark:text-red-400">
+                                                    Unavailable • Max attempts reached ({{ $attemptCount }} / {{ $maxAttempts }})
+                                                </p>
+                                            </div>
+                                            <div class="rounded-xl border border-slate-300/70 bg-white/70 px-3 py-2 text-center shadow-sm dark:border-slate-600/70 dark:bg-slate-900/70">
+                                                <p class="text-lg font-bold text-slate-500 dark:text-slate-400">{{ $topic->items_count ?? $topic->items()->count() }}</p>
+                                                <span class="text-xs font-medium text-slate-400 dark:text-slate-500">questions</span>
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
 
                 @if($document->processing_status === \App\Models\Document::PROCESSING_COMPLETED)
                     <div class="mt-4 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/60">
@@ -520,70 +538,6 @@
                                 </span>
                             </div>
                         @endif
-                    </div>
-                @endif
-
-                @if($document->content_summary)
-                    <div class="mt-4 rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 text-sm text-blue-100 dark:border-blue-500/40 dark:bg-blue-900/20 dark:text-blue-900">
-                        <h4 class="mb-2 flex items-center gap-2 text-sm font-semibold">
-                            <svg class="h-4 w-4 text-blue-300 dark:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c1.657 0 3-1.343 3-3S13.657 2 12 2 9 3.343 9 5s1.343 3 3 3zm0 0v13m-7-6a4 4 0 018 0" />
-                            </svg>
-                            Lecture Summary
-                        </h4>
-                        <p>{{ $document->content_summary }}</p>
-                    </div>
-                @endif
-
-                @if($document->hasTos() && $document->topics->isNotEmpty())
-                    <div class="mt-6 space-y-4">
-                        <h4 class="flex items-center gap-2 text-lg font-semibold text-slate-100 dark:text-slate-900">
-                            <svg class="h-5 w-5 text-emerald-500 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                            </svg>
-                            Available Quizzes
-                        </h4>
-                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                            @foreach($document->topics as $topic)
-                                @if($topic->items()->count() > 0)
-                                    @php
-                                        $attemptCount = $topic->user_attempts_count ?? 0;
-                                        $maxAttempts = 3;
-                                        $canRetake = $attemptCount < $maxAttempts;
-                                    @endphp
-
-                                    @if($canRetake)
-                                        <a href="{{ route('student.quiz.context', $topic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
-                                            <div>
-                                                <p class="text-sm font-semibold text-slate-100 dark:text-slate-900">{{ $topic->name }}</p>
-                                                {{-- <p class="text-xs text-slate-500 dark:text-slate-400">📚 {{ $topic->name }}</p> --}}
-                                                <p class="mt-2 text-xs font-semibold text-emerald-300 dark:text-green-900">
-                                                    Available • {{ $attemptCount }} / {{ $maxAttempts }} attempts used
-                                                </p>
-                                            </div>
-                                            <div class="rounded-xl border border-emerald-300/70 bg-white/80 px-3 py-2 text-center shadow-sm dark:border-emerald-500/40 dark:bg-slate-900/70">
-                                                <p class="text-lg font-bold text-emerald-600 dark:text-emerald-300">{{ $topic->items_count ?? $topic->items()->count() }}</p>
-                                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">questions</span>
-                                            </div>
-                                        </a>
-                                    @else
-                                        <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-slate-100/70 p-4 opacity-70 shadow-sm transition cursor-not-allowed dark:border-slate-700 dark:bg-slate-800/70">
-                                            <div>
-                                                <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ $topic->name }}</p>
-                                                <p class="text-xs text-slate-400 dark:text-slate-500">📚 {{ $topic->name }}</p>
-                                                <p class="mt-2 text-xs font-semibold text-red-500 dark:text-red-400">
-                                                    Unavailable • Max attempts reached ({{ $attemptCount }} / {{ $maxAttempts }})
-                                                </p>
-                                            </div>
-                                            <div class="rounded-xl border border-slate-300/70 bg-white/70 px-3 py-2 text-center shadow-sm dark:border-slate-600/70 dark:bg-slate-900/70">
-                                                <p class="text-lg font-bold text-slate-500 dark:text-slate-400">{{ $topic->items_count ?? $topic->items()->count() }}</p>
-                                                <span class="text-xs font-medium text-slate-400 dark:text-slate-500">questions</span>
-                                            </div>
-                                        </div>
-                                    @endif
-                                @endif
-                            @endforeach
-                        </div>
                     </div>
                 @endif
             </article>
