@@ -101,7 +101,7 @@
     <!-- Enrolled Courses -->
     <div class="space-y-4">
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100 lg:text-2xl">My Enrolled Courses</h2>
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100 lg:text-2xl">My Courses</h2>
             <a href="{{ route('student.courses') }}" class="text-sm font-semibold text-emerald-600 transition hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200">
                 Browse All Courses →
             </a>

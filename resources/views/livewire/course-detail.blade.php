@@ -329,7 +329,7 @@
                             @enderror
                         </div>
 
-                        <div class="space-y-2">
+                        {{-- <div class="space-y-2">
                             <label for="lectureNumber" class="text-sm font-medium text-slate-700 dark:text-slate-300">
                                 Lecture Number
                             </label>
@@ -361,7 +361,7 @@
                             @error('newMaterial.hours_taught')
                                 <p class="text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
                             @enderror
-                        </div>
+                        </div> --}}
 
                         <div class="space-y-2 sm:col-span-2">
                             <label for="materialUpload" class="text-sm font-medium text-slate-700 dark:text-slate-300">
