@@ -73,6 +73,7 @@ class DocumentQuizBatchService
             'started_at' => now()->toIso8601String(),
             'timer_mode' => null,
             'timer_settings' => null,
+            'timer_state' => null,
         ]);
 
         Log::debug('Batch: Stored session', [
@@ -153,6 +154,32 @@ class DocumentQuizBatchService
         $settings = $batch['timer_settings'] ?? null;
 
         return is_array($settings) ? $settings : null;
+    }
+
+    public function updateTimerState(int $timeRemaining, bool $isBreakTime, bool $timerStarted): void
+    {
+        $batch = $this->currentBatch();
+
+        if (!$batch) {
+            return;
+        }
+
+        $batch['timer_state'] = [
+            'time_remaining' => $timeRemaining,
+            'is_break_time' => $isBreakTime,
+            'timer_started' => $timerStarted,
+        ];
+
+        session()->put('quiz.batch', $batch);
+    }
+
+    public function timerState(): ?array
+    {
+        $batch = $this->currentBatch();
+
+        $state = $batch['timer_state'] ?? null;
+
+        return is_array($state) ? $state : null;
     }
 
     public function clearBatch(): void

@@ -206,6 +206,14 @@ class TakeQuiz extends Component
             $this->customPomodoroConfigured = false;
         }
 
+        // Load timer state for batch
+        $state = $this->documentQuizBatchService->timerState();
+        if ($state) {
+            $this->timeRemaining = $state['time_remaining'] ?? $this->timeRemaining;
+            $this->isBreakTime = $state['is_break_time'] ?? false;
+            $this->timerStarted = $state['timer_started'] ?? false;
+        }
+
         $this->syncTimerForCurrentMode();
     }
 
@@ -214,6 +222,10 @@ class TakeQuiz extends Component
         $this->canLeave = false;
         if (!$this->timerMode) {
             session()->flash('error', 'Please select a timer mode first.');
+            return;
+        }
+
+        if ($this->isBreakTime) {
             return;
         }
 
@@ -318,6 +330,9 @@ class TakeQuiz extends Component
             'question_count' => $this->items->count(),
             'current_question_index' => $this->currentQuestionIndex,
         ]);
+
+        // Save timer state for batch
+        $this->documentQuizBatchService->updateTimerState($this->timeRemaining, $this->isBreakTime, $this->timerStarted);
     }
 
     protected function shouldUseAdaptiveMode(): bool
@@ -829,6 +844,9 @@ class TakeQuiz extends Component
 
         $this->refreshAttemptLimitState();
 
+        // Save timer state before advancing
+        $this->documentQuizBatchService->updateTimerState($this->timeRemaining, $this->isBreakTime, $this->timerStarted);
+
         $nextTopicId = $this->documentQuizBatchService->advanceAfterCompletion($this->topic->id);
 
         if ($nextTopicId) {
@@ -927,6 +945,9 @@ class TakeQuiz extends Component
 
         $this->dispatch('startBreak');
         $this->dispatchTimerStream('start_break');
+
+        // Save timer state for batch
+        $this->documentQuizBatchService->updateTimerState($this->timeRemaining, $this->isBreakTime, $this->timerStarted);
     }
 
     public function endBreak(): void
@@ -946,6 +967,14 @@ class TakeQuiz extends Component
 
         $this->dispatch('endBreak');
         $this->dispatchTimerStream('end_break');
+
+        // Save timer state for batch
+        $this->documentQuizBatchService->updateTimerState($this->timeRemaining, $this->isBreakTime, $this->timerStarted);
+
+        // If quiz not started (e.g., during batch transition), start it now
+        if (!$this->quizStarted) {
+            $this->startQuiz();
+        }
     }
 
     public function timerMaxSeconds(): int
