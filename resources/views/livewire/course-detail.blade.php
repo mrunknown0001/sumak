@@ -9,7 +9,8 @@
     $documentBatchMetaById = collect($documentBatchMeta ?? [])->keyBy('document_id');
     $activeBatchDocumentId = $activeQuizBatch['document_id'] ?? null;
     $activeBatchQueue = collect($activeQuizBatch['queue'] ?? []);
-    $activeBatchNexTopicId = $activeBatchQueue->first();
+    // $activeBatchNexTopicId = $activeBatchQueue->first();
+    $nextBatchTopicId = $activeBatchQueue->first();
     $activeBatchRemainingCount = $activeBatchQueue->count();
     $maxAttemptsAllowed = $maxAttempts ?? config('quiz.max_attempts', 3);
 @endphp
@@ -391,7 +392,7 @@
                 $meta = $documentBatchMetaById->get($document->id) ?? null;
                 $isActiveBatch = $activeBatchDocumentId === $document->id;
                 $remainingInBatch = $isActiveBatch ? $activeBatchRemainingCount : 0;
-                $nextBatchTopicId = $isActiveBatch ? $activeBatchNextTopicId : null;
+                $nextBatchTopicId = $activeBatchQueue->first();
                 $eligibleQuizCount = $meta['eligible_quiz_count'] ?? 0;
             @endphp
             <article class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl dark	border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
@@ -449,19 +450,24 @@
                                         $canRetake = $attemptCount < $maxAttempts;
                                     @endphp
 
-                                    @if($canRetake)
+                                    <a href="{{ route('student.quiz.context', $topic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
+                                        <div>
+                                            <p class="text-sm font-semibold text-slate-100 dark:text-slate-900">{{ $topic->name }}</p>
+                                        </div>
+                                    </a>
+                                    {{-- @if($canRetake)
                                         <a href="{{ route('student.quiz.context', $topic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
                                             <div>
                                                 <p class="text-sm font-semibold text-slate-100 dark:text-slate-900">{{ $topic->name }}</p>
-                                                {{-- <p class="text-xs text-slate-500 dark:text-slate-400">📚 {{ $topic->name }}</p> --}}
-                                                {{-- <p class="mt-2 text-xs font-semibold text-emerald-300 dark:text-green-900">
+                                                <p class="text-xs text-slate-500 dark:text-slate-400">📚 {{ $topic->name }}</p>
+                                                <p class="mt-2 text-xs font-semibold text-emerald-300 dark:text-green-900">
                                                     Available • {{ $attemptCount }} / {{ $maxAttempts }} attempts used
-                                                </p> --}}
+                                                </p>
                                             </div>
-                                            {{-- <div class="rounded-xl border border-emerald-300/70 bg-white/80 px-3 py-2 text-center shadow-sm dark:border-emerald-500/40 dark:bg-slate-900/70">
+                                            <div class="rounded-xl border border-emerald-300/70 bg-white/80 px-3 py-2 text-center shadow-sm dark:border-emerald-500/40 dark:bg-slate-900/70">
                                                 <p class="text-lg font-bold text-emerald-600 dark:text-emerald-300">{{ $topic->items_count ?? $topic->items()->count() }}</p>
                                                 <span class="text-xs font-medium text-slate-500 dark:text-slate-400">questions</span>
-                                            </div> --}}
+                                            </div>
                                         </a>
                                     @else
                                         <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-slate-100/70 p-4 opacity-70 shadow-sm transition cursor-not-allowed dark:border-slate-700 dark:bg-slate-800/70">
@@ -477,7 +483,7 @@
                                                 <span class="text-xs font-medium text-slate-400 dark:text-slate-500">questions</span>
                                             </div>
                                         </div>
-                                    @endif
+                                    @endif --}}
                                 @endif
                             @endforeach
                         </div>
@@ -486,7 +492,25 @@
 
                 @if($document->processing_status === \App\Models\Document::PROCESSING_COMPLETED)
                     <div class="mt-4 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/60">
-                        @if($isActiveBatch && $nextBatchTopicId)
+                        <div class="flex flex-col gap-3 text-sm text-slate-700 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
+                            <div class="space-y-1">
+                                <p class="text-base font-semibold text-slate-900 dark:text-slate-100">Ready to take all quizzes for this learning material?</p>
+                                {{-- <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    {{ $eligibleQuizCount }} {{ Str::plural('topic quiz', $eligibleQuizCount) }} available. Start a batch session to attempt them sequentially.
+                                </p> --}}
+                            </div>
+                            <button
+                                wire:click="startMaterialQuizBatch({{ $document->id }})"
+                                {{-- @disabled($eligibleQuizCount === 0) --}}
+                                class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:disabled:bg-slate-700"
+                            >
+                                Take Quiz
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                            </button>
+                        </div>
+                        {{-- @if($isActiveBatch && $nextBatchTopicId)
                             <div class="flex flex-col gap-3 text-sm text-slate-700 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
                                 <div class="space-y-1">
                                     <p class="text-base font-semibold text-emerald-600 dark:text-emerald-300">Document-wide quiz batch in progress</p>
@@ -496,7 +520,9 @@
                                 </div>
                                 <div class="inline-flex flex-wrap items-center gap-2">
                                     <button
-                                        wire:click="continueBatch({{ $nextBatchTopicId }})"
+                                        @if($isActiveBatch && $nextBatchTopicId)
+                                            wire:click="continueBatch({{ $nextBatchTopicId }})"
+                                        @endif
                                         class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                                     >
                                         Continue quiz batch
@@ -537,7 +563,7 @@
                                     Batch unavailable
                                 </span>
                             </div>
-                        @endif
+                        @endif --}}
                     </div>
                 @endif
             </article>

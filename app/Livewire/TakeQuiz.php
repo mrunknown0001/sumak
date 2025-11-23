@@ -80,13 +80,12 @@ class TakeQuiz extends Component
             session()->forget('quiz.context.topic');
         }
 
-        Log::debug('TakeQuiz mount accessed', [
+
+        Log::debug('TakeQuiz mount topic & context', [
             'topic_id' => $topic->id,
-            'course_id' => optional($topic->document)->course_id,
-            'route_name' => optional(request()->route())->getName(),
-            'referer' => request()->headers->get('referer'),
             'context_topic_id' => $contextTopicId,
             'has_active_attempt' => $hasActiveAttempt,
+            'batch_in_session' => session('quiz.batch'),
         ]);
 
         $this->items = collect();

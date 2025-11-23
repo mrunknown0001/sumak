@@ -36,12 +36,12 @@
                         <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Course</dt>
                         <dd class="text-sm font-semibold text-slate-800 dark:text-slate-200">{{ $course->course_code }} — {{ $course->course_title }}</dd>
                     </div>
-                    <div>
+                    {{-- <div>
                         <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Attempts Used</dt>
                         <dd class="text-sm font-semibold {{ $hasReachedAttemptLimit ? 'text-rose-600 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300' }}">
                             {{ $completedAttemptsCount }} / {{ $maxAttemptsAllowed }}
                         </dd>
-                    </div>
+                    </div> --}}
                     <div>
                         <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</dt>
                         <dd class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold
@@ -57,42 +57,6 @@
         </div>
     </div>
 
-    @if($materialPreviewUrl)
-        <section class="space-y-4 rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-lg shadow-slate-500/5 dark:border-slate-800/70 dark:bg-slate-900/70">
-            <header class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Lecture Material Preview</h2>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Review the relevant sections of the lecture material below before attempting the quiz.
-                    </p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <a href="{{ $materialPreviewUrl }}" target="_blank" rel="noopener"
-                       class="inline-flex items-center gap-2 rounded-lg border border-emerald-300/70 px-3 py-1 text-xs font-semibold text-emerald-600 transition hover:border-emerald-400 hover:bg-emerald-100/50 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:border-emerald-400/70 dark:hover:bg-emerald-500/10">
-                        Open in new tab
-                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7m0 0v7m0-7L10 14" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10v11h11" />
-                        </svg>
-                    </a>
-                </div>
-            </header>
-            <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/60 shadow-inner dark:border-slate-700 dark:bg-slate-900/60" style="min-height: 600px;">
-                <iframe src="{{ $materialPreviewUrl }}"
-                        style="height:600px !important;"
-                        class="h-full w-full"
-                        title="Lecture material preview"
-                        loading="lazy"></iframe>
-            </div>
-        </section>
-    @elseif($materialDownloadUrl)
-        <section class="rounded-3xl border border-amber-200/70 bg-amber-50/70 p-6 text-sm text-amber-800 shadow-md dark:border-amber-500/40 dark:bg-amber-900/20 dark:text-amber-200">
-            <p class="font-semibold">Lecture material preview is unavailable for this file format.</p>
-            <p class="mt-2">
-                Please download the lecture material using the button above and review it before proceeding to the quiz.
-            </p>
-        </section>
-    @endif
 
     @if($tableOfSpecification)
         <section class="space-y-6 rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-lg shadow-slate-500/5 dark:border-slate-800/70 dark:bg-slate-900/70">
@@ -153,7 +117,44 @@
         </section>
     @endif
 
-    <section class="rounded-3xl border border-emerald-200/70 from-emerald-50 via-white to-blue-50 p-8 shadow-lg shadow-emerald-500/10 dark:border-emerald-500/40 dark:from-emerald-900/30 dark:via-slate-900/70 dark:to-blue-900/30">
+    @if($materialPreviewUrl)
+        <section class="space-y-4 rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-lg shadow-slate-500/5 dark:border-slate-800/70 dark:bg-slate-900/70">
+            <header class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Lecture Material Preview</h2>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        Review the relevant sections of the lecture material below before attempting the quiz.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ $materialPreviewUrl }}" target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-2 rounded-lg border border-emerald-300/70 px-3 py-1 text-xs font-semibold text-emerald-600 transition hover:border-emerald-400 hover:bg-emerald-100/50 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:border-emerald-400/70 dark:hover:bg-emerald-500/10">
+                        Open in new tab
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7m0 0v7m0-7L10 14" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10v11h11" />
+                        </svg>
+                    </a>
+                </div>
+            </header>
+            <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/60 shadow-inner dark:border-slate-700 dark:bg-slate-900/60" style="min-height: 600px;">
+                <iframe src="{{ $materialPreviewUrl }}"
+                        style="height:600px !important;"
+                        class="h-full w-full"
+                        title="Lecture material preview"
+                        loading="lazy"></iframe>
+            </div>
+        </section>
+    @elseif($materialDownloadUrl)
+        <section class="rounded-3xl border border-amber-200/70 bg-amber-50/70 p-6 text-sm text-amber-800 shadow-md dark:border-amber-500/40 dark:bg-amber-900/20 dark:text-amber-200">
+            <p class="font-semibold">Lecture material preview is unavailable for this file format.</p>
+            <p class="mt-2">
+                Please download the lecture material using the button above and review it before proceeding to the quiz.
+            </p>
+        </section>
+    @endif
+
+    {{-- <section class="rounded-3xl border border-emerald-200/70 from-emerald-50 via-white to-blue-50 p-8 shadow-lg shadow-emerald-500/10 dark:border-emerald-500/40 dark:from-emerald-900/30 dark:via-slate-900/70 dark:to-blue-900/30">
         <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div class="space-y-2">
                 <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Ready to take the quiz?</h2>
@@ -182,5 +183,5 @@
                 </button>
             @endif
         </div>
-    </section>
+    </section> --}}
 </div>
