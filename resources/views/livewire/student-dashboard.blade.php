@@ -283,7 +283,7 @@
                                             View
                                         </button>
 
-                                        @if($quiz['attempts_remaining'] > 0)
+                                        {{-- @if($quiz['attempts_remaining'] > 0)
                                             <button
                                                 wire:click="retakeQuiz({{ $quiz['id'] }})"
                                                 class="inline-flex items-center gap-1 text-emerald-600 transition hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200"
@@ -293,7 +293,7 @@
                                                 </svg>
                                                 Retake
                                             </button>
-                                        @endif
+                                        @endif --}}
                                     </div>
                                 </td>
                             </tr>

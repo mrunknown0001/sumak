@@ -49,7 +49,7 @@ class TakeQuiz extends Component
     public int $maxAttemptsAllowed = 3;
     public int $completedAttemptsCount = 0;
     public bool $hasReachedAttemptLimit = false;
-
+    public bool $canLeave = true;
     protected IrtService $irtService;
     protected DocumentQuizBatchService $documentQuizBatchService;
 
@@ -211,6 +211,7 @@ class TakeQuiz extends Component
 
     public function startQuiz(): void
     {
+        $this->canLeave = false;
         if (!$this->timerMode) {
             session()->flash('error', 'Please select a timer mode first.');
             return;
@@ -779,6 +780,8 @@ class TakeQuiz extends Component
 
     public function completeQuiz(): RedirectResponse|Redirector|null
     {
+        $this->canLeave = true;
+
         if (!$this->attempt) {
             return null;
         }
@@ -871,6 +874,11 @@ class TakeQuiz extends Component
             $this->endBreak();
 
             return;
+        }
+
+        // Auto-submit answer if not already submitted when timer runs out
+        if (!$this->showFeedback) {
+            $this->submitAnswer(true);
         }
 
         $this->dispatchTimerStream('session_complete');
