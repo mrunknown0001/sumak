@@ -49,7 +49,7 @@ class TakeQuiz extends Component
     public int $maxAttemptsAllowed = 3;
     public int $completedAttemptsCount = 0;
     public bool $hasReachedAttemptLimit = false;
-
+    public bool $canLeave = true;
     protected IrtService $irtService;
     protected DocumentQuizBatchService $documentQuizBatchService;
 
@@ -80,13 +80,12 @@ class TakeQuiz extends Component
             session()->forget('quiz.context.topic');
         }
 
-        Log::debug('TakeQuiz mount accessed', [
+
+        Log::debug('TakeQuiz mount topic & context', [
             'topic_id' => $topic->id,
-            'course_id' => optional($topic->document)->course_id,
-            'route_name' => optional(request()->route())->getName(),
-            'referer' => request()->headers->get('referer'),
             'context_topic_id' => $contextTopicId,
             'has_active_attempt' => $hasActiveAttempt,
+            'batch_in_session' => session('quiz.batch'),
         ]);
 
         $this->items = collect();
@@ -207,13 +206,26 @@ class TakeQuiz extends Component
             $this->customPomodoroConfigured = false;
         }
 
+        // Load timer state for batch
+        $state = $this->documentQuizBatchService->timerState();
+        if ($state) {
+            $this->timeRemaining = $state['time_remaining'] ?? $this->timeRemaining;
+            $this->isBreakTime = $state['is_break_time'] ?? false;
+            $this->timerStarted = $state['timer_started'] ?? false;
+        }
+
         $this->syncTimerForCurrentMode();
     }
 
     public function startQuiz(): void
     {
+        $this->canLeave = false;
         if (!$this->timerMode) {
             session()->flash('error', 'Please select a timer mode first.');
+            return;
+        }
+
+        if ($this->isBreakTime) {
             return;
         }
 
@@ -318,6 +330,9 @@ class TakeQuiz extends Component
             'question_count' => $this->items->count(),
             'current_question_index' => $this->currentQuestionIndex,
         ]);
+
+        // Save timer state for batch
+        $this->documentQuizBatchService->updateTimerState($this->timeRemaining, $this->isBreakTime, $this->timerStarted);
     }
 
     protected function shouldUseAdaptiveMode(): bool
@@ -780,6 +795,8 @@ class TakeQuiz extends Component
 
     public function completeQuiz(): RedirectResponse|Redirector|null
     {
+        $this->canLeave = true;
+
         if (!$this->attempt) {
             return null;
         }
@@ -826,6 +843,9 @@ class TakeQuiz extends Component
         $this->items = collect();
 
         $this->refreshAttemptLimitState();
+
+        // Save timer state before advancing
+        $this->documentQuizBatchService->updateTimerState($this->timeRemaining, $this->isBreakTime, $this->timerStarted);
 
         $nextTopicId = $this->documentQuizBatchService->advanceAfterCompletion($this->topic->id);
 
@@ -874,6 +894,11 @@ class TakeQuiz extends Component
             return;
         }
 
+        // Auto-submit answer if not already submitted when timer runs out
+        if (!$this->showFeedback) {
+            $this->submitAnswer(true);
+        }
+
         $this->dispatchTimerStream('session_complete');
         $this->startBreak();
     }
@@ -920,6 +945,9 @@ class TakeQuiz extends Component
 
         $this->dispatch('startBreak');
         $this->dispatchTimerStream('start_break');
+
+        // Save timer state for batch
+        $this->documentQuizBatchService->updateTimerState($this->timeRemaining, $this->isBreakTime, $this->timerStarted);
     }
 
     public function endBreak(): void
@@ -939,6 +967,14 @@ class TakeQuiz extends Component
 
         $this->dispatch('endBreak');
         $this->dispatchTimerStream('end_break');
+
+        // Save timer state for batch
+        $this->documentQuizBatchService->updateTimerState($this->timeRemaining, $this->isBreakTime, $this->timerStarted);
+
+        // If quiz not started (e.g., during batch transition), start it now
+        if (!$this->quizStarted) {
+            $this->startQuiz();
+        }
     }
 
     public function timerMaxSeconds(): int

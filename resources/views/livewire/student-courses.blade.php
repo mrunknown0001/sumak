@@ -35,7 +35,7 @@
                 wire:click="$set('activeTab', 'enrolled')"
                 class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 {{ $activeTab === 'enrolled' ? 'border border-emerald-400/50 bg-emerald-500/20 text-emerald-600 dark:border-emerald-400/50 dark:bg-emerald-500/20 dark:text-emerald-200' : 'border border-transparent text-slate-500 hover:border-slate-300 hover:bg-white hover:text-slate-700 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:bg-slate-800/60 dark:hover:text-slate-200' }}"
             >
-                My Enrolled Courses ({{ $enrolledCourses->count() }})
+                My Courses ({{ $enrolledCourses->count() }})
             </button>
             <button
                 wire:click="$set('activeTab', 'available')"

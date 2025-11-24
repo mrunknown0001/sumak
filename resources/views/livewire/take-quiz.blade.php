@@ -441,3 +441,12 @@ if (!window.__takeQuizTimerBound) {
     });
 }
 </script>
+<script>
+    window.addEventListener("beforeunload", function (e) {
+        // Check Livewire state
+        if (!@this.get('canLeave')) {
+            e.preventDefault();
+            e.returnValue = "";
+        }
+    });
+</script>

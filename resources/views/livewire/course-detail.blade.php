@@ -9,9 +9,11 @@
     $documentBatchMetaById = collect($documentBatchMeta ?? [])->keyBy('document_id');
     $activeBatchDocumentId = $activeQuizBatch['document_id'] ?? null;
     $activeBatchQueue = collect($activeQuizBatch['queue'] ?? []);
-    $activeBatchNexTopicId = $activeBatchQueue->first();
+    // $activeBatchNexTopicId = $activeBatchQueue->first();
+    $nextBatchTopicId = $activeBatchQueue->first();
     $activeBatchRemainingCount = $activeBatchQueue->count();
     $maxAttemptsAllowed = $maxAttempts ?? config('quiz.max_attempts', 3);
+    $canquiz = true;
 @endphp
 
 <div wire:poll.5s="pollObtlStatus" class="mx-auto max-w-5xl space-y-8 text-slate-900 dark:text-slate-100">
@@ -205,8 +207,8 @@
                                         @if($this->pollingActive)
                                             <p class="text-xs text-blue-600 dark:text-blue-300">
                                                 ⏱️ Processing time: <strong>{{ $this->elapsedTime }}</strong> •
-                                                Last checked: <strong>{{ $this->lastPolledAt }}</strong> •
-                                                Attempts: <strong>{{ $this->pollCount }}</strong>
+                                                Last checked: <strong>{{ $this->lastPolledAt }}</strong>
+                                                {{-- Attempts: <strong>{{ $this->pollCount }}</strong> --}}
                                             </p>
                                             <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
                                                 OBTL extraction is running. This page will automatically refresh when processing completes. Learning materials upload remains locked until completion.
@@ -223,7 +225,7 @@
                             @if($this->pollingActive)
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2">
-                                        <button
+                                        {{-- <button
                                             wire:click="stopPolling"
                                             class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                                         >
@@ -241,7 +243,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.586a1 1 0 01.707.293l1.414 1.414a1 1 0 00.707.293H15M9 10V9a2 2 0 012-2h2a2 2 0 012 2v1M9 10v4a2 2 0 002 2h2a2 2 0 002-2v-4M9 10V9a2 2 0 012-2h2a2 2 0 012 2v1" />
                                             </svg>
                                             Resume
-                                        </button>
+                                        </button> --}}
                                     </div>
                                 </div>
                             @else
@@ -329,40 +331,6 @@
                             @enderror
                         </div>
 
-                        <div class="space-y-2">
-                            <label for="lectureNumber" class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Lecture Number
-                            </label>
-                            <input
-                                id="lectureNumber"
-                                type="text"
-                                wire:model.defer="newMaterial.lecture_number"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-500/40"
-                                placeholder="Optional reference (e.g., Lecture 05)"
-                            />
-                            @error('newMaterial.lecture_number')
-                                <p class="text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div class="space-y-2">
-                            <label for="hoursTaught" class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Hours Taught
-                            </label>
-                            <input
-                                id="hoursTaught"
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                wire:model.defer="newMaterial.hours_taught"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-500/40"
-                                placeholder="Optional (0-100)"
-                            />
-                            @error('newMaterial.hours_taught')
-                                <p class="text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
-                            @enderror
-                        </div>
-
                         <div class="space-y-2 sm:col-span-2">
                             <label for="materialUpload" class="text-sm font-medium text-slate-700 dark:text-slate-300">
                                 Upload File <span class="text-red-500">*</span>
@@ -425,7 +393,7 @@
                 $meta = $documentBatchMetaById->get($document->id) ?? null;
                 $isActiveBatch = $activeBatchDocumentId === $document->id;
                 $remainingInBatch = $isActiveBatch ? $activeBatchRemainingCount : 0;
-                $nextBatchTopicId = $isActiveBatch ? $activeBatchNextTopicId : null;
+                $nextBatchTopicId = $activeBatchQueue->first();
                 $eligibleQuizCount = $meta['eligible_quiz_count'] ?? 0;
             @endphp
             <article class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl dark	border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
@@ -435,11 +403,6 @@
                         <p class="text-sm text-slate-500 dark:text-slate-400">
                             Uploaded {{ $document->uploaded_at->diffForHumans() }} • {{ $document->formatted_file_size }}
                         </p>
-                        @if ($document->content_summary)
-                            <p class="text-xs font-medium text-slate-400 dark:text-slate-500">
-                                {{ Str::limit($document->content_summary, 160) }}
-                            </p>
-                        @endif
                     </div>
                     <div class="flex flex-col items-end gap-3 sm:flex-row sm:items-center">
                         <div>
@@ -454,74 +417,10 @@
                                 {{ Str::headline($document->processing_status) }}
                             </span>
                         </div>
-                        {{-- @can('view', $document)
-                            <a href="{{ route('student.document.download', $document->id) }}"
-                               class="inline-flex items-center gap-2 rounded-xl border border-emerald-300/70 bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:from-emerald-400 hover:to-teal-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-emerald-500/40">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
-                                </svg>
-                                Download
-                            </a>
-                        @endcan --}}
                     </div>
                 </div>
 
-                @if($document->processing_status === \App\Models\Document::PROCESSING_COMPLETED)
-                    <div class="mt-4 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/60">
-                        @if($isActiveBatch && $nextBatchTopicId)
-                            <div class="flex flex-col gap-3 text-sm text-slate-700 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
-                                <div class="space-y-1">
-                                    <p class="text-base font-semibold text-emerald-600 dark:text-emerald-300">Document-wide quiz batch in progress</p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">
-                                        {{ $remainingInBatch }} {{ Str::plural('quiz', $remainingInBatch) }} remaining for this learning material.
-                                    </p>
-                                </div>
-                                <div class="inline-flex flex-wrap items-center gap-2">
-                                    <button
-                                        wire:click="continueBatch({{ $nextBatchTopicId }})"
-                                        class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:bg-emerald-500 dark:hover:bg-emerald-400"
-                                    >
-                                        Continue quiz batch
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                        </svg>
-                                    </button>
-                                    <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-200">
-                                        Queue: {{ implode(' › ', $activeBatchQueue->map(fn ($id) => $id === $nextBatchTopicId ? '•'.$id : $id)->toArray()) }}
-                                    </span>
-                                </div>
-                            </div>
-                        @elseif($eligibleQuizCount > 0)
-                            <div class="flex flex-col gap-3 text-sm text-slate-700 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
-                                <div class="space-y-1">
-                                    <p class="text-base font-semibold text-slate-900 dark:text-slate-100">Ready to take all quizzes for this learning material?</p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">
-                                        {{ $eligibleQuizCount }} {{ Str::plural('topic quiz', $eligibleQuizCount) }} available. Start a batch session to attempt them sequentially.
-                                    </p>
-                                </div>
-                                <button
-                                    wire:click="startMaterialQuizBatch({{ $document->id }})"
-                                    @disabled($eligibleQuizCount === 0)
-                                    class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:disabled:bg-slate-700"
-                                >
-                                    Take all quizzes
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                    </svg>
-                                </button>
-                            </div>
-                        @else
-                            <div class="flex flex-col gap-2 text-sm text-slate-400 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
-                                <p class="font-semibold text-slate-700 dark:text-slate-300">
-                                    All topic quizzes for this learning material have been attempted {{ $maxAttemptsAllowed }} times.
-                                </p>
-                                <span class="inline-flex items-center gap-1 rounded-full bg-slate-200/70 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
-                                    Batch unavailable
-                                </span>
-                            </div>
-                        @endif
-                    </div>
-                @endif
+
 
                 @if($document->content_summary)
                     <div class="mt-4 rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 text-sm text-blue-100 dark:border-blue-500/40 dark:bg-blue-900/20 dark:text-blue-900">
@@ -541,48 +440,64 @@
                             <svg class="h-5 w-5 text-emerald-500 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                             </svg>
-                            Available Quizzes
+                            Available Topics
                         </h4>
                         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            @if($materialProcessing)
+                                <div class="col-span-2 text-blue-500 text-sm font-medium">
+                                    ⏳ Processing learning material... extracting topics...
+                                </div>
+                            @endif
+
                             @foreach($document->topics as $topic)
                                 @if($topic->items()->count() > 0)
                                     @php
                                         $attemptCount = $topic->user_attempts_count ?? 0;
                                         $maxAttempts = 3;
                                         $canRetake = $attemptCount < $maxAttempts;
+
+                                        $canquiz = false;
+                                        if($canquiz == false && $attemptCount == 3) {
+                                            $canquiz = true;
+                                        }
                                     @endphp
 
-                                    @if($canRetake)
-                                        <a href="{{ route('student.quiz.context', $topic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
-                                            <div>
-                                                <p class="text-sm font-semibold text-slate-100 dark:text-slate-900">{{ $topic->name }}</p>
-                                                {{-- <p class="text-xs text-slate-500 dark:text-slate-400">📚 {{ $topic->name }}</p> --}}
-                                                <p class="mt-2 text-xs font-semibold text-emerald-300 dark:text-green-900">
-                                                    Available • {{ $attemptCount }} / {{ $maxAttempts }} attempts used
-                                                </p>
-                                            </div>
-                                            <div class="rounded-xl border border-emerald-300/70 bg-white/80 px-3 py-2 text-center shadow-sm dark:border-emerald-500/40 dark:bg-slate-900/70">
-                                                <p class="text-lg font-bold text-emerald-600 dark:text-emerald-300">{{ $topic->items_count ?? $topic->items()->count() }}</p>
-                                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">questions</span>
-                                            </div>
-                                        </a>
-                                    @else
-                                        <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-slate-100/70 p-4 opacity-70 shadow-sm transition cursor-not-allowed dark:border-slate-700 dark:bg-slate-800/70">
-                                            <div>
-                                                <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ $topic->name }}</p>
-                                                <p class="text-xs text-slate-400 dark:text-slate-500">📚 {{ $topic->name }}</p>
-                                                <p class="mt-2 text-xs font-semibold text-red-500 dark:text-red-400">
-                                                    Unavailable • Max attempts reached ({{ $attemptCount }} / {{ $maxAttempts }})
-                                                </p>
-                                            </div>
-                                            <div class="rounded-xl border border-slate-300/70 bg-white/70 px-3 py-2 text-center shadow-sm dark:border-slate-600/70 dark:bg-slate-900/70">
-                                                <p class="text-lg font-bold text-slate-500 dark:text-slate-400">{{ $topic->items_count ?? $topic->items()->count() }}</p>
-                                                <span class="text-xs font-medium text-slate-400 dark:text-slate-500">questions</span>
-                                            </div>
+                                    <a href="{{ route('student.quiz.context', $topic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
+                                        <div>
+                                            <p class="text-sm font-semibold text-slate-100 dark:text-slate-900">{{ $topic->name }}</p>
                                         </div>
-                                    @endif
+                                    </a>
                                 @endif
                             @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                @if($document->processing_status === \App\Models\Document::PROCESSING_COMPLETED)
+                    <div class="mt-4 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/60">
+                        <div class="flex flex-col gap-3 text-sm text-slate-700 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
+                            <div class="space-y-1">
+                                <p class="text-base font-semibold text-slate-900 dark:text-slate-100">Ready to take all quizzes for this learning material?</p>
+                                {{-- <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    {{ $eligibleQuizCount }} {{ Str::plural('topic quiz', $eligibleQuizCount) }} available. Start a batch session to attempt them sequentially.
+                                </p> --}}
+                                @if($canquiz)
+                                    <p class="text-xs text-red-500 dark:text-red-400">
+                                        You've used all 3 attempts on this course.
+                                    </p>
+                                @endif
+                            </div>
+                            <button
+                                wire:click="startMaterialQuizBatch({{ $document->id }})"
+                                {{-- @disabled($eligibleQuizCount === 0) --}}
+                                @disabled($canquiz)
+                                class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:disabled:bg-slate-700"
+                            >
+                                Take Quiz
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 @endif

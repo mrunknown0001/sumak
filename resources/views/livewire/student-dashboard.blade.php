@@ -101,7 +101,7 @@
     <!-- Enrolled Courses -->
     <div class="space-y-4">
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100 lg:text-2xl">My Enrolled Courses</h2>
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100 lg:text-2xl">My Courses</h2>
             <a href="{{ route('student.courses') }}" class="text-sm font-semibold text-emerald-600 transition hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200">
                 Browse All Courses →
             </a>
@@ -138,10 +138,10 @@
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
+                        {{-- <div class="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
                             <span>Quizzes</span>
                             <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $course['quizzes_taken'] }}/{{ $course['total_quizzes'] }}</span>
-                        </div>
+                        </div> --}}
 
                         <div class="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
                             <span>Avg Score</span>
@@ -283,7 +283,7 @@
                                             View
                                         </button>
 
-                                        @if($quiz['attempts_remaining'] > 0)
+                                        {{-- @if($quiz['attempts_remaining'] > 0)
                                             <button
                                                 wire:click="retakeQuiz({{ $quiz['id'] }})"
                                                 class="inline-flex items-center gap-1 text-emerald-600 transition hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200"
@@ -293,7 +293,7 @@
                                                 </svg>
                                                 Retake
                                             </button>
-                                        @endif
+                                        @endif --}}
                                     </div>
                                 </td>
                             </tr>

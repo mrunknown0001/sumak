@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportRedirects\Redirector;
+use Illuminate\Support\Facades\Log;
 
 class CourseDetail extends Component
 {
@@ -44,6 +45,13 @@ class CourseDetail extends Component
     public bool $isPolling = false;
     public string $lastPolledAt = '';
     public int $pollCount = 0;
+    protected $listeners = [
+        'materialUploaded' => '$refresh',
+        'documentProcessed' => 'reloadDocuments',
+    ];
+
+    public bool $materialProcessing = false;
+
 
     public function boot(DocumentQuizBatchService $documentQuizBatchService): void
     {
@@ -66,6 +74,40 @@ class CourseDetail extends Component
             $this->pollingStartedAt = now();
         }
     }
+
+
+    public function reloadDocuments(): void
+    {
+        $this->materialProcessing = false;
+
+        $this->course->refresh()->load('obtlDocument');
+
+        $userId = auth()->id();
+
+        $documents = $this->course->documents()
+            ->with([
+                'topics' => function ($query) use ($userId) {
+                    $query->withCount('items')
+                        ->withCount([
+                            'quizAttempts as user_attempts_count' => function ($aq) use ($userId) {
+                                $aq->where('user_id', $userId);
+                            },
+                        ]);
+                },
+                'tableOfSpecification',
+            ])
+            ->orderByDesc('uploaded_at')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $activeBatch = $this->documentQuizBatchService->currentBatch();
+
+        $this->activeQuizBatch = $activeBatch;
+        $this->documentBatchMeta = $this->buildDocumentBatchMeta($documents, $userId, $activeBatch)->toArray();
+
+        $this->dispatch('$refresh');
+    }
+
 
     public function uploadObtl(): void
     {
@@ -134,6 +176,8 @@ class CourseDetail extends Component
 
     public function uploadMaterial(): void
     {
+        $this->materialProcessing = true;
+
         $this->ensureCanManageCourse();
 
         $obtlDocument = $this->course->obtlDocument;
@@ -196,6 +240,9 @@ class CourseDetail extends Component
         $this->reset('newMaterialUpload');
         $this->resetNewMaterialForm();
         $this->refreshCourseState();
+
+        $this->materialProcessing = true;
+        $this->dispatch('materialUploaded');
 
         session()->flash('message', 'Learning material uploaded successfully. Processing has started.');
     }
@@ -308,7 +355,8 @@ class CourseDetail extends Component
                         ->withCount('items')
                         ->withCount([
                             'quizAttempts as user_attempts_count' => function ($attemptQuery) use ($userId) {
-                                $attemptQuery->where('user_id', $userId);
+                                $attemptQuery->where('user_id', $userId)
+                                            ->whereNotNull('completed_at');
                             },
                         ]);
                 },
@@ -321,6 +369,14 @@ class CourseDetail extends Component
         }
 
         $eligibleTopics = $this->documentQuizBatchService->eligibleSubtopicsForUser($document, $userId);
+
+        Log::debug('Batch: startMaterialQuizBatch => eligible topics result', [
+            'document_id' => $documentId,
+            'eligible_topic_ids' => $eligibleTopics->pluck('id'),
+            'eligible_topics' => $eligibleTopics->toArray(),
+        ]);
+
+        $eligibleTopics = collect($eligibleTopics)->filter(fn($t) => is_object($t) && isset($t->id));
 
         if ($eligibleTopics->isEmpty()) {
             session()->flash('error', 'No eligible quizzes remain for this learning material.');
@@ -397,6 +453,24 @@ class CourseDetail extends Component
         $activeDocumentId = $activeBatch['document_id'] ?? null;
         $activeQueue = collect($activeBatch['queue'] ?? []);
 
+        Log::debug('Batch: buildDocumentBatchMeta snapshot', [
+            'document_id_list' => $documents->pluck('id'),
+            'active_batch' => $activeBatch,
+            'meta_preview' => $documents->map(function ($document) use ($maxAttempts, $activeDocumentId, $activeQueue) {
+                return [
+                    'document_id' => $document->id,
+                    'topic_info' => $document->topics->map(function ($topic) {
+                        return [
+                            'id' => $topic->id,
+                            'name' => $topic->name,
+                            'items_count' => $topic->items_count,
+                            'user_attempts_count' => $topic->user_attempts_count,
+                        ];
+                    }),
+                ];
+            }),
+        ]);
+
         return $documents->map(function (Document $document) use ($maxAttempts, $activeDocumentId, $activeQueue) {
             $topics = $document->topics
                 ->flatMap(fn ($topic)=> [
@@ -410,6 +484,7 @@ class CourseDetail extends Component
 
             $eligibleCount = $topics->where('can_retake', true)->count();
             $inBatchQueue = $activeDocumentId === $document->id;
+
 
             return [
                 'document_id' => $document->id,
