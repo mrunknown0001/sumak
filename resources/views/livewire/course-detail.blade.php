@@ -448,6 +448,11 @@
                                         $attemptCount = $topic->user_attempts_count ?? 0;
                                         $maxAttempts = 3;
                                         $canRetake = $attemptCount < $maxAttempts;
+
+                                        $canquiz = false;
+                                        if($canquiz == false && $attemptCount == 3) {
+                                            $canquiz = true;
+                                        }
                                     @endphp
 
                                     <a href="{{ route('student.quiz.context', $topic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
@@ -498,10 +503,16 @@
                                 {{-- <p class="text-xs text-slate-500 dark:text-slate-400">
                                     {{ $eligibleQuizCount }} {{ Str::plural('topic quiz', $eligibleQuizCount) }} available. Start a batch session to attempt them sequentially.
                                 </p> --}}
+                                @if($canquiz)
+                                    <p class="text-xs text-red-500 dark:text-red-400">
+                                        You've used all 3 attempts on this course.
+                                    </p>
+                                @endif
                             </div>
                             <button
                                 wire:click="startMaterialQuizBatch({{ $document->id }})"
                                 {{-- @disabled($eligibleQuizCount === 0) --}}
+                                @disabled($canquiz)
                                 class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:disabled:bg-slate-700"
                             >
                                 Take Quiz
