@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Smalot\PdfParser\Parser as PdfParser;
+use App\Events\DocumentProcessed;
 
 class ProcessDocumentJob implements ShouldQueue
 {
@@ -66,6 +67,8 @@ class ProcessDocumentJob implements ShouldQueue
                 'processed_at' => now(),
                 'processing_error' => null,
             ]);
+
+            // event(new DocumentProcessed($this->documentId));
 
             Log::info('Document processed successfully', ['document_id' => $document->id]);
         } catch (\Exception $e) {

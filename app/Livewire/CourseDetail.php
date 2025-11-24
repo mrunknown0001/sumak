@@ -45,6 +45,13 @@ class CourseDetail extends Component
     public bool $isPolling = false;
     public string $lastPolledAt = '';
     public int $pollCount = 0;
+    protected $listeners = [
+        'materialUploaded' => '$refresh',
+        'documentProcessed' => 'reloadDocuments',
+    ];
+
+    public bool $materialProcessing = false;
+
 
     public function boot(DocumentQuizBatchService $documentQuizBatchService): void
     {
@@ -67,6 +74,40 @@ class CourseDetail extends Component
             $this->pollingStartedAt = now();
         }
     }
+
+
+    public function reloadDocuments(): void
+    {
+        $this->materialProcessing = false;
+
+        $this->course->refresh()->load('obtlDocument');
+
+        $userId = auth()->id();
+
+        $documents = $this->course->documents()
+            ->with([
+                'topics' => function ($query) use ($userId) {
+                    $query->withCount('items')
+                        ->withCount([
+                            'quizAttempts as user_attempts_count' => function ($aq) use ($userId) {
+                                $aq->where('user_id', $userId);
+                            },
+                        ]);
+                },
+                'tableOfSpecification',
+            ])
+            ->orderByDesc('uploaded_at')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $activeBatch = $this->documentQuizBatchService->currentBatch();
+
+        $this->activeQuizBatch = $activeBatch;
+        $this->documentBatchMeta = $this->buildDocumentBatchMeta($documents, $userId, $activeBatch)->toArray();
+
+        $this->dispatch('$refresh');
+    }
+
 
     public function uploadObtl(): void
     {
@@ -135,6 +176,8 @@ class CourseDetail extends Component
 
     public function uploadMaterial(): void
     {
+        $this->materialProcessing = true;
+
         $this->ensureCanManageCourse();
 
         $obtlDocument = $this->course->obtlDocument;
@@ -197,6 +240,9 @@ class CourseDetail extends Component
         $this->reset('newMaterialUpload');
         $this->resetNewMaterialForm();
         $this->refreshCourseState();
+
+        $this->materialProcessing = true;
+        $this->dispatch('materialUploaded');
 
         session()->flash('message', 'Learning material uploaded successfully. Processing has started.');
     }

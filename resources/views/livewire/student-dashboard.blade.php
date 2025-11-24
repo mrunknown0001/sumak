@@ -138,10 +138,10 @@
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
+                        {{-- <div class="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
                             <span>Quizzes</span>
                             <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $course['quizzes_taken'] }}/{{ $course['total_quizzes'] }}</span>
-                        </div>
+                        </div> --}}
 
                         <div class="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
                             <span>Avg Score</span>
