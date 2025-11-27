@@ -335,7 +335,7 @@
 
     <!-- Average Score Graph -->
     <div class="space-y-4">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {{-- <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100 lg:text-2xl">Average Score Across Attempts</h2>
             <select wire:model.live="selectedCourse" class="rounded-xl border border-slate-200/70 bg-white/90 px-4 py-2 text-sm shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
                 <option value="">Select Course</option>
@@ -343,7 +343,7 @@
                     <option value="{{ $course['id'] }}">{{ $course['name'] }}</option>
                 @endforeach
             </select>
-        </div>
+        </div> --}}
 
         @if($selectedCourse)
             @php $courseName = collect($courses)->firstWhere('id', $selectedCourse)['name'] ?? 'Unknown'; @endphp
