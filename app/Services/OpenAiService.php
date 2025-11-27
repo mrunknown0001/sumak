@@ -934,9 +934,9 @@ RULES;
             }
 
             // question_text starts with What/Which
-            if (!isset($q['question_text']) || !preg_match('/^(What|Which)\b/i', trim($q['question_text']))) {
-                $report['form_errors'][] = "Question #{$qIndex} question_text must begin with 'What' or 'Which'.";
-            }
+            // if (!isset($q['question_text']) || !preg_match('/^(What|Which)\b/i', trim($q['question_text']))) {
+            //     $report['form_errors'][] = "Question #{$qIndex} question_text must begin with 'What' or 'Which'.";
+            // }
 
             // banned interrogatives
             if (preg_match('/\b(How|Why|Where|When|Explain|Describe)\b/i', $q['question_text'])) {
