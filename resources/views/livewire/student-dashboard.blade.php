@@ -272,11 +272,11 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('livewire:loaded, looking for difficultyChart');
+        console.log('DOMContentLoaded, looking for difficultyChart');
         const ctx = document.getElementById('difficultyChart');
-        console.log('ctx:', ctx);
+        console.log('difficultyChart canvas element:', ctx);
         if (ctx) {
-            console.log('Creating chart');
+            console.log('Creating difficulty chart instance');
             window.difficultyChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -320,10 +320,116 @@
                     }
                 }
             });
+            console.log('Initial graphData from server:', @json($graphData));
             // Update with initial data
             updateDifficultyChart(@json($graphData));
             // Listen for updates
-            $wire.on('updateChart', updateDifficultyChart);
+            window.addEventListener('updateChart', (e) => {
+                console.log('Received updateChart event:', e.detail);
+                updateDifficultyChart(e.detail);
+            });
+            console.log('Difficulty chart setup complete');
+        }
+    });
+    </script>
+
+    <!-- Average Score Graph -->
+    <div class="space-y-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100 lg:text-2xl">Average Score Across Attempts</h2>
+            <select wire:model.live="selectedCourse" class="rounded-xl border border-slate-200/70 bg-white/90 px-4 py-2 text-sm shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
+                <option value="">Select Course</option>
+                @foreach($courses as $course)
+                    <option value="{{ $course['id'] }}">{{ $course['name'] }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        @if($selectedCourse)
+            @php $courseName = collect($courses)->firstWhere('id', $selectedCourse)['name'] ?? 'Unknown'; @endphp
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 md:p-6 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
+                <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Average Score Across Attempts for {{ $courseName }}</h3>
+                @if(empty($scoreData))
+                    <p class="text-center text-slate-500 dark:text-slate-400">No attempts found for this course.</p>
+                @else
+                    <canvas id="scoreChart" class="w-full h-64"></canvas>
+                @endif
+            </div>
+        @endif
+    </div>
+
+    <script>
+    console.log('Score chart script loaded');
+    function updateScoreChart(data) {
+        console.log('updateScoreChart called with:', data);
+        if (window.scoreChart) {
+            window.scoreChart.data.labels = data.map(d => d.attempt);
+            window.scoreChart.data.datasets[0].data = data.map(d => d.score);
+            window.scoreChart.update();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('livewire:loaded event fired for score chart');
+        const ctx = document.getElementById('scoreChart');
+        console.log('scoreChart canvas element:', ctx);
+        if (ctx) {
+            console.log('Creating score chart instance');
+            window.scoreChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Average Score (%)',
+                        data: [],
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    // maintainAspectRatio: false,
+                    aspectRatio: 2,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Average Score Across Attempts'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Score: ' + context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Attempt'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Score (%)'
+                            },
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+            console.log('Initial scoreData from server:', @json($scoreData));
+            updateScoreChart(@json($scoreData));
+            // Listen for updates
+            window.addEventListener('updateScoreChart', (e) => {
+                console.log('Received updateScoreChart event:', e.detail);
+                updateScoreChart(e.detail);
+            });
+            console.log('Score chart setup complete');
         }
     });
     </script>
@@ -514,7 +620,7 @@
             // Update with initial data
             updateDifficultyChart(@json($graphData));
             // Listen for updates
-            $wire.on('updateChart', updateDifficultyChart);
+            window.addEventListener('updateChart', (e) => updateDifficultyChart(e.detail));
         }
     });
     </script>

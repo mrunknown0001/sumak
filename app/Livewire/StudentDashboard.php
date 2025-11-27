@@ -17,6 +17,7 @@ class StudentDashboard extends Component
     public $overallStats;
     public $selectedCourse;
     public $graphData = [];
+    public $scoreData = [];
 
     protected $dashboardController;
 
@@ -30,6 +31,7 @@ class StudentDashboard extends Component
         $this->loadDashboardData();
         $this->selectedCourse = !empty($this->courses) ? $this->courses[0]['id'] : null;
         $this->loadGraphData();
+        $this->loadScoreData();
     }
 
     public function loadDashboardData()
@@ -91,12 +93,39 @@ class StudentDashboard extends Component
                ];
            })->toArray();
        }
-       $this->dispatch('updateChart', $this->graphData);
+       $this->js("window.dispatchEvent(new CustomEvent('updateChart', {detail: " . json_encode($this->graphData) . "}))");
+   }
+
+   public function loadScoreData()
+   {
+       $this->scoreData = [];
+       if ($this->selectedCourse) {
+           $attempts = QuizAttempt::whereHas('topic.document', function($q) {
+               $q->where('course_id', $this->selectedCourse);
+           })->where('user_id', auth()->id())->whereNotNull('completed_at')->get();
+
+           // Group by attempt_number and calculate average score
+           $grouped = $attempts->groupBy('attempt_number');
+           $this->scoreData = collect([1, 2, 3])->map(function($attemptNumber) use ($grouped) {
+               $attemptsForNumber = $grouped->get($attemptNumber, collect());
+               if ($attemptsForNumber->isEmpty()) {
+                   return null;
+               } else {
+                   $score = $attemptsForNumber->avg('score_percentage');
+                   return [
+                       'attempt' => 'Attempt ' . $attemptNumber,
+                       'score' => round($score, 2)
+                   ];
+               }
+           })->filter()->values()->toArray();
+       }
+       $this->js("window.dispatchEvent(new CustomEvent('updateScoreChart', {detail: " . json_encode($this->scoreData) . "}))");
    }
 
    public function updatedSelectedCourse()
    {
        $this->loadGraphData();
+       $this->loadScoreData();
    }
 
     public function viewCourse($courseId)
