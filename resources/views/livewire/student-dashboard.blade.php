@@ -246,8 +246,8 @@
 
         @if($selectedCourse)
             @php $courseName = collect($courses)->firstWhere('id', $selectedCourse)['name'] ?? 'Unknown'; @endphp
-            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 md:p-6 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
-                <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">IRT Difficulty Across Attempts for {{ $courseName }}</h3>
+            <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">IRT Difficulty Across Attempts for {{ $courseName }}</h3>
+            <div wire:ignore class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 md:p-6 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
                 @if(empty($graphData))
                     <p class="text-center text-slate-500 dark:text-slate-400">No attempts found for this course.</p>
                 @else
@@ -347,8 +347,8 @@
 
         @if($selectedCourse)
             @php $courseName = collect($courses)->firstWhere('id', $selectedCourse)['name'] ?? 'Unknown'; @endphp
-            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 md:p-6 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
-                <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Average Score Across Attempts for {{ $courseName }}</h3>
+            <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Average Score Across Attempts for {{ $courseName }}</h3>
+            <div wire:ignore class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 md:p-6 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
                 @if(empty($scoreData))
                     <p class="text-center text-slate-500 dark:text-slate-400">No attempts found for this course.</p>
                 @else
@@ -554,75 +554,5 @@
     </div>
     --}}
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-    function updateDifficultyChart(data) {
-        console.log('updateDifficultyChart called with data:', data);
-        if (window.difficultyChart) {
-            window.difficultyChart.data.labels = data.map(d => d.attempt);
-            window.difficultyChart.data.datasets[0].data = data.map(d => d.difficulty);
-            window.difficultyChart.update();
-            console.log('Chart updated');
-        } else {
-            console.log('Chart not found');
-        }
-    }
-
-    document.addEventListener('livewire:loaded', () => {
-        console.log('livewire:loaded, looking for difficultyChart');
-        const ctx = document.getElementById('difficultyChart');
-        console.log('ctx:', ctx);
-        if (ctx) {
-            console.log('Creating chart');
-            window.difficultyChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'IRT Difficulty',
-                        data: [],
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'IRT Difficulty Across Attempts'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return 'Difficulty: ' + context.parsed.y;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Attempt'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Difficulty'
-                            }
-                        }
-                    }
-                }
-            });
-            // Update with initial data
-            updateDifficultyChart(@json($graphData));
-            // Listen for updates
-            window.addEventListener('updateChart', (e) => updateDifficultyChart(e.detail));
-        }
-    });
-    </script>
 
 </div>
