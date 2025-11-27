@@ -109,15 +109,15 @@ class StudentDashboard extends Component
            $this->scoreData = collect([1, 2, 3])->map(function($attemptNumber) use ($grouped) {
                $attemptsForNumber = $grouped->get($attemptNumber, collect());
                if ($attemptsForNumber->isEmpty()) {
-                   return null;
+                   $score = 0;
                } else {
                    $score = $attemptsForNumber->avg('score_percentage');
-                   return [
-                       'attempt' => 'Attempt ' . $attemptNumber,
-                       'score' => round($score, 2)
-                   ];
                }
-           })->filter()->values()->toArray();
+               return [
+                   'attempt' => 'Attempt ' . $attemptNumber,
+                   'score' => round($score, 2)
+               ];
+           })->values()->toArray();
        }
        $this->js("window.dispatchEvent(new CustomEvent('updateScoreChart', {detail: " . json_encode($this->scoreData) . "}))");
    }
