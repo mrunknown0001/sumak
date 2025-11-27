@@ -310,9 +310,8 @@
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
-            <h1>Master Your Learning with AI-Powered Quizzes</h1>
-            <p>Upload your lecture materials and get personalized, adaptive quizzes that help you learn smarter, not
-                harder.</p>
+            <h1>Study Smarter with AI-Generated Quizzes</h1>
+            <p>Upload your materials, take adaptive quizzes, and track your progress with everything personalized just for you.</p>
             <div class="cta-buttons">
                 @if(auth()->check())
                     <a href="{{ route('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
@@ -326,7 +325,7 @@
 
     <!-- Features Section -->
     <section class="features" id="features">
-        <h2 class="section-title">Why Choose Our Platform?</h2>
+        <h2 class="section-title">Why Choose SumakQuiz?</h2>
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon">🤖</div>
@@ -347,18 +346,18 @@
             <div class="feature-card">
                 <div class="feature-icon">📊</div>
                 <h3>Progress Tracking</h3>
-                <p>Monitor your mastery across subtopics with detailed analytics and performance dashboards.</p>
+                <p>Monitor your mastery across topics with analytics and performance dashboards.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🔄</div>
                 <h3>Multiple Attempts</h3>
-                <p>Regenerate quizzes up to three times to reinforce learning.</p>
+                <p>Regenerate quizzes up to two times to reinforce learning.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">📚</div>
                 <h3>OBTL-Aligned</h3>
-                <p>Questions are generated based on Outcome-Based Teaching and Learning principles for effective
-                    assessment.</p>
+                <p>Questions are generated based on Outcome-Based Teaching and Learning principles. 
+                    </p>
             </div>
         </div>
     </section>
@@ -370,22 +369,22 @@
             <div class="step">
                 <div class="step-number">1</div>
                 <h3>Upload Materials</h3>
-                <p>Upload your lecture notes, slides, or OBTL documents to the platform.</p>
+                <p>Upload your OBTL documents and Learning Materials.</p>
             </div>
             <div class="step">
                 <div class="step-number">2</div>
                 <h3>AI Analyzes Content</h3>
-                <p>Our AI processes your materials and creates a Table of Specification focused on key concepts.</p>
+                <p>SumakQuiz processes your files, extracts key learning outcomes, and automatically generates a Table of Specification (ToS) to guide quiz creation.</p>
             </div>
             <div class="step">
                 <div class="step-number">3</div>
                 <h3>Take Adaptive Quiz</h3>
-                <p>Answer multiple-choice questions with customized timer per item in an adaptive format.</p>
+                <p>Answer multiple-choice questions using your preferred timer mode. After your first attempt, the system regenerates a new quiz up to two times based on your IRT ability level.</p>
             </div>
             <div class="step">
                 <div class="step-number">4</div>
                 <h3>Get Insights</h3>
-                <p>Receive personalized feedback and track your progress across different subtopics.</p>
+                <p>Receive personalized feedback and track your progress.</p>
             </div>
         </div>
     </section>
@@ -393,7 +392,8 @@
     <!-- CTA Section -->
     <section class="cta-section">
         <h2>Ready to Transform Your Learning?</h2>
-        <p>Join thousands of students who are mastering their courses with AI-powered personalized quizzes.</p>
+        <p>Join learners who are mastering their courses through AI-powered, adaptive, and personalized quizzes.
+</p>
         @if(auth()->check())
             <p>
                 <a href="{{ route('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
