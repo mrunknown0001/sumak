@@ -232,6 +232,102 @@
         </div>
     </div>
 
+    <!-- IRT Difficulty Graph -->
+    <div class="space-y-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100 lg:text-2xl">IRT Difficulty Across Attempts</h2>
+            <select wire:model.live="selectedCourse" class="rounded-xl border border-slate-200/70 bg-white/90 px-4 py-2 text-sm shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
+                <option value="">Select Course</option>
+                @foreach($courses as $course)
+                    <option value="{{ $course['id'] }}">{{ $course['name'] }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        @if($selectedCourse)
+            @php $courseName = collect($courses)->firstWhere('id', $selectedCourse)['name'] ?? 'Unknown'; @endphp
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 md:p-6 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
+                <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">IRT Difficulty Across Attempts for {{ $courseName }}</h3>
+                @if(empty($graphData))
+                    <p class="text-center text-slate-500 dark:text-slate-400">No attempts found for this course.</p>
+                @else
+                    <canvas id="difficultyChart" class="w-full h-64"></canvas>
+                @endif
+            </div>
+        @endif
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    function updateDifficultyChart(data) {
+        console.log('updateDifficultyChart called with data:', data);
+        if (window.difficultyChart) {
+            window.difficultyChart.data.labels = data.map(d => d.attempt);
+            window.difficultyChart.data.datasets[0].data = data.map(d => d.difficulty);
+            window.difficultyChart.update();
+            console.log('Chart updated');
+        } else {
+            console.log('Chart not found');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('livewire:loaded, looking for difficultyChart');
+        const ctx = document.getElementById('difficultyChart');
+        console.log('ctx:', ctx);
+        if (ctx) {
+            console.log('Creating chart');
+            window.difficultyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'IRT Difficulty',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    aspectRatio: 2,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'IRT Difficulty Across Attempts'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Difficulty: ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Attempt'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Difficulty'
+                            }
+                        }
+                    }
+                }
+            });
+            // Update with initial data
+            updateDifficultyChart(@json($graphData));
+            // Listen for updates
+            $wire.on('updateChart', updateDifficultyChart);
+        }
+    });
+    </script>
+
     <!-- Recent Quizzes -->
     <div id="recent-quizzes" class="space-y-4 scroll-mt-28">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100 lg:text-2xl">Recent Quiz Results</h2>
@@ -242,71 +338,48 @@
                     <thead class="bg-slate-100/80 dark:bg-slate-800/80">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Course</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Topic</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Score</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Duration</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Total Duration</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Attempts</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Actions</th>
                         </tr>
                     </thead>
 
                     <tbody class="divide-y divide-slate-200/80 bg-white/80 dark:divide-slate-800/80 dark:bg-slate-900/70">
-                        @foreach($recentQuizzes as $quiz)
-                            @php
-                                $percentage = ($quiz['score'] / $quiz['total']) * 100;
-                                $scoreColor = $percentage >= 80 ? 'text-emerald-500 dark:text-emerald-400' : ($percentage >= 60 ? 'text-blue-500 dark:text-blue-400' : 'text-amber-500 dark:text-amber-400');
-                            @endphp
+                        @forelse($consolidatedRecentQuizzes as $item)
                             <tr class="transition hover:bg-slate-100/70 dark:hover:bg-slate-800/70">
-                                <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $quiz['course'] }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $quiz['topic'] }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $item['course'] }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-900 dark:text-slate-100">{{ $item['score'] }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $item['total_duration'] }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $item['date'] }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-sm">
-                                    <div class="flex items-center">
-                                        <span class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $quiz['score'] }}/{{ $quiz['total'] }}</span>
-                                        <span class="ml-2 text-xs font-semibold {{ $scoreColor }}">({{ round($percentage) }}%)</span>
-                                    </div>
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $quiz['duration'] }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $quiz['date'] }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
-                                    <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $quiz['attempts_used'] }}/3</span>
-                                    @if($quiz['attempts_remaining'] > 0)
-                                        <span class="ml-1 text-xs text-slate-500 dark:text-slate-400">({{ $quiz['attempts_remaining'] }} left)</span>
-                                    @endif
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-3 text-sm">
-                                    <div class="flex gap-2">
-                                        <button
-                                            wire:click="viewQuiz({{ $quiz['id'] }})"
-                                            class="text-emerald-600 transition hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200"
-                                        >
-                                            View
-                                        </button>
-
-                                        {{-- @if($quiz['attempts_remaining'] > 0)
-                                            <button
-                                                wire:click="retakeQuiz({{ $quiz['id'] }})"
-                                                class="inline-flex items-center gap-1 text-emerald-600 transition hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200"
-                                            >
-                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                                </svg>
-                                                Retake
-                                            </button>
-                                        @endif --}}
-                                    </div>
+                                    <button
+                                        wire:click="viewQuiz({{ $item['quiz_id'] }})"
+                                        class="text-emerald-600 transition hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200"
+                                    >
+                                        View
+                                    </button>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                                    <svg class="mx-auto mb-3 h-10 w-10 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                    </svg>
+                                    <p>No Recent Quiz Results</p>
+                                    <p class="text-xs mt-1">Take some quizzes to see your results here</p>
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
-
                 </table>
             </div>
         </div>
     </div>
 
     <!-- AI-Powered Feedback (kept commented out as in original) -->
-    {{-- 
+    {{--
     <div class="space-y-4">
         <h2 class="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
             <svg class="h-6 w-6 text-emerald-500 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -374,5 +447,76 @@
         </div>
     </div>
     --}}
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    function updateDifficultyChart(data) {
+        console.log('updateDifficultyChart called with data:', data);
+        if (window.difficultyChart) {
+            window.difficultyChart.data.labels = data.map(d => d.attempt);
+            window.difficultyChart.data.datasets[0].data = data.map(d => d.difficulty);
+            window.difficultyChart.update();
+            console.log('Chart updated');
+        } else {
+            console.log('Chart not found');
+        }
+    }
+
+    document.addEventListener('livewire:loaded', () => {
+        console.log('livewire:loaded, looking for difficultyChart');
+        const ctx = document.getElementById('difficultyChart');
+        console.log('ctx:', ctx);
+        if (ctx) {
+            console.log('Creating chart');
+            window.difficultyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'IRT Difficulty',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'IRT Difficulty Across Attempts'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Difficulty: ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Attempt'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Difficulty'
+                            }
+                        }
+                    }
+                }
+            });
+            // Update with initial data
+            updateDifficultyChart(@json($graphData));
+            // Listen for updates
+            $wire.on('updateChart', updateDifficultyChart);
+        }
+    });
+    </script>
 
 </div>

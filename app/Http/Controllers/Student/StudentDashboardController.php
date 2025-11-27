@@ -128,6 +128,7 @@ class StudentDashboardController extends Controller
                     'total' => $attempt->total_questions,
                     'date' => $attempt->completed_at->format('Y-m-d'),
                     'duration' => $this->formatDuration($attempt->time_spent_seconds),
+                    'duration_seconds' => $attempt->time_spent_seconds,
                     'attempts_used' => $attemptsCount,
                     'attempts_remaining' => max(0, 3 - $attemptsCount),
                     'ability_estimate' => $abilityEstimate,
@@ -166,10 +167,13 @@ class StudentDashboardController extends Controller
      */
     private function getOverallStats($student)
     {
-        $totalQuizzes = QuizAttempt::where('user_id', $student->id)
+        $totalQuizzes = QuizAttempt::where('quiz_attempts.user_id', $student->id)
             ->whereNotNull('completed_at')
+            ->join('topics', 'quiz_attempts.topic_id', '=', 'topics.id')
+            ->join('documents', 'topics.document_id', '=', 'documents.id')
+            ->distinct('documents.course_id')
             ->count();
-        
+
         $avgAccuracy = QuizAttempt::where('user_id', $student->id)
             ->whereNotNull('completed_at')
             ->selectRaw('AVG(correct_answers * 100.0 / total_questions) as avg_accuracy')

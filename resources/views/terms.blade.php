@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Terms & Conditions — [Your Company Name]</title>
+  <title>Terms & Conditions — [SumakQuiz]</title>
   <style>
     :root{--max-width:900px;--accent:#0b74de;--muted:#666}
     body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#222; line-height:1.55; margin:0; padding:24px; background:#f7f8fb}
@@ -36,7 +36,7 @@
       <div class="logo" aria-hidden>LOGO</div>
       <div>
         <h1>Terms & Conditions</h1>
-        <div class="small">[Your Company Name] — <span id="lastUpdated">Last Updated: [Insert Date]</span></div>
+        <div class="small">[SumakQuiz] — <span id="lastUpdated">Last Updated: [Insert Date]</span></div>
       </div>
       <div class="meta">Website: <strong>[yourwebsite.com]</strong><br>Contact: <a href="mailto:support@yourcompany.com">support@yourcompany.com</a></div>
     </header>

@@ -4,14 +4,19 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use App\Models\QuizAttempt;
+use App\Models\ItemBank;
 
 class StudentDashboard extends Component
 {
     public $studentData;
     public $courses;
     public $recentQuizzes;
+    public $consolidatedRecentQuizzes;
     public $aiFeedback;
     public $overallStats;
+    public $selectedCourse;
+    public $graphData = [];
 
     protected $dashboardController;
 
@@ -23,6 +28,8 @@ class StudentDashboard extends Component
     public function mount()
     {
         $this->loadDashboardData();
+        $this->selectedCourse = !empty($this->courses) ? $this->courses[0]['id'] : null;
+        $this->loadGraphData();
     }
 
     public function loadDashboardData()
@@ -35,7 +42,62 @@ class StudentDashboard extends Component
         $this->recentQuizzes = $data['recent_quizzes'];
         $this->aiFeedback = $data['ai_feedback'];
         $this->overallStats = $data['overall_stats'];
-    }
+
+        // Consolidate recent quizzes by course
+        $this->consolidatedRecentQuizzes = collect($this->recentQuizzes)
+            ->groupBy('course')
+            ->map(function ($quizzes) {
+                $sortedQuizzes = $quizzes->sortByDesc('date');
+                $latestQuiz = $sortedQuizzes->first();
+                $totalDuration = $sortedQuizzes->sum(function ($quiz) {
+                    return abs($quiz['duration_seconds']);
+                });
+                $averagePercentage = $sortedQuizzes->avg(function ($quiz) {
+                    return ($quiz['score'] / $quiz['total']) * 100;
+                });
+                return [
+                    'course' => $latestQuiz['course'],
+                    'score' => number_format($averagePercentage, 2) . '%',
+                    'total_duration' => $this->formatStudyTime($totalDuration),
+                    'date' => $latestQuiz['date'],
+                    'quiz_id' => $latestQuiz['id'],
+                ];
+            })
+            ->sortByDesc('date')
+            ->values();
+   }
+
+   public function loadGraphData()
+   {
+       $this->graphData = [];
+       if ($this->selectedCourse) {
+           $attempts = QuizAttempt::whereHas('topic.document', function($q) {
+               $q->where('course_id', $this->selectedCourse);
+           })->where('user_id', auth()->id())->whereNotNull('completed_at')->with('responses')->get();
+
+           // Group by attempt_number and calculate average difficulty
+           $grouped = $attempts->groupBy('attempt_number');
+           $this->graphData = collect([1, 2, 3])->map(function($attemptNumber) use ($grouped) {
+               $attemptsForNumber = $grouped->get($attemptNumber, collect());
+               if ($attemptsForNumber->isEmpty()) {
+                   $difficulty = 0;
+               } else {
+                   $allItemIds = $attemptsForNumber->pluck('responses')->flatten()->pluck('item_id')->unique()->toArray();
+                   $difficulty = ItemBank::whereIn('id', $allItemIds)->avg('difficulty_b') ?? 0;
+               }
+               return [
+                   'attempt' => 'Attempt ' . $attemptNumber,
+                   'difficulty' => round($difficulty, 2)
+               ];
+           })->toArray();
+       }
+       $this->dispatch('updateChart', $this->graphData);
+   }
+
+   public function updatedSelectedCourse()
+   {
+       $this->loadGraphData();
+   }
 
     public function viewCourse($courseId)
     {
@@ -101,8 +163,42 @@ class StudentDashboard extends Component
     {
         $totalTaken = collect($this->courses)->sum('quizzes_taken');
         $totalQuizzes = collect($this->courses)->sum('total_quizzes');
-        
+
         return $totalQuizzes > 0 ? round(($totalTaken / $totalQuizzes) * 100) : 0;
+    }
+
+    private function formatStudyTime($seconds)
+    {
+        if($seconds < 0) {
+            $seconds = -($seconds);
+        }
+        $seconds = max(0, (int) $seconds);
+
+        if ($seconds === 0) {
+            return '0 mins';
+        }
+
+        if ($seconds < 60) {
+            return $seconds === 1 ? '1 sec' : $seconds . ' secs';
+        }
+
+        if ($seconds < 3600) {
+            $minutes = (int) max(1, round($seconds / 60));
+            return $minutes === 1 ? '1 min' : $minutes . ' mins';
+        }
+
+        $hours = intdiv($seconds, 3600);
+        $minutes = (int) floor(($seconds % 3600) / 60);
+
+        $hourLabel = $hours === 1 ? '1 hr' : $hours . ' hrs';
+
+        if ($minutes <= 0) {
+            return $hourLabel;
+        }
+
+        $minuteLabel = $minutes === 1 ? '1 min' : $minutes . ' mins';
+
+        return $hourLabel . ' ' . $minuteLabel;
     }
 
     public function render()

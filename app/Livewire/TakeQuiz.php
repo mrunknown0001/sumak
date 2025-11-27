@@ -95,10 +95,20 @@ class TakeQuiz extends Component
             $this->hydrateTimerFromBatch();
         }
 
+        // Auto-start quiz for batch if timer mode is set
+        if (!$this->quizStarted && $this->timerMode) {
+            $this->startQuiz();
+        }
+
     }
 
     public function selectTimerMode(string $mode): void
     {
+        // Prevent timer selection if batch already has a timer mode set
+        if ($this->documentQuizBatchService->timerMode()) {
+            return;
+        }
+
         if ($this->hasReachedAttemptLimit && !$this->quizStarted) {
             session()->flash('error', 'You have reached the maximum number of quiz attempts allowed for this topic.');
             return;
