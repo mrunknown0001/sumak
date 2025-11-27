@@ -4,6 +4,8 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use App\Models\QuizAttempt;
+use App\Models\ItemBank;
 
 class StudentDashboard extends Component
 {
@@ -13,6 +15,8 @@ class StudentDashboard extends Component
     public $consolidatedRecentQuizzes;
     public $aiFeedback;
     public $overallStats;
+    public $selectedCourse;
+    public $graphData = [];
 
     protected $dashboardController;
 
@@ -24,6 +28,8 @@ class StudentDashboard extends Component
     public function mount()
     {
         $this->loadDashboardData();
+        $this->selectedCourse = !empty($this->courses) ? $this->courses[0]['id'] : null;
+        $this->loadGraphData();
     }
 
     public function loadDashboardData()
@@ -59,7 +65,39 @@ class StudentDashboard extends Component
             })
             ->sortByDesc('date')
             ->values();
-    }
+   }
+
+   public function loadGraphData()
+   {
+       $this->graphData = [];
+       if ($this->selectedCourse) {
+           $attempts = QuizAttempt::whereHas('topic.document', function($q) {
+               $q->where('course_id', $this->selectedCourse);
+           })->where('user_id', auth()->id())->whereNotNull('completed_at')->with('responses')->get();
+
+           // Group by attempt_number and calculate average difficulty
+           $grouped = $attempts->groupBy('attempt_number');
+           $this->graphData = collect([1, 2, 3])->map(function($attemptNumber) use ($grouped) {
+               $attemptsForNumber = $grouped->get($attemptNumber, collect());
+               if ($attemptsForNumber->isEmpty()) {
+                   $difficulty = 0;
+               } else {
+                   $allItemIds = $attemptsForNumber->pluck('responses')->flatten()->pluck('item_id')->unique()->toArray();
+                   $difficulty = ItemBank::whereIn('id', $allItemIds)->avg('difficulty_b') ?? 0;
+               }
+               return [
+                   'attempt' => 'Attempt ' . $attemptNumber,
+                   'difficulty' => round($difficulty, 2)
+               ];
+           })->toArray();
+       }
+       $this->dispatch('updateChart', $this->graphData);
+   }
+
+   public function updatedSelectedCourse()
+   {
+       $this->loadGraphData();
+   }
 
     public function viewCourse($courseId)
     {

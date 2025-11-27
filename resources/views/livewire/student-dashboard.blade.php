@@ -232,6 +232,102 @@
         </div>
     </div>
 
+    <!-- IRT Difficulty Graph -->
+    <div class="space-y-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100 lg:text-2xl">IRT Difficulty Across Attempts</h2>
+            <select wire:model.live="selectedCourse" class="rounded-xl border border-slate-200/70 bg-white/90 px-4 py-2 text-sm shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
+                <option value="">Select Course</option>
+                @foreach($courses as $course)
+                    <option value="{{ $course['id'] }}">{{ $course['name'] }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        @if($selectedCourse)
+            @php $courseName = collect($courses)->firstWhere('id', $selectedCourse)['name'] ?? 'Unknown'; @endphp
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 md:p-6 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
+                <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">IRT Difficulty Across Attempts for {{ $courseName }}</h3>
+                @if(empty($graphData))
+                    <p class="text-center text-slate-500 dark:text-slate-400">No attempts found for this course.</p>
+                @else
+                    <canvas id="difficultyChart" class="w-full h-64"></canvas>
+                @endif
+            </div>
+        @endif
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    function updateDifficultyChart(data) {
+        console.log('updateDifficultyChart called with data:', data);
+        if (window.difficultyChart) {
+            window.difficultyChart.data.labels = data.map(d => d.attempt);
+            window.difficultyChart.data.datasets[0].data = data.map(d => d.difficulty);
+            window.difficultyChart.update();
+            console.log('Chart updated');
+        } else {
+            console.log('Chart not found');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('livewire:loaded, looking for difficultyChart');
+        const ctx = document.getElementById('difficultyChart');
+        console.log('ctx:', ctx);
+        if (ctx) {
+            console.log('Creating chart');
+            window.difficultyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'IRT Difficulty',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    aspectRatio: 2,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'IRT Difficulty Across Attempts'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Difficulty: ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Attempt'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Difficulty'
+                            }
+                        }
+                    }
+                }
+            });
+            // Update with initial data
+            updateDifficultyChart(@json($graphData));
+            // Listen for updates
+            $wire.on('updateChart', updateDifficultyChart);
+        }
+    });
+    </script>
+
     <!-- Recent Quizzes -->
     <div id="recent-quizzes" class="space-y-4 scroll-mt-28">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100 lg:text-2xl">Recent Quiz Results</h2>
@@ -283,7 +379,7 @@
     </div>
 
     <!-- AI-Powered Feedback (kept commented out as in original) -->
-    {{-- 
+    {{--
     <div class="space-y-4">
         <h2 class="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
             <svg class="h-6 w-6 text-emerald-500 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -351,5 +447,76 @@
         </div>
     </div>
     --}}
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    function updateDifficultyChart(data) {
+        console.log('updateDifficultyChart called with data:', data);
+        if (window.difficultyChart) {
+            window.difficultyChart.data.labels = data.map(d => d.attempt);
+            window.difficultyChart.data.datasets[0].data = data.map(d => d.difficulty);
+            window.difficultyChart.update();
+            console.log('Chart updated');
+        } else {
+            console.log('Chart not found');
+        }
+    }
+
+    document.addEventListener('livewire:loaded', () => {
+        console.log('livewire:loaded, looking for difficultyChart');
+        const ctx = document.getElementById('difficultyChart');
+        console.log('ctx:', ctx);
+        if (ctx) {
+            console.log('Creating chart');
+            window.difficultyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'IRT Difficulty',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'IRT Difficulty Across Attempts'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Difficulty: ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Attempt'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Difficulty'
+                            }
+                        }
+                    }
+                }
+            });
+            // Update with initial data
+            updateDifficultyChart(@json($graphData));
+            // Listen for updates
+            $wire.on('updateChart', updateDifficultyChart);
+        }
+    });
+    </script>
 
 </div>
