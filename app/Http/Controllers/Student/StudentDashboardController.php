@@ -166,10 +166,13 @@ class StudentDashboardController extends Controller
      */
     private function getOverallStats($student)
     {
-        $totalQuizzes = QuizAttempt::where('user_id', $student->id)
+        $totalQuizzes = QuizAttempt::where('quiz_attempts.user_id', $student->id)
             ->whereNotNull('completed_at')
+            ->join('topics', 'quiz_attempts.topic_id', '=', 'topics.id')
+            ->join('documents', 'topics.document_id', '=', 'documents.id')
+            ->distinct('documents.course_id')
             ->count();
-        
+
         $avgAccuracy = QuizAttempt::where('user_id', $student->id)
             ->whereNotNull('completed_at')
             ->selectRaw('AVG(correct_answers * 100.0 / total_questions) as avg_accuracy')
