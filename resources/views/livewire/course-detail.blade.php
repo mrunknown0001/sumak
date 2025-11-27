@@ -14,6 +14,7 @@
     $activeBatchRemainingCount = $activeBatchQueue->count();
     $maxAttemptsAllowed = $maxAttempts ?? config('quiz.max_attempts', 3);
     $canquiz = true;
+    $retake = false;
 @endphp
 
 <div wire:poll.5s="pollObtlStatus" class="mx-auto max-w-5xl space-y-8 text-slate-900 dark:text-slate-100">
@@ -460,6 +461,10 @@
                                         if($canquiz == false && $attemptCount == 3) {
                                             $canquiz = true;
                                         }
+
+                                        if($attemptCount >= 1) {
+                                            $retake = true;
+                                        }
                                     @endphp
 
                                     <a href="{{ route('student.quiz.context', $topic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
@@ -493,7 +498,7 @@
                                 @disabled($canquiz)
                                 class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:disabled:bg-slate-700"
                             >
-                                Take Quiz
+                                {{ $retake ? "Re-take Quiz" : "Take Quiz" }}
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                 </svg>
