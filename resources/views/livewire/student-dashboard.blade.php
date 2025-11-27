@@ -254,7 +254,7 @@
                             <tr class="transition hover:bg-slate-100/70 dark:hover:bg-slate-800/70">
                                 <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $item['course'] }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-900 dark:text-slate-100">{{ $item['score'] }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $item['total_duration'] }} min</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $item['total_duration'] }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $item['date'] }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-sm">
                                     <button

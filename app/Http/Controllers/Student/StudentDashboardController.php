@@ -128,6 +128,7 @@ class StudentDashboardController extends Controller
                     'total' => $attempt->total_questions,
                     'date' => $attempt->completed_at->format('Y-m-d'),
                     'duration' => $this->formatDuration($attempt->time_spent_seconds),
+                    'duration_seconds' => $attempt->time_spent_seconds,
                     'attempts_used' => $attemptsCount,
                     'attempts_remaining' => max(0, 3 - $attemptsCount),
                     'ability_estimate' => $abilityEstimate,

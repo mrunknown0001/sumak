@@ -44,7 +44,7 @@ class StudentDashboard extends Component
                 $sortedQuizzes = $quizzes->sortByDesc('date');
                 $latestQuiz = $sortedQuizzes->first();
                 $totalDuration = $sortedQuizzes->sum(function ($quiz) {
-                    return (float) filter_var($quiz['duration'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+                    return abs($quiz['duration_seconds']);
                 });
                 $averagePercentage = $sortedQuizzes->avg(function ($quiz) {
                     return ($quiz['score'] / $quiz['total']) * 100;
@@ -52,7 +52,7 @@ class StudentDashboard extends Component
                 return [
                     'course' => $latestQuiz['course'],
                     'score' => number_format($averagePercentage, 2) . '%',
-                    'total_duration' => $totalDuration,
+                    'total_duration' => $this->formatStudyTime($totalDuration),
                     'date' => $latestQuiz['date'],
                     'quiz_id' => $latestQuiz['id'],
                 ];
@@ -125,8 +125,42 @@ class StudentDashboard extends Component
     {
         $totalTaken = collect($this->courses)->sum('quizzes_taken');
         $totalQuizzes = collect($this->courses)->sum('total_quizzes');
-        
+
         return $totalQuizzes > 0 ? round(($totalTaken / $totalQuizzes) * 100) : 0;
+    }
+
+    private function formatStudyTime($seconds)
+    {
+        if($seconds < 0) {
+            $seconds = -($seconds);
+        }
+        $seconds = max(0, (int) $seconds);
+
+        if ($seconds === 0) {
+            return '0 mins';
+        }
+
+        if ($seconds < 60) {
+            return $seconds === 1 ? '1 sec' : $seconds . ' secs';
+        }
+
+        if ($seconds < 3600) {
+            $minutes = (int) max(1, round($seconds / 60));
+            return $minutes === 1 ? '1 min' : $minutes . ' mins';
+        }
+
+        $hours = intdiv($seconds, 3600);
+        $minutes = (int) floor(($seconds % 3600) / 60);
+
+        $hourLabel = $hours === 1 ? '1 hr' : $hours . ' hrs';
+
+        if ($minutes <= 0) {
+            return $hourLabel;
+        }
+
+        $minuteLabel = $minutes === 1 ? '1 min' : $minutes . ' mins';
+
+        return $hourLabel . ' ' . $minuteLabel;
     }
 
     public function render()
