@@ -242,64 +242,41 @@
                     <thead class="bg-slate-100/80 dark:bg-slate-800/80">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Course</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Topic</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Score</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Duration</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Total Duration</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Attempts</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Actions</th>
                         </tr>
                     </thead>
 
                     <tbody class="divide-y divide-slate-200/80 bg-white/80 dark:divide-slate-800/80 dark:bg-slate-900/70">
-                        @foreach($recentQuizzes as $quiz)
-                            @php
-                                $percentage = ($quiz['score'] / $quiz['total']) * 100;
-                                $scoreColor = $percentage >= 80 ? 'text-emerald-500 dark:text-emerald-400' : ($percentage >= 60 ? 'text-blue-500 dark:text-blue-400' : 'text-amber-500 dark:text-amber-400');
-                            @endphp
+                        @forelse($consolidatedRecentQuizzes as $item)
                             <tr class="transition hover:bg-slate-100/70 dark:hover:bg-slate-800/70">
-                                <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $quiz['course'] }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $quiz['topic'] }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $item['course'] }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-900 dark:text-slate-100">{{ $item['score'] }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $item['total_duration'] }} min</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $item['date'] }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-sm">
-                                    <div class="flex items-center">
-                                        <span class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $quiz['score'] }}/{{ $quiz['total'] }}</span>
-                                        <span class="ml-2 text-xs font-semibold {{ $scoreColor }}">({{ round($percentage) }}%)</span>
-                                    </div>
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $quiz['duration'] }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $quiz['date'] }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
-                                    <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $quiz['attempts_used'] }}/3</span>
-                                    @if($quiz['attempts_remaining'] > 0)
-                                        <span class="ml-1 text-xs text-slate-500 dark:text-slate-400">({{ $quiz['attempts_remaining'] }} left)</span>
-                                    @endif
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-3 text-sm">
-                                    <div class="flex gap-2">
-                                        <button
-                                            wire:click="viewQuiz({{ $quiz['id'] }})"
-                                            class="text-emerald-600 transition hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200"
-                                        >
-                                            View
-                                        </button>
-
-                                        {{-- @if($quiz['attempts_remaining'] > 0)
-                                            <button
-                                                wire:click="retakeQuiz({{ $quiz['id'] }})"
-                                                class="inline-flex items-center gap-1 text-emerald-600 transition hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200"
-                                            >
-                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                                </svg>
-                                                Retake
-                                            </button>
-                                        @endif --}}
-                                    </div>
+                                    <button
+                                        wire:click="viewQuiz({{ $item['quiz_id'] }})"
+                                        class="text-emerald-600 transition hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200"
+                                    >
+                                        View
+                                    </button>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                                    <svg class="mx-auto mb-3 h-10 w-10 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                    </svg>
+                                    <p>No Recent Quiz Results</p>
+                                    <p class="text-xs mt-1">Take some quizzes to see your results here</p>
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
-
                 </table>
             </div>
         </div>

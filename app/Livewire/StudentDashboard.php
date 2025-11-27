@@ -10,6 +10,7 @@ class StudentDashboard extends Component
     public $studentData;
     public $courses;
     public $recentQuizzes;
+    public $consolidatedRecentQuizzes;
     public $aiFeedback;
     public $overallStats;
 
@@ -35,6 +36,29 @@ class StudentDashboard extends Component
         $this->recentQuizzes = $data['recent_quizzes'];
         $this->aiFeedback = $data['ai_feedback'];
         $this->overallStats = $data['overall_stats'];
+
+        // Consolidate recent quizzes by course
+        $this->consolidatedRecentQuizzes = collect($this->recentQuizzes)
+            ->groupBy('course')
+            ->map(function ($quizzes) {
+                $sortedQuizzes = $quizzes->sortByDesc('date');
+                $latestQuiz = $sortedQuizzes->first();
+                $totalDuration = $sortedQuizzes->sum(function ($quiz) {
+                    return (float) filter_var($quiz['duration'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+                });
+                $averagePercentage = $sortedQuizzes->avg(function ($quiz) {
+                    return ($quiz['score'] / $quiz['total']) * 100;
+                });
+                return [
+                    'course' => $latestQuiz['course'],
+                    'score' => number_format($averagePercentage, 2) . '%',
+                    'total_duration' => $totalDuration,
+                    'date' => $latestQuiz['date'],
+                    'quiz_id' => $latestQuiz['id'],
+                ];
+            })
+            ->sortByDesc('date')
+            ->values();
     }
 
     public function viewCourse($courseId)
