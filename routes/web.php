@@ -35,7 +35,7 @@ Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
 
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 
-Route::group(['middleware' => ['auth']], function () {
+Route::group(['middleware' => ['auth','verified']], function () {
     Route::get('/dashboard', function () {
         if (auth()->user()->role === 'student') {
             return redirect()->route('student.dashboard');
@@ -49,7 +49,7 @@ Route::group(['middleware' => ['auth']], function () {
 });
 
 
-Route::middleware(['auth', 'student'])->prefix('student')->name('student.')->group(function () {
+Route::middleware(['auth', 'student', 'verified'])->prefix('student')->name('student.')->group(function () {
     
     // Dashboard
     Route::get('/dashboard', StudentDashboard::class)->name('dashboard');
