@@ -17,6 +17,7 @@ class UserSeeder extends \Illuminate\Database\Seeder
             'email' => 'superadmin@localhost',
             'password' => Hash::make('password'),
             'role' => 'superadmin',
+            'email_verified_at' => now(),
         ]);
 
         User::create([
@@ -24,6 +25,7 @@ class UserSeeder extends \Illuminate\Database\Seeder
             'email' => 'admin@localhost',
             'password' => Hash::make('password'),
             'role' => 'admin',
+            'email_verified_at' => now(),
         ]);
 
         User::create([
@@ -31,6 +33,7 @@ class UserSeeder extends \Illuminate\Database\Seeder
             'email' => 'student1@localhost',
             'password' => Hash::make('password'),
             'role' => 'student',
+            'email_verified_at' => now(),
         ]);
     }
 }
