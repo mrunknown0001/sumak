@@ -478,14 +478,14 @@
                     </div>
                 @endif
 
-                @if($document->processing_status === \App\Models\Document::PROCESSING_COMPLETED)
+                {{-- @if($document->processing_status === \App\Models\Document::PROCESSING_COMPLETED)
                     <div class="mt-4 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/60">
                         <div class="flex flex-col gap-3 text-sm text-slate-700 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
                             <div class="space-y-1">
                                 <p class="text-base font-semibold text-slate-900 dark:text-slate-100">Ready to take all quizzes for this learning material?</p>
-                                {{-- <p class="text-xs text-slate-500 dark:text-slate-400">
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
                                     {{ $eligibleQuizCount }} {{ Str::plural('topic quiz', $eligibleQuizCount) }} available. Start a batch session to attempt them sequentially.
-                                </p> --}}
+                                </p>
                                 @if($canquiz)
                                     <p class="text-xs text-red-500 dark:text-red-400">
                                         You've used all 3 attempts on this course.
@@ -494,7 +494,7 @@
                             </div>
                             <button
                                 wire:click="startMaterialQuizBatch({{ $document->id }})"
-                                {{-- @disabled($eligibleQuizCount === 0) --}}
+                                @disabled($eligibleQuizCount === 0)
                                 @disabled($canquiz)
                                 class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:disabled:bg-slate-700"
                             >
@@ -505,7 +505,7 @@
                             </button>
                         </div>
                     </div>
-                @endif
+                @endif --}}
             </article>
         @empty
             <div class="rounded-3xl border border-slate-200/70 bg-white/90 p-12 text-center shadow-md dark:border-slate-800/70 dark:bg-slate-900/70">

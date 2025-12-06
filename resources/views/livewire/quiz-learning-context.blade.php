@@ -154,7 +154,7 @@
         </section>
     @endif
 
-    {{-- <section class="rounded-3xl border border-emerald-200/70 from-emerald-50 via-white to-blue-50 p-8 shadow-lg shadow-emerald-500/10 dark:border-emerald-500/40 dark:from-emerald-900/30 dark:via-slate-900/70 dark:to-blue-900/30">
+    <section class="rounded-3xl border border-emerald-200/70 from-emerald-50 via-white to-blue-50 p-8 shadow-lg shadow-emerald-500/10 dark:border-emerald-500/40 dark:from-emerald-900/30 dark:via-slate-900/70 dark:to-blue-900/30">
         <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div class="space-y-2">
                 <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Ready to take the quiz?</h2>
@@ -183,5 +183,5 @@
                 </button>
             @endif
         </div>
-    </section> --}}
+    </section>
 </div>
