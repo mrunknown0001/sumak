@@ -38,7 +38,7 @@ class ProcessDocumentJob implements ShouldQueue
     public function handle(OpenAiService $openAiService): void
     {
         try {
-            $document = Document::findOrFail($this->documentId);
+            $document = Document::with('topic')->findOrFail($this->documentId);
 
             $document->update([
                 'processing_status' => Document::PROCESSING_IN_PROGRESS,
@@ -48,76 +48,63 @@ class ProcessDocumentJob implements ShouldQueue
 
             $content = $this->extractContent($document);
 
-            // Run content analysis (this returns structured topics)
-            $analysis = $openAiService->analyzeContent($content, $this->options['obtl_context'] ?? null);
+            $this->updateDocumentSummary($document, $content); // Use content as summary since no analysis
 
-            // Log::debug('Document analysis result', [
-            //     'document_id' => $document->id,
-            //     'topic_count' => count($analysis['topics'] ?? []),
-            // ]);
+            // Debug: Log topic information
+            Log::info('Document topic check', [
+                'document_id' => $document->id,
+                'topic_id' => $document->topic_id,
+                'topic_exists' => $document->topic ? true : false,
+                'topic_name' => $document->topic?->name,
+            ]);
 
-            $this->updateDocumentSummary($document, $analysis['content_summary'] ?? null);
-
-            $topics = $this->syncTopicsFromAnalysis($document, $analysis['topics'] ?? []);
-
-            // If frontend hasn't assigned topics to midterm/final yet, pause ToS generation
-            $midtermIds = $this->options['midterm_topics'] ?? null;
-            $finalIds = $this->options['final_topics'] ?? null;
-
-            if (!is_array($midtermIds) && !is_array($finalIds)) {
-                // No assignment provided — save state and exit so UI can prompt the user (B2 flow)
-                $document->update([
-                    'processing_status' => 'awaiting_topic_assignment', // frontend should set this option later
-                    'processed_at' => null,
-                    'processing_error' => null,
-                ]);
-
-                Log::info('Document processed topics; awaiting user assignment for Midterm/Final ToS', [
+            if (!$document->topic) {
+                Log::info('Document has no associated topic, creating default topic', [
                     'document_id' => $document->id,
-                    'extracted_topic_count' => $topics->count(),
+                    'document_course_id' => $document->course_id,
                 ]);
 
-                // Fire event so UI can react (optional)
-                // event(new DocumentProcessed($this->documentId));
+                // Create a default topic for the document
+                $topic = Topic::create([
+                    'document_id' => $document->id,
+                    'course_id' => $document->course_id,
+                    'name' => $document->title,
+                    'description' => $document->content_summary,
+                    'metadata' => [
+                        'recommended_question_count' => 4,
+                        'cognitive_emphasis' => 'understand',
+                        'key_concepts' => [],
+                        'supporting_notes' => null,
+                    ],
+                    'order_index' => 0,
+                ]);
 
-                return;
+                Log::info('Created topic', [
+                    'topic_id' => $topic->id,
+                    'document_id' => $topic->document_id,
+                ]);
+
+                // Associate the topic with the document
+                $document->update(['topic_id' => $topic->id]);
+
+                Log::info('Updated document topic_id', [
+                    'document_id' => $document->id,
+                    'topic_id' => $document->topic_id,
+                ]);
+
+                // Refresh document and load topic
+                $document->refresh();
+                $document->load('topic');
+
+                Log::info('Loaded topic relationship', [
+                    'document_topic' => $document->topic ? $document->topic->id : null,
+                ]);
             }
 
-            // Normalize provided arrays: if null => empty array
-            $midtermIds = is_array($midtermIds) ? array_values(array_filter($midtermIds, fn($v) => is_numeric($v) || is_string($v))) : [];
-            $finalIds = is_array($finalIds) ? array_values(array_filter($finalIds, fn($v) => is_numeric($v) || is_string($v))) : [];
+            // Since topic is predefined or just created, directly generate ToS for the topic
+            $this->syncTableOfSpecificationForTopic($document->topic, $content);
 
-            // Build collections scoped to chosen topic ids
-            $topicsById = $topics->keyBy('id');
-
-            $midtermTopics = collect($midtermIds)
-                ->map(fn($id) => $topicsById->get((int)$id))
-                ->filter()
-                ->values();
-
-            $finalTopics = collect($finalIds)
-                ->map(fn($id) => $topicsById->get((int)$id))
-                ->filter()
-                ->values();
-
-            // If either collection empty, log a warning but still proceed: empty ToS is allowed (or you can throw)
-            if ($midtermTopics->isEmpty()) {
-                Log::warning('Midterm topics array is empty or no matching topics found. Midterm ToS will be skipped or minimal', ['document_id' => $document->id]);
-            }
-            if ($finalTopics->isEmpty()) {
-                Log::warning('Final topics array is empty or no matching topics found. Final ToS will be skipped or minimal', ['document_id' => $document->id]);
-            }
-
-            // Generate ToS for each term (if non-empty)
-            if ($midtermTopics->isNotEmpty()) {
-                $this->syncTermTableOfSpecificationFromTopics($document, $midtermTopics, 'mid_term');
-            }
-
-            if ($finalTopics->isNotEmpty()) {
-                $this->syncTermTableOfSpecificationFromTopics($document, $finalTopics, 'final_term');
-            }
-
-            // Dispatch quiz generation for the full document (existing flow)
+            // Dispatch quiz generation for the document
             GenerateQuizQuestionsJob::dispatch($document->id);
 
             $document->update([
@@ -126,9 +113,7 @@ class ProcessDocumentJob implements ShouldQueue
                 'processing_error' => null,
             ]);
 
-            // event(new DocumentProcessed($this->documentId));
-
-            Log::info('Document processed successfully (with Midterm/Final ToS generation)', ['document_id' => $document->id]);
+            Log::info('Document processed successfully for topic', ['document_id' => $document->id, 'topic_id' => $document->topic->id]);
         } catch (\Exception $e) {
             $document = Document::find($this->documentId);
 
@@ -217,6 +202,84 @@ class ProcessDocumentJob implements ShouldQueue
      * @return TableOfSpecification|null
      * @throws RuntimeException
      */
+    protected function syncTableOfSpecificationForTopic(Topic $topic, string $materialContent): ?TableOfSpecification
+    {
+        // Remove any existing ToS for this topic
+        $existing = TableOfSpecification::where('topic_id', $topic->id)->first();
+
+        if ($existing) {
+            $existing->tosItems()->delete();
+            $existing->delete();
+        }
+
+        // Load learning outcomes from topic->course->obtlDocument->learningOutcomes
+        $topic->loadMissing('course.obtlDocument.learningOutcomes');
+
+        $learningOutcomes = optional(optional($topic->course)->obtlDocument)->learningOutcomes ?? collect();
+
+        if ($learningOutcomes->isEmpty()) {
+            Log::warning('Aborting ToS generation due to missing learning outcomes', [
+                'topic_id' => $topic->id,
+                'course_id' => $topic->course_id,
+            ]);
+
+            throw new RuntimeException("Learning outcomes are required before generating a table of specification for topic {$topic->id}.");
+        }
+
+        // Use topic's metadata for cognitive level and recommended questions
+        $metadata = $topic->metadata ?? [];
+        $recommended = (int) ($metadata['recommended_question_count'] ?? 4);
+        $totalItems = max(1, $recommended);
+
+        // Get cognitive level from topic metadata or default
+        $cognitive = $this->normalizeCognitiveLevel($metadata['cognitive_emphasis'] ?? 'understand');
+
+        // Resolve learning outcome for the topic
+        $learningOutcome = $this->resolveLearningOutcomeForTopic($topic, $learningOutcomes);
+
+        if (!$learningOutcome) {
+            Log::warning('Failed to resolve learning outcome for topic; using first available outcome', [
+                'topic_id' => $topic->id,
+            ]);
+
+            $learningOutcome = $learningOutcomes->first();
+        }
+
+        // Create ToS for the topic
+        $tos = TableOfSpecification::create([
+            'course_id' => $topic->course_id,
+            'topic_id' => $topic->id,
+            'document_id' => $topic->document_id,
+            'term' => 'topic_based', // or null?
+            'total_items' => $totalItems,
+            'lots_percentage' => 100, // assuming LOTS for now
+            'cognitive_level_distribution' => [$cognitive => 100],
+            'assessment_focus' => 'Topic-specific assessment',
+            'generated_at' => now(),
+        ]);
+
+        // Create TosItem
+        TosItem::create([
+            'tos_id' => $tos->id,
+            'topic_id' => $topic->id,
+            'learning_outcome_id' => $learningOutcome?->id,
+            'cognitive_level' => $cognitive,
+            'bloom_category' => $this->mapCognitiveToBloom($cognitive),
+            'num_items' => $totalItems,
+            'weight_percentage' => 100,
+            'sample_indicators' => $metadata['key_concepts'] ?? [],
+        ]);
+
+        Log::info('Created Table of Specification for topic', [
+            'topic_id' => $topic->id,
+            'tos_id' => $tos->id,
+            'total_items' => $totalItems,
+            'cognitive_level' => $cognitive,
+        ]);
+
+        return $tos;
+    }
+
     protected function syncTermTableOfSpecificationFromTopics(Document $document, Collection $topics, string $termKey): ?TableOfSpecification
     {
         // Remove any existing ToS rows for this document+term

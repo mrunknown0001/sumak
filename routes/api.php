@@ -39,9 +39,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{course}', [CourseController::class, 'show']);
         Route::put('/{course}', [CourseController::class, 'update']);
         Route::delete('/{course}', [CourseController::class, 'destroy']);
-        
-        // Documents within courses
-        Route::post('/{course}/documents', [DocumentController::class, 'store']);
+    });
+
+    // Topics
+    Route::prefix('topics')->group(function () {
+        // Documents within topics
+        Route::post('/{topic}/documents', [DocumentController::class, 'store']);
     });
     
     // Documents

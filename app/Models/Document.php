@@ -19,6 +19,7 @@ class Document extends Model
 
     protected $fillable = [
         'course_id',
+        'topic_id',
         'user_id',
         'title',
         'file_path',
@@ -47,6 +48,22 @@ class Document extends Model
     ];
 
     /**
+     * Get the topic that owns the document
+     */
+    public function topic(): BelongsTo
+    {
+        return $this->belongsTo(Topic::class);
+    }
+
+    /**
+     * Get all topics for this document
+     */
+    public function topics(): HasMany
+    {
+        return $this->hasMany(Topic::class);
+    }
+
+    /**
      * Get the course that owns the document
      */
     public function course(): BelongsTo
@@ -63,15 +80,7 @@ class Document extends Model
     }
 
     /**
-     * Get all topics
-     */
-    public function topics(): HasMany
-    {
-        return $this->hasMany(Topic::class)->orderBy('order_index');
-    }
-
-    /**
-     * Get the table of specification
+     * Get the table of specification for this document
      */
     public function tableOfSpecification(): HasOne
     {
@@ -83,16 +92,7 @@ class Document extends Model
      */
     public function hasTos(): bool
     {
-        return $this->tableOfSpecification()->exists();
-    }
-
-    /**
-     * Get total number of topics
-     */
-    public function getTotalTopicsAttribute(): int
-    {
-        return $this->topics()
-            ->count();
+        return $this->topic && $this->topic->tableOfSpecification()->exists();
     }
 
     /**

@@ -14,25 +14,10 @@ class DocumentProcessingController extends Controller
      */
     public function assignTopics(Request $request, Document $document)
     {
-        $request->validate([
-            'midterm_topics' => 'required|array',
-            'final_topics'   => 'required|array',
-            'midterm_topics.*' => 'integer|exists:topics,id',
-            'final_topics.*'   => 'integer|exists:topics,id',
-        ]);
-
-        // Dispatch the continuation job
-        ProcessDocumentJob::dispatch($document->id, [
-            'midterm_topics' => $request->midterm_topics,
-            'final_topics'   => $request->final_topics,
-        ]);
-
-        $document->update([
-            'processing_status' => 'processing_topics_assigned',
-        ]);
-
+        // Since topics are predefined, assignment is not needed
+        // But for backward compatibility, return success
         return response()->json([
-            'message' => 'Topic assignment received. Generating Midterm/Final ToS and Quiz Items...',
+            'message' => 'Document processing is already in progress.',
             'document_id' => $document->id
         ]);
     }
@@ -59,13 +44,11 @@ class DocumentProcessingController extends Controller
      */
     public function topics(Document $document)
     {
-        $topics = $document->topics()
-            ->orderBy('order_index')
-            ->get(['id', 'name', 'order_index', 'metadata']);
+        $topic = $document->topic;
 
         return response()->json([
             'document_id' => $document->id,
-            'topics' => $topics,
+            'topics' => $topic ? [$topic->only(['id', 'name', 'metadata'])] : [],
         ]);
     }
 
@@ -76,14 +59,13 @@ class DocumentProcessingController extends Controller
      */
     public function tos(Document $document)
     {
-        $tos = $document->tableOfSpecifications()
+        $tos = $document->topic->tableOfSpecification()
             ->with(['tosItems.topic', 'tosItems.learningOutcome'])
-            ->orderBy('term')
-            ->get();
+            ->first();
 
         return response()->json([
             'document_id' => $document->id,
-            'tos' => $tos
+            'tos' => $tos ? [$tos] : []
         ]);
     }
 
@@ -94,8 +76,8 @@ class DocumentProcessingController extends Controller
      */
     public function itemBank(Document $document)
     {
-        $items = $document->quizQuestions()
-            ->orderBy('topic_id')
+        $items = $document->topic->items()
+            ->orderBy('created_at')
             ->get();
 
         return response()->json([

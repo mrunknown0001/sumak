@@ -86,7 +86,7 @@
 
             @if (!$obtlDocument)
                 @if ($this->canManageCourse)
-                    <form wire:submit.prevent="uploadObtl" class="space-y-5">
+                    <form wire:submit.prevent="uploadObtl" enctype="multipart/form-data" class="space-y-5">
                         <div class="space-y-2">
                             <label for="obtlUpload" class="text-sm font-medium text-slate-700 dark:text-slate-300">
                                 Select PDF file <span class="text-red-500">*</span>
@@ -314,7 +314,7 @@
                     Only the course creator can upload learning materials.
                 </div>
             @else
-                <form wire:submit.prevent="uploadMaterial" class="space-y-5">
+                <form wire:submit.prevent="uploadMaterial" enctype="multipart/form-data" class="space-y-5">
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div class="space-y-2 sm:col-span-2">
                             <label for="materialTitle" class="text-sm font-medium text-slate-700 dark:text-slate-300">

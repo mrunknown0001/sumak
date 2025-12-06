@@ -113,6 +113,38 @@ class OpenAiService
     }
 
     /**
+     * Generate Table of Specification for OBTL (course-level)
+     *
+     * @param array $learningOutcomes
+     * @param array $topics
+     * @param int $totalItems
+     * @param string $term 'midterm'|'final'
+     * @return array
+     */
+    public function generateObtlTos(array $learningOutcomes, array $topics, int $totalItems = 20, string $term = 'midterm'): array
+    {
+        $prompt = $this->buildObtlTosPrompt($learningOutcomes, $topics, $totalItems, $term);
+
+        $response = $this->sendRequest([
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'You are an expert educational assessment designer specializing in Bloom\'s taxonomy and test blueprinting for Outcome-Based Teaching and Learning (OBTL).'
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $prompt
+                ]
+            ],
+            'temperature' => 0.0,
+            'top_p' => 0.0,
+            'response_format' => ['type' => 'json_object']
+        ], 'obtl_tos_generation');
+
+        return json_decode($response['content'] ?? '{}', true) ?? [];
+    }
+
+    /**
      * Generate quiz questions (STRICT engine)
      *
      * Accepts:
@@ -840,7 +872,7 @@ RULES;
     private function buildObtlParsingPrompt(string $obtlContent): string
     {
         return <<<PROMPT
-    From the OBTL document below, extract BOTH:
+    From the OBTL document below, extract THREE sections:
 
     1. **Document Title Information**
     - title
@@ -856,6 +888,13 @@ RULES;
     - cognitive_level (remember|understand|apply|analyze|evaluate|create)
     - bloom_category
     - suggested_assessment_methods
+
+    3. **Topics**
+    Extract midterm and final topics from the OBTL document. For each topic:
+    - name: short topic title
+    - description: brief description
+    - term: "midterm" or "final"
+    - order_index: sequential number for ordering
 
     Return JSON ONLY in this format:
 
@@ -875,11 +914,106 @@ RULES;
         "bloom_category": "",
         "suggested_assessment_methods": []
         }
+    ],
+    "topics": [
+        {
+        "name": "",
+        "description": "",
+        "term": "midterm",
+        "order_index": 1
+        }
     ]
     }
 
     OBTL Document:
     $obtlContent
+    PROMPT;
+    }
+
+    /**
+     * Build OBTL ToS generation prompt
+     */
+    private function buildObtlTosPrompt(array $learningOutcomes, array $topics, int $totalItems, string $term): string
+    {
+        $outcomesJson = json_encode($learningOutcomes, JSON_PRETTY_PRINT);
+        $topicsJson = json_encode($topics, JSON_PRETTY_PRINT);
+
+        return <<<PROMPT
+    Create a Table of Specification (ToS) for the {$term} term using the learning outcomes and topics below.
+
+    The ToS MUST follow the Revised Bloom's Taxonomy:
+    - remember
+    - understand
+    - apply
+    - analyze
+    - evaluate
+    - create
+
+    Learning Outcomes:
+    $outcomesJson
+
+    Topics:
+    $topicsJson
+
+    Total Number of Quiz Items: $totalItems
+
+    ------------------------------------------------
+    STRICT REQUIREMENTS (DO NOT VIOLATE)
+    ------------------------------------------------
+
+    1. **You MUST infer the cognitive level from the verb** of each learning outcome
+    Example mapping:
+    - remember → define, list, identify
+    - understand → explain, summarize, describe
+    - apply → compute, solve, demonstrate
+    - analyze → compare, differentiate, categorize
+    - evaluate → judge, critique, justify
+    - create → design, construct, formulate
+
+    2. **YOU MAY NOT assign all learning outcomes to the same cognitive level.**
+    Each outcome must use the correct Bloom level based on its verb.
+
+    3. **Final cognitive distribution must include at least FOUR different Bloom levels.**
+    You may NEVER produce a distribution that is only 1–2 levels.
+
+    4. **No cognitive level may exceed 40% of the total items.**
+
+    5. **Every cognitive level must have a minimum of 10% allocation.**
+    (Example for 20 items → at least 2 items per level)
+
+    6. The sum of all num_items MUST equal exactly **$totalItems**.
+
+    7. Weight percentage must sum to **100%**.
+
+    8. **Link topics to learning outcomes appropriately.** Each ToS item should reference a topic and a learning outcome.
+
+    9. DO NOT generate quiz questions, just define the cognitive framework.
+
+    ------------------------------------------------
+    RETURN JSON EXACTLY IN THIS FORMAT:
+    {
+    "table_of_specification": [
+        {
+        "topic": "topic name",
+        "learning_outcome": "specific outcome text",
+        "cognitive_level": "remember|understand|apply|analyze|evaluate|create",
+        "num_items": 2,
+        "weight_percentage": 10,
+        "sample_indicators": ["short observable competency"]
+        }
+    ],
+    "cognitive_distribution": {
+        "remember": 20,
+        "understand": 20,
+        "apply": 20,
+        "analyze": 20,
+        "evaluate": 10,
+        "create": 10
+    },
+    "total_items": $totalItems,
+    "term": "$term",
+    "assessment_focus": "2–3 sentence justification of how the ToS aligns with Bloom's taxonomy and the learning outcomes."
+    }
     PROMPT;
     }
 

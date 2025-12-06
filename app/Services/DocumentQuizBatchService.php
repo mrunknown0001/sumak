@@ -85,9 +85,9 @@ class DocumentQuizBatchService
     {
         $batch = session('quiz.batch');
 
-        Log::debug('Batch: currentBatch() raw session', [
-            'raw_batch' => $batch,
-        ]);
+        // Log::debug('Batch: currentBatch() raw session', [
+        //     'raw_batch' => $batch,
+        // ]);
 
         if (! is_array($batch)) {
             return null;

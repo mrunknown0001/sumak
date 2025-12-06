@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Topic extends Model
 {
@@ -13,6 +14,7 @@ class Topic extends Model
 
     protected $fillable = [
         'document_id',
+        'course_id',
         'name',
         'description',
         'metadata',
@@ -26,11 +28,27 @@ class Topic extends Model
     ];
 
     /**
+     * Get the course that owns the topic
+     */
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    /**
      * Get the document that owns the topic
      */
     public function document(): BelongsTo
     {
         return $this->belongsTo(Document::class);
+    }
+
+    /**
+     * Get all documents for this topic
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
     }
 
     /**
@@ -44,6 +62,14 @@ class Topic extends Model
     public function items(): HasMany
     {
         return $this->hasMany(ItemBank::class);
+    }
+
+    /**
+     * Get the table of specification for this topic
+     */
+    public function tableOfSpecification(): HasOne
+    {
+        return $this->hasOne(TableOfSpecification::class);
     }
 
     /**

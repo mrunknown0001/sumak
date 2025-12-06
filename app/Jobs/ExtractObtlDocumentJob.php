@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\ObtlDocument;
 use App\Services\OpenAiService;
+use App\Jobs\GenerateObtlTosJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -74,6 +75,21 @@ class ExtractObtlDocumentJob implements ShouldQueue
                 }
             }
 
+            // check if extraction has topics
+            if (isset($extraction['topics'])) {
+                foreach ($extraction['topics'] as $topicData) {
+                    $obtlDocument->course->topics()->create([
+                        'name' => $topicData['name'] ?? 'Untitled Topic',
+                        'description' => $topicData['description'] ?? '',
+                        'metadata' => [
+                            'term' => $topicData['term'] ?? 'midterm',
+                            'source' => 'obtl_extraction'
+                        ],
+                        'order_index' => $topicData['order_index'] ?? 0,
+                    ]);
+                }
+            }
+
             DB::commit();
 
             $obtlDocument->update([
@@ -81,6 +97,14 @@ class ExtractObtlDocumentJob implements ShouldQueue
                 'processed_at' => now(),
                 'error_message' => null,
             ]);
+
+            // Update course workflow stage
+            $obtlDocument->course->update([
+                'workflow_stage' => \App\Models\Course::WORKFLOW_STAGE_OBTL_PROCESSED,
+            ]);
+
+            // Dispatch ToS generation job
+            GenerateObtlTosJob::dispatch($obtlDocument->course_id);
 
             $obtlDocument->refresh();
 

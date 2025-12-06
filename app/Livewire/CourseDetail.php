@@ -493,23 +493,23 @@ class CourseDetail extends Component
         $activeDocumentId = $activeBatch['document_id'] ?? null;
         $activeQueue = collect($activeBatch['queue'] ?? []);
 
-        Log::debug('Batch: buildDocumentBatchMeta snapshot', [
-            'document_id_list' => $documents->pluck('id'),
-            'active_batch' => $activeBatch,
-            'meta_preview' => $documents->map(function ($document) use ($maxAttempts, $activeDocumentId, $activeQueue) {
-                return [
-                    'document_id' => $document->id,
-                    'topic_info' => $document->topics->map(function ($topic) {
-                        return [
-                            'id' => $topic->id,
-                            'name' => $topic->name,
-                            'items_count' => $topic->items_count,
-                            'user_attempts_count' => $topic->user_attempts_count,
-                        ];
-                    }),
-                ];
-            }),
-        ]);
+        // Log::debug('Batch: buildDocumentBatchMeta snapshot', [
+        //     'document_id_list' => $documents->pluck('id'),
+        //     'active_batch' => $activeBatch,
+        //     'meta_preview' => $documents->map(function ($document) use ($maxAttempts, $activeDocumentId, $activeQueue) {
+        //         return [
+        //             'document_id' => $document->id,
+        //             'topic_info' => $document->topics->map(function ($topic) {
+        //                 return [
+        //                     'id' => $topic->id,
+        //                     'name' => $topic->name,
+        //                     'items_count' => $topic->items_count,
+        //                     'user_attempts_count' => $topic->user_attempts_count,
+        //                 ];
+        //             }),
+        //         ];
+        //     }),
+        // ]);
 
         return $documents->map(function (Document $document) use ($maxAttempts, $activeDocumentId, $activeQueue) {
             $topics = $document->topics

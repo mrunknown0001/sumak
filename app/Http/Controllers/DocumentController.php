@@ -15,9 +15,9 @@ class DocumentController extends Controller
     /**
      * Upload and process a lecture document
      */
-    public function store(Request $request, Course $course): JsonResponse
+    public function store(Request $request, Topic $topic): JsonResponse
     {
-        $this->authorize('update', $course);
+        $this->authorize('update', $topic->course);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -33,7 +33,7 @@ class DocumentController extends Controller
             $path = $file->store('documents', 'public');
 
             $document = Document::create([
-                'course_id' => $course->id,
+                'topic_id' => $topic->id,
                 'user_id' => auth()->id(),
                 'title' => $validated['title'],
                 'file_path' => $path,
@@ -46,7 +46,7 @@ class DocumentController extends Controller
             ProcessDocumentJob::dispatch($document->id, [
                 'lecture_number' => $validated['lecture_number'] ?? null,
                 'hours_taught' => $validated['hours_taught'] ?? null,
-                'has_obtl' => $course->hasObtl(),
+                'has_obtl' => $topic->course->hasObtl(),
             ]);
 
             DB::commit();
@@ -82,8 +82,7 @@ class DocumentController extends Controller
         // $this->authorize('view', $document);
 
         $document->load([
-            'topics',
-            'course'
+            'topic.course'
         ]);
 
         return response()->json([
@@ -92,21 +91,21 @@ class DocumentController extends Controller
                 'title' => $document->title,
                 'file_size' => $document->formatted_file_size,
                 'uploaded_at' => $document->uploaded_at,
-                'has_tos' => $document->hasTos(),
+                'has_tos' => $document->topic->hasTos(),
                 'course' => [
-                    'id' => $document->course->id,
-                    'code' => $document->course->course_code,
-                    'title' => $document->course->course_title,
+                    'id' => $document->topic->course->id,
+                    'code' => $document->topic->course->course_code,
+                    'title' => $document->topic->course->course_title,
                 ],
-                'topics' => $document->topics->map(fn($t) => [
-                    'id' => $t->id,
-                    'name' => $t->name,
-                ]),
-                'table_of_specification' => $document->tableOfSpecification ? [
-                    'id' => $document->tableOfSpecification->id,
-                    'total_items' => $document->tableOfSpecification->total_items,
-                    'cognitive_distribution' => $document->tableOfSpecification->cognitive_distribution_summary,
-                    'items' => $document->tableOfSpecification->tosItems->map(fn($i) => [
+                'topic' => [
+                    'id' => $document->topic->id,
+                    'name' => $document->topic->name,
+                ],
+                'table_of_specification' => $document->topic->tableOfSpecification ? [
+                    'id' => $document->topic->tableOfSpecification->id,
+                    'total_items' => $document->topic->tableOfSpecification->total_items,
+                    'cognitive_distribution' => $document->topic->tableOfSpecification->cognitive_distribution_summary,
+                    'items' => $document->topic->tableOfSpecification->tosItems->map(fn($i) => [
                         'topic' => $i->topic->name,
                         'cognitive_level' => $i->cognitive_level,
                         'num_items' => $i->num_items,
@@ -125,23 +124,23 @@ class DocumentController extends Controller
     {
         // $this->authorize('view', $document);
 
-        $hasTopics = $document->topics()->exists();
-        $hasTos = $document->hasTos();
-        
+        $hasTopic = $document->topic()->exists();
+        $hasTos = $document->topic->hasTos();
+
         $itemsGenerated = 0;
         $totalItemsNeeded = 0;
 
         if ($hasTos) {
-            $tosItems = $document->tableOfSpecification->tosItems;
+            $tosItems = $document->topic->tableOfSpecification->tosItems;
             $totalItemsNeeded = $tosItems->sum('num_items');
-            
+
             foreach ($tosItems as $tosItem) {
                 $itemsGenerated += $tosItem->items()->count();
             }
         }
 
         $status = 'pending';
-        if (!$hasTopics) {
+        if (!$hasTopic) {
             $status = 'analyzing_content';
         } elseif (!$hasTos) {
             $status = 'generating_tos';
@@ -156,10 +155,10 @@ class DocumentController extends Controller
                 'document_id' => $document->id,
                 'status' => $status,
                 'progress' => [
-                    'content_analyzed' => $hasTopics,
+                    'content_analyzed' => $hasTopic,
                     'tos_generated' => $hasTos,
-                    'questions_generated' => $totalItemsNeeded > 0 
-                        ? round(($itemsGenerated / $totalItemsNeeded) * 100, 2) 
+                    'questions_generated' => $totalItemsNeeded > 0
+                        ? round(($itemsGenerated / $totalItemsNeeded) * 100, 2)
                         : 0,
                     'items_generated' => $itemsGenerated,
                     'total_items_needed' => $totalItemsNeeded,
