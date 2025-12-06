@@ -47,77 +47,19 @@ class ProcessDocumentJob implements ShouldQueue
             ]);
 
             $content = $this->extractContent($document);
-
-            // Run content analysis (this returns structured topics)
             $analysis = $openAiService->analyzeContent($content, $this->options['obtl_context'] ?? null);
 
-            // Log::debug('Document analysis result', [
-            //     'document_id' => $document->id,
-            //     'topic_count' => count($analysis['topics'] ?? []),
-            // ]);
+            Log::debug('Document analysis result', [
+                'document_id' => $document->id,
+                'topic_count' => count($analysis['topics'] ?? []),
+            ]);
 
             $this->updateDocumentSummary($document, $analysis['content_summary'] ?? null);
 
             $topics = $this->syncTopicsFromAnalysis($document, $analysis['topics'] ?? []);
 
-            // If frontend hasn't assigned topics to midterm/final yet, pause ToS generation
-            $midtermIds = $this->options['midterm_topics'] ?? null;
-            $finalIds = $this->options['final_topics'] ?? null;
+            $this->syncTableOfSpecificationFromTopics($document, $topics);
 
-            if (!is_array($midtermIds) && !is_array($finalIds)) {
-                // No assignment provided — save state and exit so UI can prompt the user (B2 flow)
-                $document->update([
-                    'processing_status' => 'awaiting_topic_assignment', // frontend should set this option later
-                    'processed_at' => null,
-                    'processing_error' => null,
-                ]);
-
-                Log::info('Document processed topics; awaiting user assignment for Midterm/Final ToS', [
-                    'document_id' => $document->id,
-                    'extracted_topic_count' => $topics->count(),
-                ]);
-
-                // Fire event so UI can react (optional)
-                // event(new DocumentProcessed($this->documentId));
-
-                return;
-            }
-
-            // Normalize provided arrays: if null => empty array
-            $midtermIds = is_array($midtermIds) ? array_values(array_filter($midtermIds, fn($v) => is_numeric($v) || is_string($v))) : [];
-            $finalIds = is_array($finalIds) ? array_values(array_filter($finalIds, fn($v) => is_numeric($v) || is_string($v))) : [];
-
-            // Build collections scoped to chosen topic ids
-            $topicsById = $topics->keyBy('id');
-
-            $midtermTopics = collect($midtermIds)
-                ->map(fn($id) => $topicsById->get((int)$id))
-                ->filter()
-                ->values();
-
-            $finalTopics = collect($finalIds)
-                ->map(fn($id) => $topicsById->get((int)$id))
-                ->filter()
-                ->values();
-
-            // If either collection empty, log a warning but still proceed: empty ToS is allowed (or you can throw)
-            if ($midtermTopics->isEmpty()) {
-                Log::warning('Midterm topics array is empty or no matching topics found. Midterm ToS will be skipped or minimal', ['document_id' => $document->id]);
-            }
-            if ($finalTopics->isEmpty()) {
-                Log::warning('Final topics array is empty or no matching topics found. Final ToS will be skipped or minimal', ['document_id' => $document->id]);
-            }
-
-            // Generate ToS for each term (if non-empty)
-            if ($midtermTopics->isNotEmpty()) {
-                $this->syncTermTableOfSpecificationFromTopics($document, $midtermTopics, 'mid_term');
-            }
-
-            if ($finalTopics->isNotEmpty()) {
-                $this->syncTermTableOfSpecificationFromTopics($document, $finalTopics, 'final_term');
-            }
-
-            // Dispatch quiz generation for the full document (existing flow)
             GenerateQuizQuestionsJob::dispatch($document->id);
 
             $document->update([
@@ -128,7 +70,7 @@ class ProcessDocumentJob implements ShouldQueue
 
             // event(new DocumentProcessed($this->documentId));
 
-            Log::info('Document processed successfully (with Midterm/Final ToS generation)', ['document_id' => $document->id]);
+            Log::info('Document processed successfully', ['document_id' => $document->id]);
         } catch (\Exception $e) {
             $document = Document::find($this->documentId);
 
@@ -173,7 +115,6 @@ class ProcessDocumentJob implements ShouldQueue
 
     protected function syncTopicsFromAnalysis(Document $document, array $topicsData): Collection
     {
-        // remove existing topics for this document (preserve DB integrity)
         $document->topics()->delete();
 
         return collect($topicsData)
@@ -208,36 +149,23 @@ class ProcessDocumentJob implements ShouldQueue
             });
     }
 
-    /**
-     * Generate a Table of Specification for a specific term (mid_term | final_term).
-     *
-     * @param Document $document
-     * @param Collection|Topic[] $topics Collection of Topic model instances to include
-     * @param string $termKey 'mid_term' | 'final_term' (used for labeling)
-     * @return TableOfSpecification|null
-     * @throws RuntimeException
-     */
-    protected function syncTermTableOfSpecificationFromTopics(Document $document, Collection $topics, string $termKey): ?TableOfSpecification
+    protected function syncTableOfSpecificationFromTopics(Document $document, Collection $topics): ?TableOfSpecification
     {
-        // Remove any existing ToS rows for this document+term
-        $existing = \App\Models\TableOfSpecification::where('document_id', $document->id)
-            ->where('term', $termKey)
-            ->first();
+        $existingTos = $document->tableOfSpecification;
 
-        if ($existing) {
-            $existing->tosItems()->delete();
-            $existing->delete();
+        if ($existingTos) {
+            $existingTos->tosItems()->delete();
+            $existingTos->delete();
         }
 
         if ($topics->isEmpty()) {
-            Log::warning('Skipping ToS generation due to empty topic set for term', [
+            Log::warning('Skipping ToS generation due to empty topic set', [
                 'document_id' => $document->id,
-                'term' => $termKey,
             ]);
+
             return null;
         }
 
-        // Load learning outcomes from document->course->obtlDocument->learningOutcomes
         $document->loadMissing('course.obtlDocument.learningOutcomes');
 
         $learningOutcomes = optional(optional($document->course)->obtlDocument)->learningOutcomes ?? collect();
@@ -246,10 +174,9 @@ class ProcessDocumentJob implements ShouldQueue
             Log::warning('Aborting ToS generation due to missing learning outcomes', [
                 'document_id' => $document->id,
                 'course_id' => $document->course_id,
-                'term' => $termKey,
             ]);
 
-            throw new RuntimeException("Learning outcomes are required before generating a table of specification for document {$document->id} (term={$termKey}).");
+            throw new RuntimeException("Learning outcomes are required before generating a table of specification for document {$document->id}.");
         }
 
         $totalItems = (int) $topics->sum(function (Topic $topic) {
@@ -282,7 +209,6 @@ class ProcessDocumentJob implements ShouldQueue
                 Log::warning('Failed to resolve learning outcome for topic; using first available outcome', [
                     'document_id' => $document->id,
                     'topic_id' => $topic->id,
-                    'term' => $termKey,
                 ]);
 
                 $learningOutcome = $learningOutcomes->first();
@@ -292,6 +218,7 @@ class ProcessDocumentJob implements ShouldQueue
             $rawCognitiveSource = $learningOutcome->bloom_level ?? ($metadata['cognitive_emphasis'] ?? null);
             $cognitive = $this->normalizeCognitiveLevel($rawCognitiveSource ?? 'understand');
 
+            // Accumulate counts for distribution
             if (! array_key_exists($cognitive, $counts)) {
                 $cognitive = 'understand';
             }
@@ -312,11 +239,8 @@ class ProcessDocumentJob implements ShouldQueue
             $distribution[$level] = $totalItems > 0 ? round(($count / $totalItems) * 100, 2) : 0;
         }
 
-        // Create ToS row with term label
         $tos = TableOfSpecification::create([
             'document_id' => $document->id,
-            'term' => $termKey, // new label: 'mid_term' or 'final_term'
-            'term_name' => $termKey === 'mid_term' ? 'Midterm Table of Specification' : 'Final Table of Specification',
             'total_items' => $totalItems,
             'lots_percentage' => 100,
             'cognitive_level_distribution' => $distribution,
@@ -344,10 +268,9 @@ class ProcessDocumentJob implements ShouldQueue
             ]);
         }
 
-        Log::info('Created term-level Table of Specification', [
+        Log::info('Created topic-level Table of Specification', [
             'document_id' => $document->id,
             'tos_id' => $tos->id,
-            'term' => $termKey,
             'total_items' => $totalItems,
             'topic_count' => $topics->count(),
             'distribution' => $distribution,
@@ -369,6 +292,7 @@ class ProcessDocumentJob implements ShouldQueue
     {
         $level = is_string($value) ? strtolower(trim($value)) : '';
 
+        // Normalize known variations and synonyms to the canonical six levels
         return match ($level) {
             'remember', 'recall', 'knowledge' => 'remember',
             'understand', 'comprehension', 'comprehend' => 'understand',

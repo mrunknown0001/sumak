@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
+use App\Http\Controllers\DocumentProcessingController;
 
 Route::get('/', function () {
     return view('home');
@@ -71,6 +72,17 @@ Route::middleware(['auth', 'student', 'verified'])->prefix('student')->name('stu
     Route::get('/quiz/{topic}', TakeQuiz::class)->name('quiz.take');
     Route::get('/quiz/{attempt}/result', QuizResult::class)->name('quiz.result');
     Route::post('/quiz/{subtopic}/regenerate', [QuizRegenerationController::class, 'regenerate'])->name('quiz.regenerate');
+
+    // Assign midterm/final topics
+    Route::post('/documents/{document}/assign-topics', [DocumentProcessingController::class, 'assignTopics']);
+    // Poll processing status
+    Route::get('/documents/{document}/status', [DocumentProcessingController::class, 'status']);
+    // Get topics for assignment modal
+    Route::get('/documents/{document}/topics', [DocumentProcessingController::class, 'topics']);
+    // Retrieve generated ToS (midterm + final)
+    Route::get('/documents/{document}/tos', [DocumentProcessingController::class, 'tos']);
+    // Retrieve ItemBank / Quiz Questions
+    Route::get('/documents/{document}/items', [DocumentProcessingController::class, 'itemBank']);
 });
 
 

@@ -45,9 +45,13 @@ class CourseDetail extends Component
     public bool $isPolling = false;
     public string $lastPolledAt = '';
     public int $pollCount = 0;
+
+    // Listeners: include modal-driven polling control (stopPolling/startPolling)
     protected $listeners = [
         'materialUploaded' => '$refresh',
         'documentProcessed' => 'reloadDocuments',
+        'stopPolling' => 'stopMaterialPolling',
+        'startPolling' => 'startMaterialPolling',
     ];
 
     public bool $materialProcessing = false;
@@ -279,10 +283,10 @@ class CourseDetail extends Component
             }
         } catch (\Exception $e) {
             $this->pollingErrors[] = '🔄 Error checking OBTL status: ' . $e->getMessage();
-            
+
             // Log the error but don't stop polling for temporary issues
             report($e);
-            
+
             // If we've had too many consecutive errors, stop polling
             if ($this->pollCount >= 5) {
                 $this->pollingActive = false;
@@ -305,7 +309,7 @@ class CourseDetail extends Component
         $this->pollCount = 0;
         $this->pollingErrors = [];
         $this->lastPolledAt = now()->format('H:i:s');
-        
+
         session()->flash('message', '🔄 Started monitoring OBTL processing status. Updates will appear automatically.');
     }
 
@@ -342,6 +346,42 @@ class CourseDetail extends Component
         }
 
         return 'waiting';
+    }
+
+    /**
+     * Modal-driven polling control (P2: pause BOTH OBTL and material polling)
+     * Called when topic assignment modal opens
+     */
+    public function stopMaterialPolling(): void
+    {
+        // Pause both OBTL extraction polling and material processing polling
+        $this->pollingActive = false;
+        $this->materialProcessing = false;
+        $this->isPolling = false;
+    }
+
+    /**
+     * Modal-driven polling control (resume both OBTL and material polling if needed)
+     * Called when modal closes or after topic assignment completes
+     */
+    public function startMaterialPolling(): void
+    {
+        // Resume OBTL polling if there is an OBTL document still processing
+        if ($this->course->obtlDocument &&
+            $this->course->obtlDocument->processing_status !== ObtlDocument::PROCESSING_COMPLETED
+        ) {
+            $this->pollingActive = true;
+            $this->pollingStartedAt = now();
+        }
+
+        // Resume material polling if there are documents still processing
+        $this->hasProcessingDocuments = $this->course->documents()
+            ->where('processing_status', '!=', Document::PROCESSING_COMPLETED)
+            ->exists();
+
+        if ($this->hasProcessingDocuments) {
+            $this->materialProcessing = true;
+        }
     }
 
     public function startMaterialQuizBatch(int $documentId): RedirectResponse|Redirector|null
