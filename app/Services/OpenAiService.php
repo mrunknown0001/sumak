@@ -1099,13 +1099,13 @@ RULES;
                 $report['form_errors'][] = "Question #{$qIndex} question_type must be 'multiple_choice'.";
             }
 
-            // question_text starts with What/Which
-            // if (!isset($q['question_text']) || !preg_match('/^(What|Which)\b/i', trim($q['question_text']))) {
-            //     $report['form_errors'][] = "Question #{$qIndex} question_text must begin with 'What' or 'Which'.";
-            // }
+            // question_text starts with allowed interrogatives
+            if (!isset($q['question_text']) || !preg_match('/^(What|Which|How many|How much)\b/i', trim($q['question_text']))) {
+                $report['form_errors'][] = "Question #{$qIndex} question_text must begin with 'What', 'Which', 'How many', or 'How much'.";
+            }
 
-            // banned interrogatives
-            if (preg_match('/\b(How|Why|Where|When|Explain|Describe)\b/i', $q['question_text'])) {
+            // banned interrogatives (excluding allowed How many/much)
+            if (preg_match('/\b(Why|Where|When|Explain|Describe)\b/i', $q['question_text'])) {
                 $report['form_errors'][] = "Question #{$qIndex} contains banned interrogative.";
             }
 
