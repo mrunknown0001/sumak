@@ -321,7 +321,47 @@
             </div>
         </div>
     @else
-        <div class="mx-auto max-w-3xl space-y-6">
+        <div class="mx-auto max-w-4xl space-y-6">
+            <!-- Question Navigation -->
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-lg shadow-emerald-500/5 dark:border-slate-800/70 dark:bg-slate-900/70">
+                <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Questions</h3>
+                <div class="flex flex-col gap-2 max-h-96 overflow-y-auto">
+                    @for ($i = 0; $i < $items->count(); $i++)
+                        @php
+                            $status = $this->getQuestionStatus($i);
+                            $statusClasses = match ($status) {
+                                'answered' => 'bg-emerald-500 text-white',
+                                'skipped' => 'bg-amber-500 text-white',
+                                'not_visited' => 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+                                default => 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                            };
+                            $isCurrent = $i === $currentQuestionIndex;
+                        @endphp
+                        <button
+                            wire:click="goToQuestion({{ $i }})"
+                            class="flex h-10 w-full items-center justify-center rounded-lg text-sm font-semibold transition {{ $statusClasses }} {{ $isCurrent ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-slate-900' : 'hover:scale-105' }}"
+                        >
+                            Question {{ $i + 1 }}
+                        </button>
+                    @endfor
+                </div>
+                <div class="mt-4 flex flex-wrap gap-4 text-xs font-medium text-slate-600 dark:text-slate-300">
+                    <span class="flex items-center gap-2">
+                        <div class="h-3 w-3 rounded bg-emerald-500"></div>
+                        Answered
+                    </span>
+                    <span class="flex items-center gap-2">
+                        <div class="h-3 w-3 rounded bg-amber-500"></div>
+                        Skipped
+                    </span>
+                    <span class="flex items-center gap-2">
+                        <div class="h-3 w-3 rounded bg-slate-200 dark:bg-slate-700"></div>
+                        Not Visited
+                    </span>
+                </div>
+            </div>
+
+            <div class="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-lg shadow-emerald-500/5 dark:border-slate-800/70 dark:bg-slate-900/70">
             @if($timerMode !== 'no_time_limit')
                 <div class="rounded-2xl border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
                     <div class="mb-2 flex items-center justify-between text-sm font-semibold text-slate-600 dark:text-slate-300">
@@ -385,13 +425,21 @@
                             @endforeach
                         </div>
 
-                        <button
-                            wire:click="submitAnswer"
-                            @disabled(!$selectedAnswer)
-                            class="mt-6 w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:disabled:bg-slate-700"
-                        >
-                            Submit Answer
-                        </button>
+                        <div class="mt-6 flex gap-3">
+                            <button
+                                wire:click="submitAnswer"
+                                @disabled(!$selectedAnswer)
+                                class="flex-1 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:disabled:bg-slate-700"
+                            >
+                                Submit Answer
+                            </button>
+                            <button
+                                wire:click="skipQuestion"
+                                class="flex-1 rounded-xl border border-slate-300/70 bg-slate-100/70 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                            >
+                                Skip Question
+                            </button>
+                        </div>
                     @else
                         <div class="mt-6 rounded-2xl border-2 p-5 shadow-sm {{ $isCorrect ? 'border-emerald-300 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/60 dark:bg-emerald-900/20 dark:text-emerald-200' : 'border-rose-300 bg-rose-50/80 text-rose-700 dark:border-rose-500/60 dark:bg-rose-900/20 dark:text-rose-200' }}">
                             <p class="text-lg font-semibold">
@@ -407,12 +455,22 @@
                             @endif
                         </div>
 
-                        <button
-                            wire:click="nextQuestion"
-                            class="mt-6 w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400"
-                        >
-                            {{ $currentQuestionIndex + 1 < $items->count() ? 'Next Question' : 'Complete Quiz' }}
-                        </button>
+                        <div class="mt-6 flex gap-3">
+                            <button
+                                wire:click="nextQuestion"
+                                @disabled($currentQuestionIndex + 1 >= $items->count())
+                                class="flex-1 rounded-xl bg-slate-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-500 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-slate-500 dark:hover:bg-slate-400 dark:disabled:bg-slate-700"
+                            >
+                                Next Question
+                            </button>
+                            <button
+                                wire:click="completeQuiz"
+                                @disabled(!$this->canCompleteQuiz())
+                                class="flex-1 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:disabled:bg-slate-700"
+                            >
+                                Complete Quiz
+                            </button>
+                        </div>
                     @endif
                 @endif
             </div>
