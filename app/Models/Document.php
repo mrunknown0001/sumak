@@ -26,6 +26,7 @@ class Document extends Model
         'file_type',
         'file_size',
         'content_summary',
+        'short_content_summary',
         'uploaded_at',
         'processing_status',
         'processed_at',

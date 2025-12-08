@@ -423,7 +423,7 @@
 
 
 
-                @if($document->content_summary)
+                @if($document->short_content_summary)
                     <div class="mt-4 rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 text-sm text-blue-100 dark:border-blue-500/40 dark:bg-blue-900/20 dark:text-blue-900">
                         <h4 class="mb-2 flex items-center gap-2 text-sm font-semibold">
                             <svg class="h-4 w-4 text-blue-300 dark:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -431,7 +431,7 @@
                             </svg>
                             Lecture Summary
                         </h4>
-                        <p>{{ $document->content_summary }}</p>
+                        <p>{{ $document->short_content_summary }}</p>
                     </div>
                 @endif
 

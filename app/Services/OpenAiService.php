@@ -22,7 +22,7 @@ class OpenAiService
     {
         $this->apiKey = config('services.openai.api_key') ?? env('OPENAI_API_KEY', '');
         $this->apiUrl = config('services.openai.api_url', 'https://api.openai.com/v1/chat/completions');
-        $this->model = config('services.openai.model', 'gpt-4.1');
+        $this->model = config('services.openai.model', 'gpt-3.5-turbo');
         $this->maxRetries = (int) config('services.openai.max_retries', 3);
         $this->timeout = (int) config('services.openai.timeout', 120);
         $this->costPer1k = (float) config('services.openai.cost_per_1k_tokens', 0.002);
@@ -1453,5 +1453,63 @@ INSTR;
                 ->get()
                 ->keyBy('request_type')
         ];
+    }
+
+
+    public function shortenText(string $text, int $maxLength = 300): string
+    {
+        if (strlen($text) <= $maxLength) {
+            return $text;
+        }
+
+        try {
+            $prompt = "Summarize the following text in approximately {$maxLength} characters or less, preserving key information:\n\n{$text}";
+
+            $response = $this->sendRequest([
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You are a helpful assistant that summarizes text concisely while preserving key information.'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt
+                    ]
+                ],
+                'temperature' => 0.3,
+                'max_tokens' => 300
+            ], 'text_shortening');
+
+            $shortenedText = trim($response['content'] ?? '');
+
+            if (empty($shortenedText)) {
+                Log::warning('OpenAI returned empty content for text shortening');
+                return $text; // fallback to original
+            }
+
+            // Ensure we didn't exceed the max length
+            if (strlen($shortenedText) > $maxLength) {
+                $shortenedText = substr($shortenedText, 0, $maxLength);
+                $lastSpace = strrpos($shortenedText, ' ');
+                if ($lastSpace !== false) {
+                    $shortenedText = substr($shortenedText, 0, $lastSpace) . '...';
+                }
+            }
+
+            return $shortenedText;
+        } catch (Exception $e) {
+            Log::error('Failed to shorten text via OpenAI', [
+                'error' => $e->getMessage(),
+                'text_length' => strlen($text),
+                'max_length' => $maxLength
+            ]);
+            // Fallback: truncate manually if API fails
+            $truncated = substr($text, 0, $maxLength);
+            $lastSpace = strrpos($truncated, ' ');
+            if ($lastSpace !== false) {
+                $truncated = substr($truncated, 0, $lastSpace) . '...';
+            }
+            return $truncated;
+        }
     }
 }

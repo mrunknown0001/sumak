@@ -47,8 +47,8 @@ class ProcessDocumentJob implements ShouldQueue
             ]);
 
             $content = $this->extractContent($document);
-
-            $this->updateDocumentSummary($document, $content); // Use content as summary since no analysis
+            $shortened = $openAiService->shortenText($content);
+            $this->updateDocumentSummary($document, $content, $shortened); // Use content as summary since no analysis
 
             // Debug: Log topic information
             Log::info('Document topic check', [
@@ -147,12 +147,23 @@ class ProcessDocumentJob implements ShouldQueue
         return $content;
     }
 
-    protected function updateDocumentSummary(Document $document, ?string $summary): void
+    protected function updateDocumentSummary(Document $document, ?string $summary, ?string $shortened): void
     {
         $summary = is_string($summary) ? trim($summary) : null;
+        $shortened = is_string($shortened) ? trim($shortened) : null;
 
         if ($summary && $summary !== $document->content_summary) {
-            $document->update(['content_summary' => $summary]);
+            Log::info('Summary Updated');
+            $document->update([
+                'content_summary' => $summary
+            ]);
+        }
+
+        if ($shortened && $shortened !== $document->short_content_summary) {
+            Log::info('Shortened Summary Updated');
+            $document->update([
+                'short_content_summary' => $shortened
+            ]);
         }
     }
 

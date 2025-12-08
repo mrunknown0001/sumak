@@ -31,6 +31,7 @@ return new class extends Migration
             $table->string('file_type', 50)->default('pdf');
             $table->unsignedBigInteger('file_size')->default(0);
             $table->text('content_summary')->nullable();
+            $table->text('short_content_summary')->nullable();
             $table->timestamp('uploaded_at');
             $table->timestamps();
             

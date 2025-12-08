@@ -114,7 +114,7 @@ class StudentDashboardController extends Controller
             ->get()
             ->map(function ($attempt) use ($student) {
                 $attemptsCount = QuizAttempt::where('user_id', $student->id)
-                    ->where('topic_id', $attempt->topic_id)
+                    // ->where('topic_id', $attempt->topic_id)
                     ->count();
 
                 $abilityEstimate = $this->irtService->estimateAbilityFromAttempt($attempt);
@@ -167,11 +167,18 @@ class StudentDashboardController extends Controller
      */
     private function getOverallStats($student)
     {
+        // // Last Query for $totalQuizes
+        // $totalQuizzes = QuizAttempt::where('quiz_attempts.user_id', $student->id)
+        //     ->whereNotNull('completed_at')
+        //     ->join('topics', 'quiz_attempts.topic_id', '=', 'topics.id')
+        //     ->join('documents', 'topics.document_id', '=', 'documents.id')
+        //     ->distinct('documents.course_id')
+        //     ->count();
         $totalQuizzes = QuizAttempt::where('quiz_attempts.user_id', $student->id)
             ->whereNotNull('completed_at')
-            ->join('topics', 'quiz_attempts.topic_id', '=', 'topics.id')
-            ->join('documents', 'topics.document_id', '=', 'documents.id')
-            ->distinct('documents.course_id')
+            // ->join('topics', 'quiz_attempts.topic_id', '=', 'topics.id')
+            // ->join('documents', 'topics.document_id', '=', 'documents.id')
+            // ->distinct('documents.course_id')
             ->count();
 
         $avgAccuracy = QuizAttempt::where('user_id', $student->id)

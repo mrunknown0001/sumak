@@ -45,14 +45,14 @@ class GenerateQuizQuestionsJob implements ShouldQueue
 
             // Use full content if possible — summaries are unreliable for strict extraction.
             $materialContent = $document->content ?? $document->content_summary ?? $document->title;
-            Log::info("Material content for AI generation", [
-                'document_id' => $document->id,
-                'content_length' => strlen($materialContent),
-                'content_preview' => substr($materialContent, 0, 500),
-                'is_full_content' => $document->content !== null,
-                'is_summary' => $document->content_summary !== null,
-                'is_title_fallback' => $document->content === null && $document->content_summary === null,
-            ]);
+            // Log::info("Material content for AI generation", [
+            //     'document_id' => $document->id,
+            //     'content_length' => strlen($materialContent),
+            //     'content_preview' => substr($materialContent, 0, 500),
+            //     'is_full_content' => $document->content !== null,
+            //     'is_summary' => $document->content_summary !== null,
+            //     'is_title_fallback' => $document->content === null && $document->content_summary === null,
+            // ]);
 
             // Skip if material content is too short to generate meaningful questions
             if (strlen($materialContent) < 200) {
