@@ -11,8 +11,9 @@ use Filament\Panel;
 use Illuminate\Foundation\Auth\User as FilamentAuthenticatable;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-class User extends Authenticatable implements FilamentUser, CanResetPasswordContract
+class User extends Authenticatable implements FilamentUser, CanResetPasswordContract, MustVerifyEmail
 {
     use HasFactory, Notifiable, CanResetPassword;
 

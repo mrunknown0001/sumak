@@ -30,23 +30,44 @@ class GenerateQuizQuestionsJob implements ShouldQueue
     public function handle(OpenAiService $openAiService, IrtService $irtService): void
     {
         try {
-            $document = Document::with(['tableOfSpecification.tosItems.topic'])
+            $document = Document::with(['topic.tableOfSpecification.tosItems.topic'])
                 ->findOrFail($this->documentId);
 
-            $tos = $document->tableOfSpecification;
+            $tos = $document->topic->tableOfSpecification;
 
             if (!$tos || $tos->tosItems->isEmpty()) {
-                Log::warning("Document has no ToS or ToS Items — skipping AI generation", [
-                    'document_id' => $document->id
+                Log::warning("Topic has no ToS or ToS Items — skipping AI generation", [
+                    'document_id' => $document->id,
+                    'topic_id' => $document->topic->id
                 ]);
                 return;
             }
 
             // Use full content if possible — summaries are unreliable for strict extraction.
             $materialContent = $document->content ?? $document->content_summary ?? $document->title;
+            // Log::info("Material content for AI generation", [
+            //     'document_id' => $document->id,
+            //     'content_length' => strlen($materialContent),
+            //     'content_preview' => substr($materialContent, 0, 500),
+            //     'is_full_content' => $document->content !== null,
+            //     'is_summary' => $document->content_summary !== null,
+            //     'is_title_fallback' => $document->content === null && $document->content_summary === null,
+            // ]);
+
+            // Skip if material content is too short to generate meaningful questions
+            if (strlen($materialContent) < 200) {
+                Log::warning("Material content too short for AI question generation, skipping", [
+                    'document_id' => $document->id,
+                    'topic_id' => $document->topic->id,
+                    'content_length' => strlen($materialContent),
+                    'material_preview' => substr($materialContent, 0, 100)
+                ]);
+                return;
+            }
 
             Log::info("Starting STRICT AI question generation", [
                 'document_id' => $document->id,
+                'topic_id' => $document->topic->id,
                 'tos_items' => $tos->tosItems->count(),
             ]);
 
@@ -56,6 +77,7 @@ class GenerateQuizQuestionsJob implements ShouldQueue
 
             Log::info("STRICT AI question generation completed successfully", [
                 'document_id' => $document->id,
+                'topic_id' => $document->topic->id,
             ]);
 
         } catch (\Exception $e) {
@@ -100,7 +122,7 @@ class GenerateQuizQuestionsJob implements ShouldQueue
             topics: $topics,
             materialContent: $materialContent,
             options: [
-                "model" => "gpt-4.1",
+                "model" => "gpt-4o",
                 "max_attempts" => 3,
                 "temperature" => 0.0,
                 "top_p" => 0.0,

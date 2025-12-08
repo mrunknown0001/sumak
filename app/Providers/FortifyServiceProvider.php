@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Contracts\LoginViewResponse;
 use Laravel\Fortify\Contracts\RegisterViewResponse;
+use Laravel\Fortify\Contracts\VerifyEmailViewResponse;
+use App\Actions\Fortify\VerifyEmailView;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -38,6 +40,9 @@ class FortifyServiceProvider extends ServiceProvider
                 }
             };
         });
+
+        $this->app->singleton(VerifyEmailViewResponse::class, VerifyEmailView::class);
+
     }
 
     /**

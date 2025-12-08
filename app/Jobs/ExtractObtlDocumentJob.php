@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\ObtlDocument;
 use App\Services\OpenAiService;
+use App\Jobs\GenerateObtlTosJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -41,11 +42,6 @@ class ExtractObtlDocumentJob implements ShouldQueue
 
         $initialStatus = $obtlDocument->processing_status;
 
-        Log::info('ExtractObtlDocumentJob started', [
-            'obtl_document_id' => $this->ObtlDocumentId,
-            'initial_status' => $initialStatus,
-            'has_processed_at' => ! is_null($obtlDocument->processed_at),
-        ]);
 
         $obtlDocument->update([
             'processing_status' => ObtlDocument::PROCESSING_IN_PROGRESS,
@@ -57,7 +53,6 @@ class ExtractObtlDocumentJob implements ShouldQueue
         $parser = new PdfParser();
         $pdf = $parser->parseFile($obtlDocument->file_path);
         $text = $pdf->getText();
-        // Log::info($text);
         
         // // Use OpenAI service to extract title
         $openAiService = new OpenAiService();
@@ -65,7 +60,7 @@ class ExtractObtlDocumentJob implements ShouldQueue
         try {
             // Extract learning outcomes, topics, subtopics, and assessment methods
             $extraction = $openAiService->parseObtlDocument($text);
-            // Log::debug('OBTL Document extraction result', ['extraction' => $extraction]);
+            
             $obtlDocument->title = $extraction['title_info']['title'] ?? 'Untitled OBTL Document';
             $obtlDocument->save();
 
@@ -80,6 +75,21 @@ class ExtractObtlDocumentJob implements ShouldQueue
                 }
             }
 
+            // check if extraction has topics
+            if (isset($extraction['topics'])) {
+                foreach ($extraction['topics'] as $topicData) {
+                    $obtlDocument->course->topics()->create([
+                        'name' => $topicData['name'] ?? 'Untitled Topic',
+                        'description' => $topicData['description'] ?? '',
+                        'metadata' => [
+                            'term' => $topicData['term'] ?? 'midterm',
+                            'source' => 'obtl_extraction'
+                        ],
+                        'order_index' => $topicData['order_index'] ?? 0,
+                    ]);
+                }
+            }
+
             DB::commit();
 
             $obtlDocument->update([
@@ -88,16 +98,16 @@ class ExtractObtlDocumentJob implements ShouldQueue
                 'error_message' => null,
             ]);
 
+            // Update course workflow stage
+            $obtlDocument->course->update([
+                'workflow_stage' => \App\Models\Course::WORKFLOW_STAGE_OBTL_PROCESSED,
+            ]);
+
+            // Dispatch ToS generation job
+            GenerateObtlTosJob::dispatch($obtlDocument->course_id);
+
             $obtlDocument->refresh();
 
-            // Log::info('ExtractObtlDocumentJob finished', [
-            //     'obtl_document_id' => $this->ObtlDocumentId,
-            //     'status_before' => $initialStatus,
-            //     'status_after' => $obtlDocument->processing_status,
-            //     'processed_at' => optional($obtlDocument->processed_at)?->toDateTimeString(),
-            //     'title' => $obtlDocument->title,
-            //     'learning_outcomes_created' => $obtlDocument->learningOutcomes()->count(),
-            // ]);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -106,11 +116,6 @@ class ExtractObtlDocumentJob implements ShouldQueue
                 'error_message' => $e->getMessage(),
             ]);
 
-            Log::error("Failed to extract OBTL Document", [
-                'obtl_document_id' => $this->ObtlDocumentId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             throw $e;
         }
     }

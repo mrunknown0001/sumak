@@ -16,6 +16,8 @@ return new class extends Migration
             $table->json('cognitive_level_distribution')->nullable();
             $table->text('assessment_focus')->nullable();
             $table->timestamp('generated_at')->useCurrent();
+            $table->string('term')->nullable();
+            $table->string('term_name')->nullable();
             $table->timestamps();
             
             $table->index(['document_id']);

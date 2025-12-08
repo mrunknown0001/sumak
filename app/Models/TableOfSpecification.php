@@ -12,7 +12,10 @@ class TableOfSpecification extends Model
     use HasFactory;
 
     protected $fillable = [
+        'course_id',
+        'topic_id',
         'document_id',
+        'term',
         'total_items',
         'lots_percentage',
         'cognitive_level_distribution',
@@ -26,6 +29,22 @@ class TableOfSpecification extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Get the course that owns the ToS
+     */
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    /**
+     * Get the topic that owns the ToS
+     */
+    public function topic(): BelongsTo
+    {
+        return $this->belongsTo(Topic::class);
+    }
 
     /**
      * Get the document that owns the ToS

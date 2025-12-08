@@ -15,6 +15,8 @@ class Course extends Model
 
     public const WORKFLOW_STAGE_DRAFT = 'draft';
     public const WORKFLOW_STAGE_OBTL_UPLOADED = 'obtl_uploaded';
+    public const WORKFLOW_STAGE_OBTL_PROCESSED = 'obtl_processed';
+    public const WORKFLOW_STAGE_TOS_GENERATED = 'tos_generated';
     public const WORKFLOW_STAGE_MATERIALS_UPLOADED = 'materials_uploaded';
 
     protected $fillable = [
@@ -81,6 +83,22 @@ class Course extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class);
+    }
+
+    /**
+     * Get all topics for the course
+     */
+    public function topics(): HasMany
+    {
+        return $this->hasMany(Topic::class);
+    }
+
+    /**
+     * Get all ToS for the course
+     */
+    public function tableOfSpecifications(): HasMany
+    {
+        return $this->hasMany(TableOfSpecification::class);
     }
 
     /**

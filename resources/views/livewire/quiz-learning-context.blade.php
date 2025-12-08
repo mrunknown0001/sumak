@@ -16,7 +16,7 @@
                 <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $topic->name }}</h1>
                 <p class="text-xl font-medium text-slate-600 dark:text-slate-300">{{ $topic->name }}</p>
 
-                @if($document?->content_summary)
+                @if($document?->short_content_summary)
                     <div class="mt-4 rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 text-sm text-blue-900 dark:border-blue-500/40 dark:bg-blue-900/20 dark:text-blue-100">
                         <h4 class="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
                             <svg class="h-4 w-4 text-blue-500 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,7 +25,7 @@
                             </svg>
                             Lecture Summary
                         </h4>
-                        <p>{{ $document->content_summary }}</p>
+                        <p>{{ $document->short_content_summary }}</p>
                     </div>
                 @endif
             </div>
@@ -154,7 +154,7 @@
         </section>
     @endif
 
-    {{-- <section class="rounded-3xl border border-emerald-200/70 from-emerald-50 via-white to-blue-50 p-8 shadow-lg shadow-emerald-500/10 dark:border-emerald-500/40 dark:from-emerald-900/30 dark:via-slate-900/70 dark:to-blue-900/30">
+    <section class="rounded-3xl border border-emerald-200/70 from-emerald-50 via-white to-blue-50 p-8 shadow-lg shadow-emerald-500/10 dark:border-emerald-500/40 dark:from-emerald-900/30 dark:via-slate-900/70 dark:to-blue-900/30">
         <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div class="space-y-2">
                 <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Ready to take the quiz?</h2>
@@ -183,5 +183,5 @@
                 </button>
             @endif
         </div>
-    </section> --}}
+    </section>
 </div>

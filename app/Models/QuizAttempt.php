@@ -19,6 +19,9 @@ class QuizAttempt extends Model
         'is_adaptive',
         'total_questions',
         'question_item_ids',
+        'temporary_answers',
+        'skipped_item_ids',
+        'current_question_index',
         'correct_answers',
         'score_percentage',
         'started_at',
@@ -32,6 +35,8 @@ class QuizAttempt extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'question_item_ids' => 'array',
+        'temporary_answers' => 'array',
+        'skipped_item_ids' => 'array',
     ];
 
     /**

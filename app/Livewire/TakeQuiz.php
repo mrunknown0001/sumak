@@ -30,6 +30,8 @@ class TakeQuiz extends Component
     public Collection $items;
     public int $currentQuestionIndex = 0;
     public ?string $selectedAnswer = null;
+    public array $temporaryAnswers = [];
+    public array $skippedItemIds = [];
     public int $timeRemaining = 1500;
     public bool $timerStarted = false;
     public bool $quizStarted = false;
@@ -302,19 +304,26 @@ class TakeQuiz extends Component
 
         $items = $this->transformItems($assignedItemModels);
 
-        $answeredCount = $this->attempt
-            ? $this->attempt->responses()
-                ->where('user_id', auth()->id())
-                ->count()
-            : 0;
+        // Load session state for resume capability
+        $this->temporaryAnswers = $this->attempt->temporary_answers ?? [];
+        $this->skippedItemIds = $this->attempt->skipped_item_ids ?? [];
+        $this->currentQuestionIndex = $this->attempt->current_question_index ?? 0;
 
-        if ($answeredCount >= $items->count()) {
-            $answeredCount = max(0, $items->count() - 1);
+        // Ensure current index is within bounds
+        if ($this->currentQuestionIndex >= $items->count()) {
+            $this->currentQuestionIndex = max(0, $items->count() - 1);
         }
 
         $this->items = $items->values();
-        $this->currentQuestionIndex = max(0, $answeredCount);
-        $this->selectedAnswer = null;
+
+        // Pre-fill selected answer if there's a temporary answer for current question
+        $currentItem = $this->items[$this->currentQuestionIndex] ?? null;
+        if ($currentItem && isset($this->temporaryAnswers[$currentItem['id']])) {
+            $this->selectedAnswer = $this->temporaryAnswers[$currentItem['id']];
+        } else {
+            $this->selectedAnswer = null;
+        }
+
         $this->showFeedback = false;
         $this->isCorrect = false;
         $this->correctAnswer = null;
@@ -731,35 +740,67 @@ class TakeQuiz extends Component
 
         $answerValue = $answer ?? '';
 
-        $alreadyResponded = $this->attempt->responses()
-            ->where('user_id', auth()->id())
-            ->where('item_id', $item['id'])
-            ->exists();
+        // Store answer temporarily (don't create Response record yet)
+        $this->temporaryAnswers[$item['id']] = $answerValue;
 
-        if ($alreadyResponded) {
-            return;
-        }
+        // Remove from skipped if it was skipped
+        $this->skippedItemIds = array_diff($this->skippedItemIds, [$item['id']]);
+
+        // Save session state
+        $this->saveSessionState();
 
         $this->selectedAnswer = $answer;
         $this->isCorrect = $answer !== null && $answer !== '' && $item['correct_answer'] === $answer;
         $this->correctAnswer = $item['correct_answer'];
 
-        // compute time taken using shown_at when available, otherwise fallback
-        $timeTakenSeconds = $this->calculateTimeTaken($item);
-
-        Response::create([
-            'quiz_attempt_id' => $this->attempt->id,
-            'item_id' => $item['id'],
-            'user_id' => auth()->id(),
-            'user_answer' => $answerValue,
-            'is_correct' => $this->isCorrect,
-            'time_taken_seconds' => $timeTakenSeconds,
-            'response_at' => now(),
-        ]);
-
         $this->showFeedback = true;
     }
 
+    public function skipQuestion(): void
+    {
+        if (
+            !$this->quizStarted ||
+            !$this->attempt ||
+            $this->items->isEmpty()
+        ) {
+            return;
+        }
+
+        $item = $this->items[$this->currentQuestionIndex] ?? null;
+
+        if (!$item) {
+            return;
+        }
+
+        // Add to skipped items
+        if (!in_array($item['id'], $this->skippedItemIds)) {
+            $this->skippedItemIds[] = $item['id'];
+        }
+
+        // Remove from temporary answers if it was answered
+        unset($this->temporaryAnswers[$item['id']]);
+
+        // Save session state
+        $this->saveSessionState();
+
+        // Go to next question, or loop back to first if on last question
+        if ($this->currentQuestionIndex >= $this->items->count() - 1) {
+            $this->goToQuestion(0);
+        } else {
+            $this->goToNextQuestion();
+        }
+    }
+
+    protected function saveSessionState(): void
+    {
+        if ($this->attempt) {
+            $this->attempt->update([
+                'temporary_answers' => $this->temporaryAnswers,
+                'skipped_item_ids' => array_values($this->skippedItemIds),
+                'current_question_index' => $this->currentQuestionIndex,
+            ]);
+        }
+    }
 
     protected function calculateTimeTaken(array $item = null): int
     {
@@ -783,24 +824,81 @@ class TakeQuiz extends Component
     }
 
 
-    public function nextQuestion(): RedirectResponse|Redirector|null
+    public function nextQuestion(): void
+    {
+        $this->goToNextQuestion();
+    }
+
+    protected function goToNextQuestion(): void
     {
         $this->currentQuestionIndex++;
+        $this->loadCurrentQuestionState();
+
+        if (! in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
+            $this->resetTimer();
+        }
+    }
+
+    public function goToQuestion(int $index): void
+    {
+        if ($index < 0 || $index >= $this->items->count()) {
+            return;
+        }
+
+        $this->currentQuestionIndex = $index;
+        $this->loadCurrentQuestionState();
+    }
+
+    protected function loadCurrentQuestionState(): void
+    {
         $this->selectedAnswer = null;
         $this->showFeedback = false;
         $this->isCorrect = false;
         $this->correctAnswer = null;
 
-        if ($this->currentQuestionIndex >= $this->items->count()) {
-            return $this->completeQuiz();
+        // Pre-fill answer if exists
+        $currentItem = $this->items[$this->currentQuestionIndex] ?? null;
+        if ($currentItem && isset($this->temporaryAnswers[$currentItem['id']])) {
+            $this->selectedAnswer = $this->temporaryAnswers[$currentItem['id']];
         }
 
-                if (! in_array($this->timerMode, ['pomodoro', 'custom_pomodoro'], true)) {
-            $this->resetTimer();
+        // Save current index
+        $this->saveSessionState();
+    }
+
+    public function getQuestionStatus(int $index): string
+    {
+        if ($index < 0 || $index >= $this->items->count()) {
+            return 'not_visited';
         }
 
-        
-        return null;
+        $item = $this->items[$index];
+        $itemId = $item['id'];
+
+        if (isset($this->temporaryAnswers[$itemId])) {
+            return 'answered';
+        }
+
+        if (in_array($itemId, $this->skippedItemIds)) {
+            return 'skipped';
+        }
+
+        return 'not_visited';
+    }
+
+    public function getQuestionStatuses(): array
+    {
+        $statuses = [];
+        for ($i = 0; $i < $this->items->count(); $i++) {
+            $statuses[] = $this->getQuestionStatus($i);
+        }
+        return $statuses;
+    }
+
+    public function canCompleteQuiz(): bool
+    {
+        // Require all questions to be answered before completion
+        return count($this->temporaryAnswers) === $this->items->count();
     }
 
     public function completeQuiz(): RedirectResponse|Redirector|null
@@ -811,16 +909,44 @@ class TakeQuiz extends Component
             return null;
         }
 
-        $correctAnswers = $this->attempt->responses()->where('is_correct', true)->count();
-        $totalQuestions = max(1, $this->attempt->total_questions);
+        // Create Response records from temporary answers
+        $correctAnswers = 0;
+        foreach ($this->temporaryAnswers as $itemId => $answer) {
+            $item = $this->items->firstWhere('id', $itemId);
+            if (!$item) continue;
 
-        $scorePercentage = ($correctAnswers / $totalQuestions) * 100;
+            $isCorrect = $answer !== null && $answer !== '' && $item['correct_answer'] === $answer;
+
+            if ($isCorrect) {
+                $correctAnswers++;
+            }
+
+            // Calculate time taken (simplified - could be improved)
+            $timeTakenSeconds = 0; // For now, set to 0 since we don't track per question time
+
+            Response::create([
+                'quiz_attempt_id' => $this->attempt->id,
+                'item_id' => $itemId,
+                'user_id' => auth()->id(),
+                'user_answer' => $answer,
+                'is_correct' => $isCorrect,
+                'time_taken_seconds' => $timeTakenSeconds,
+                'response_at' => now(),
+            ]);
+        }
+
+        $totalQuestions = count($this->temporaryAnswers); // Only count answered questions
+        $scorePercentage = $totalQuestions > 0 ? ($correctAnswers / $totalQuestions) * 100 : 0;
 
         $this->attempt->update([
             'correct_answers' => $correctAnswers,
             'score_percentage' => round($scorePercentage, 2),
             'completed_at' => now(),
             'time_spent_seconds' => now()->diffInSeconds($this->attempt->started_at),
+            // Clear session fields
+            'temporary_answers' => null,
+            'skipped_item_ids' => null,
+            'current_question_index' => 0,
         ]);
 
         $studentAbility = StudentAbility::firstOrCreate(
