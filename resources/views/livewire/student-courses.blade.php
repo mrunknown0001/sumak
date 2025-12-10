@@ -37,12 +37,12 @@
             >
                 My Courses ({{ $enrolledCourses->count() }})
             </button>
-            <button
+            {{-- <button
                 wire:click="$set('activeTab', 'available')"
                 class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 {{ $activeTab === 'available' ? 'border border-emerald-400/50 bg-emerald-500/20 text-emerald-600 dark:border-emerald-400/50 dark:bg-emerald-500/20 dark:text-emerald-200' : 'border border-transparent text-slate-500 hover:border-slate-300 hover:bg-white hover:text-slate-700 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:bg-slate-800/60 dark:hover:text-slate-200' }}"
             >
                 Available Courses ({{ $availableCourses->count() }})
-            </button>
+            </button> --}}
         </nav>
 
         <div class="p-6">
@@ -85,13 +85,22 @@
                                 >
                                     View Course
                                 </a>
-                                <button
+                                {{-- <button
                                     wire:click="unenroll({{ $course->id }})"
                                     wire:confirm="Are you sure you want to unenroll from this course?"
                                     class="w-full rounded-xl border border-slate-300/60 bg-slate-100/70 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                                 >
                                     Unenroll
-                                </button>
+                                </button> --}}
+                                @if($course->user_id == auth()->id())
+                                    <button
+                                        wire:click="deleteCourse({{ $course->id }})"
+                                        wire:confirm="Are you sure you want to delete this course? This action cannot be undone."
+                                        class="mt-auto w-full rounded-xl bg-gradient-to-r from-red-600 to-red-700 px-4 py-3 text-center text-sm font-semibold text-red-600 hover:cursor-pointer shadow transition hover:from-red-500 hover:to-red-600 dark:from-red-500 dark:to-red-600 dark:hover:from-red-400 dark:hover:to-red-500"
+                                    >
+                                        Delete Course
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     @empty
@@ -281,7 +290,7 @@
 
                         <div class="md:col-span-2 space-y-2">
                             <label class="text-sm font-medium text-slate-700 dark:text-slate-300" for="newCourseObtl">
-                                OBTL Document <span class="text-slate-400">(optional)</span>
+                                OBTL Document <span class="text-red-500">*</span>
                             </label>
                             <input
                                 id="newCourseObtl"
