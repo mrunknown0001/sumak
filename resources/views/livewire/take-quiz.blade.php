@@ -439,7 +439,24 @@
                             >
                                 Skip Question
                             </button>
+                            @if(!isset($revealedAnswers[$item['id']]))
+                                <button
+                                    wire:click="revealAnswer"
+                                    class="flex-1 rounded-xl border border-amber-300/70 bg-amber-50/70 px-6 py-3 text-sm font-semibold text-amber-700 transition hover:border-amber-400 hover:bg-amber-50 dark:border-amber-500/40 dark:bg-amber-900/20 dark:text-amber-200 dark:hover:border-amber-400/60"
+                                >
+                                    Reveal Answer
+                                </button>
+                            @endif
                         </div>
+
+                        @if(isset($revealedAnswers[$item['id']]))
+                            <div class="mt-4 rounded-2xl border-2 border-amber-300 bg-amber-50/80 p-4 text-amber-700 dark:border-amber-500/60 dark:bg-amber-900/20 dark:text-amber-200">
+                                <p class="text-sm font-semibold">Correct Answer: <span class="font-bold">{{ $item['correct_answer'] }}</span></p>
+                                @if($item['explanation'])
+                                    <p class="mt-2 text-sm">{{ $item['explanation'] }}</p>
+                                @endif
+                            </div>
+                        @endif
                     @else
                         <div class="mt-6 rounded-2xl border-2 p-5 shadow-sm {{ $isCorrect ? 'border-emerald-300 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/60 dark:bg-emerald-900/20 dark:text-emerald-200' : 'border-rose-300 bg-rose-50/80 text-rose-700 dark:border-rose-500/60 dark:bg-rose-900/20 dark:text-rose-200' }}">
                             <p class="text-lg font-semibold">
