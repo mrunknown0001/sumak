@@ -591,4 +591,53 @@
             </div>
         </div>
     @endif
+
+    <!-- Quiz Count Modal -->
+    @if($showQuizCountModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div class="w-full max-w-md rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-lg backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/70">
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Select Quiz Count</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Choose the number of quiz questions to generate.</p>
+                </div>
+
+                <form wire:submit.prevent="selectQuizCount" class="space-y-4">
+                    <div>
+                        <label for="quizCount" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Quiz Count</label>
+                        <select
+                            id="quizCount"
+                            wire:model="selectedQuizCount"
+                            class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-500/40"
+                        >
+                            <option value="">Select Count</option>
+                            <option value="10">10 questions</option>
+                            <option value="15">15 questions</option>
+                            <option value="20">20 questions</option>
+                            <option value="30">30 questions</option>
+                            <option value="automatic">Automatic (recommended)</option>
+                        </select>
+                        @error('selectedQuizCount')
+                            <p class="mt-1 text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="flex justify-end gap-3">
+                        <button
+                            type="button"
+                            wire:click="$set('showQuizCountModal', false)"
+                            class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            class="rounded-xl bg-gradient-to-r from-emerald-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:from-emerald-500 hover:to-blue-500 dark:from-emerald-500 dark:to-blue-500 dark:hover:from-emerald-400 dark:hover:to-blue-400"
+                        >
+                            Submit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 </div>

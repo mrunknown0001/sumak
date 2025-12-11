@@ -102,10 +102,20 @@ class ProcessDocumentJob implements ShouldQueue
             }
 
             // Since topic is predefined or just created, directly generate ToS for the topic
-            $this->syncTableOfSpecificationForTopic($document->topic, $content);
+            $this->syncTableOfSpecificationForTopic($document, $document->topic, $content);
 
-            // Dispatch quiz generation for the document
-            GenerateQuizQuestionsJob::dispatch($document->id);
+            // Dispatch quiz generation job immediately after ToS creation
+            $tos = $document->topic->tableOfSpecification;
+            $selected_items = $tos->tosItems->pluck('id')->toArray();
+            \App\Jobs\GenerateQuizQuestionsJob::dispatch($document->id, $selected_items);
+
+            // Set status to completed
+            $document->update([
+                'processing_status' => Document::PROCESSING_COMPLETED,
+                'processed_at' => now(),
+            ]);
+
+            Log::info('Document processed successfully and quiz generation started', ['document_id' => $document->id, 'topic_id' => $document->topic->id]);
 
             $document->update([
                 'processing_status' => Document::PROCESSING_COMPLETED,
@@ -213,7 +223,7 @@ class ProcessDocumentJob implements ShouldQueue
      * @return TableOfSpecification|null
      * @throws RuntimeException
      */
-    protected function syncTableOfSpecificationForTopic(Topic $topic, string $materialContent): ?TableOfSpecification
+    protected function syncTableOfSpecificationForTopic(Document $document, Topic $topic, string $materialContent): ?TableOfSpecification
     {
         // Remove any existing ToS for this topic
         $existing = TableOfSpecification::where('topic_id', $topic->id)->first();
@@ -240,6 +250,14 @@ class ProcessDocumentJob implements ShouldQueue
         // Use topic's metadata for cognitive level and recommended questions
         $metadata = $topic->metadata ?? [];
         $recommended = (int) ($metadata['recommended_question_count'] ?? 4);
+
+        // Override with options num_quiz_items if specified and not 'automatic'
+        if (isset($this->options['num_quiz_items']) && $this->options['num_quiz_items'] !== 'automatic') {
+            $recommended = (int) $this->options['num_quiz_items'];
+        } elseif ($document->num_quiz_items && $document->num_quiz_items !== 'automatic') {
+            $recommended = (int) $document->num_quiz_items;
+        }
+
         $totalItems = max(1, $recommended);
 
         // Get cognitive level from topic metadata or default
@@ -279,6 +297,13 @@ class ProcessDocumentJob implements ShouldQueue
             'num_items' => $totalItems,
             'weight_percentage' => 100,
             'sample_indicators' => $metadata['key_concepts'] ?? [],
+        ]);
+
+        Log::info('Created TosItem with num_quiz_items from document', [
+            'document_id' => $document->id,
+            'num_quiz_items' => $document->num_quiz_items,
+            'total_items' => $totalItems,
+            'tos_item_id' => $tos->id,
         ]);
 
         Log::info('Created Table of Specification for topic', [

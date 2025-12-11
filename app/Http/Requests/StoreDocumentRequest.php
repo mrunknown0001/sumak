@@ -18,6 +18,7 @@ class StoreDocumentRequest extends FormRequest
             'lecture_file' => 'required|file|mimes:pdf,docx|max:20480', // 20MB
             'lecture_number' => 'nullable|string|max:50',
             'hours_taught' => 'nullable|numeric|min:0|max:100',
+            'num_quiz_items' => 'nullable|in:10,15,20,30,automatic',
         ];
     }
 
