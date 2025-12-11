@@ -32,6 +32,7 @@ class TakeQuiz extends Component
     public ?string $selectedAnswer = null;
     public array $temporaryAnswers = [];
     public array $skippedItemIds = [];
+    public array $revealedAnswers = [];
     public int $timeRemaining = 1500;
     public bool $timerStarted = false;
     public bool $quizStarted = false;
@@ -864,6 +865,30 @@ class TakeQuiz extends Component
 
         // Save current index
         $this->saveSessionState();
+    }
+
+    public function revealAnswer(): void
+    {
+        if (!$this->quizStarted || !$this->attempt || $this->items->isEmpty()) {
+            return;
+        }
+
+        $item = $this->items[$this->currentQuestionIndex] ?? null;
+
+        if (!$item) {
+            return;
+        }
+
+        // Prevent revealing if already submitted/answered
+        if ($this->showFeedback || isset($this->temporaryAnswers[$item['id']])) {
+            return;
+        }
+
+        // Mark this item as revealed
+        $this->revealedAnswers[$item['id']] = true;
+
+        // Disable further answer selection for this item
+        $this->selectedAnswer = null;
     }
 
     public function getQuestionStatus(int $index): string

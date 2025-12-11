@@ -255,7 +255,7 @@ class StudentCourses extends Component
             'newCourse.course_code' => 'required|string|max:50',
             'newCourse.course_title' => 'required|string|max:255',
             'newCourse.description' => 'nullable|string|max:1000',
-            'newCourseObtl' => 'nullable|file|mimes:pdf|max:10240',
+            'newCourseObtl' => 'required|file|mimes:pdf|max:10240',
         ];
     }
 
@@ -265,6 +265,7 @@ class StudentCourses extends Component
             'newCourse.course_code.required' => 'Course code is required.',
             'newCourse.course_title.required' => 'Course title is required.',
             'newCourseObtl.mimes' => 'The OBTL document must be a PDF file.',
+            'newCourseObtl.required' => 'The OBTL document is required.',
             'newCourseObtl.max' => 'The OBTL document must not exceed 10MB.',
         ];
     }
