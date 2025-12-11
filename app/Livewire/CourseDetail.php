@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\Document;
 use App\Models\ObtlDocument;
 use App\Jobs\ExtractObtlDocumentJob;
+use App\Jobs\GenerateObtlTosJob;
 use App\Jobs\ProcessDocumentJob;
 use App\Services\DocumentQuizBatchService;
 use Illuminate\Http\RedirectResponse;
@@ -55,6 +56,10 @@ class CourseDetail extends Component
     ];
 
     public bool $materialProcessing = false;
+
+    public bool $showTosModal = false;
+    public int $midTermItems = 0;
+    public int $finalTermItems = 0;
 
 
     public function boot(DocumentQuizBatchService $documentQuizBatchService): void
@@ -270,6 +275,8 @@ class CourseDetail extends Component
                 $this->pollingStartedAt = null;
                 $this->isPolling = false;
                 session()->flash('message', '✅ OBTL processing completed successfully! You can now upload learning materials.');
+            } elseif ($status === ObtlDocument::PROCESSING_EXTRACTED) {
+                $this->showTosModal = true;
             } elseif ($status === ObtlDocument::PROCESSING_FAILED) {
                 $this->pollingActive = false;
                 $this->isPolling = false;
@@ -597,6 +604,26 @@ class CourseDetail extends Component
             'newMaterialUpload.mimes' => 'Learning materials must be PDF or DOCX files.',
             'newMaterialUpload.max' => 'Learning material files must not exceed 20MB.',
         ];
+    }
+
+    public function submitTosItems(): void
+    {
+        $this->validate([
+            'midTermItems' => 'required|integer|min:1|max:100',
+            'finalTermItems' => 'required|integer|min:1|max:100',
+        ]);
+
+        $this->course->obtlDocument->update([
+            'processing_status' => ObtlDocument::PROCESSING_IN_PROGRESS,
+        ]);
+
+        GenerateObtlTosJob::dispatch($this->course->id, $this->midTermItems, $this->finalTermItems);
+
+        $this->showTosModal = false;
+        $this->midTermItems = 0;
+        $this->finalTermItems = 0;
+
+        session()->flash('message', 'Table of Specifications generation started. This may take a few minutes.');
     }
 
     public function getCanManageCourseProperty(): bool

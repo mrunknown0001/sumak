@@ -529,4 +529,66 @@
             </div>
         @endforelse
     </div>
+
+    <!-- TOS Modal -->
+    @if($showTosModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div class="w-full max-w-md rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-lg backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/70">
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Configure Table of Specifications</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Enter the number of items for midterm and final examinations.</p>
+                </div>
+
+                <form wire:submit.prevent="submitTosItems" class="space-y-4">
+                    <div>
+                        <label for="midTermItems" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Mid Term Items</label>
+                        <input
+                            id="midTermItems"
+                            type="number"
+                            wire:model="midTermItems"
+                            class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-500/40"
+                            placeholder="e.g., 20"
+                            min="1"
+                            max="100"
+                        />
+                        @error('midTermItems')
+                            <p class="mt-1 text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label for="finalTermItems" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Final Term Items</label>
+                        <input
+                            id="finalTermItems"
+                            type="number"
+                            wire:model="finalTermItems"
+                            class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-500/40"
+                            placeholder="e.g., 30"
+                            min="1"
+                            max="100"
+                        />
+                        @error('finalTermItems')
+                            <p class="mt-1 text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="flex justify-end gap-3">
+                        <button
+                            type="button"
+                            wire:click="$set('showTosModal', false)"
+                            class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            class="rounded-xl bg-gradient-to-r from-emerald-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:from-emerald-500 hover:to-blue-500 dark:from-emerald-500 dark:to-blue-500 dark:hover:from-emerald-400 dark:hover:to-blue-400"
+                        >
+                            Submit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 </div>

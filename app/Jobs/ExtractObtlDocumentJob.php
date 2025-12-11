@@ -93,7 +93,7 @@ class ExtractObtlDocumentJob implements ShouldQueue
             DB::commit();
 
             $obtlDocument->update([
-                'processing_status' => ObtlDocument::PROCESSING_COMPLETED,
+                'processing_status' => ObtlDocument::PROCESSING_EXTRACTED,
                 'processed_at' => now(),
                 'error_message' => null,
             ]);
@@ -102,9 +102,6 @@ class ExtractObtlDocumentJob implements ShouldQueue
             $obtlDocument->course->update([
                 'workflow_stage' => \App\Models\Course::WORKFLOW_STAGE_OBTL_PROCESSED,
             ]);
-
-            // Dispatch ToS generation job
-            GenerateObtlTosJob::dispatch($obtlDocument->course_id);
 
             $obtlDocument->refresh();
 
