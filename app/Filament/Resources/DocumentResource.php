@@ -44,9 +44,20 @@ class DocumentResource extends Resource
                             ->disabled()
                             ->dehydrated(false),
                         Forms\Components\DateTimePicker::make('uploaded_at')
-                            ->required()
-                            ->disabled(),
-                    ]),
+                             ->required()
+                             ->disabled(),
+                        Forms\Components\Select::make('num_quiz_items')
+                             ->label('Number of Quiz Items')
+                             ->options([
+                                 'automatic' => 'Automatic',
+                                 '10' => '10',
+                                 '15' => '15',
+                                 '20' => '20',
+                                 '30' => '30',
+                             ])
+                             ->default('automatic')
+                             ->nullable(),
+                     ]),
                 Forms\Components\Section::make('Processing Status')
                     ->description('Status is updated by the processing pipeline once analysis completes.')
                     ->visible(fn (?Document $record) => filled($record))
@@ -86,6 +97,7 @@ class DocumentResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         Document::PROCESSING_COMPLETED => 'success',
+                        Document::PROCESSING_WAITING_SELECTION => 'info',
                         Document::PROCESSING_FAILED => 'danger',
                         default => 'warning',
                     })
@@ -108,11 +120,63 @@ class DocumentResource extends Resource
                     ->options([
                         'completed' => 'Completed',
                         'processing' => 'Processing',
+                        'waiting_selection' => 'Waiting Selection',
                         'pending' => 'Pending',
                         'failed' => 'Failed'
                     ]),
             ])
             ->actions([
+                Tables\Actions\Action::make('select_quiz_items')
+                    ->label('Select Quiz Items')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('info')
+                    ->visible(fn (Document $record): bool => $record->processing_status === Document::PROCESSING_WAITING_SELECTION)
+                    ->modalHeading('Select Quiz Items to Generate')
+                    ->modalDescription('Choose which table of specification items you want to generate quiz questions for.')
+                    ->form([
+                        Forms\Components\CheckboxList::make('selected_items')
+                            ->label('Select Table of Specification Items')
+                            ->options(function (Document $record) {
+                                $tos = $record->topic->tableOfSpecification;
+                                if (!$tos || $tos->tosItems->isEmpty()) {
+                                    return [];
+                                }
+
+                                return $tos->tosItems->mapWithKeys(function ($tosItem) {
+                                    $topicName = $tosItem->topic->name;
+                                    $cognitiveLevel = ucfirst($tosItem->cognitive_level);
+                                    $numItems = $tosItem->num_items;
+
+                                    return [
+                                        $tosItem->id => "{$topicName} - {$cognitiveLevel} ({$numItems} items)"
+                                    ];
+                                });
+                            })
+                            ->required()
+                            ->minItems(1)
+                            ->columns(1)
+                    ])
+                    ->action(function (Document $record, array $data): void {
+                        $selectedItems = $data['selected_items'] ?? [];
+
+                        if (empty($selectedItems)) {
+                            throw new \Exception('Please select at least one item.');
+                        }
+
+                        // Call the controller method
+                        $controller = app(\App\Http\Controllers\DocumentController::class);
+                        $response = $controller->confirmQuizSelection(
+                            request()->merge(['selected_items' => $selectedItems]),
+                            $record
+                        );
+
+                        // Show success notification
+                        \Filament\Notifications\Notification::make()
+                            ->title('Quiz generation started')
+                            ->body("Generating questions for " . count($selectedItems) . " selected items.")
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([

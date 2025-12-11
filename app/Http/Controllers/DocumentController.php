@@ -144,6 +144,8 @@ class DocumentController extends Controller
             $status = 'analyzing_content';
         } elseif (!$hasTos) {
             $status = 'generating_tos';
+        } elseif ($document->processing_status === Document::PROCESSING_WAITING_SELECTION) {
+            $status = 'waiting_selection';
         } elseif ($itemsGenerated < $totalItemsNeeded) {
             $status = 'generating_questions';
         } else {
@@ -226,5 +228,51 @@ class DocumentController extends Controller
             $document->file_path,
             $document->title . '.' . $document->file_type
         );
+    }
+
+    /**
+     * Confirm quiz item selection and resume generation
+     */
+    public function confirmQuizSelection(Request $request, Document $document): JsonResponse
+    {
+        $this->authorize('update', $document->topic->course);
+
+        $validated = $request->validate([
+            'selected_items' => 'required|array|min:1',
+            'selected_items.*' => 'exists:tos_items,id',
+        ]);
+
+        // Verify all selected items belong to this document's ToS
+        $tos = $document->topic->tableOfSpecification;
+        $validItemIds = $tos->tosItems->pluck('id')->toArray();
+
+        $invalidItems = array_diff($validated['selected_items'], $validItemIds);
+        if (!empty($invalidItems)) {
+            return response()->json([
+                'message' => 'Invalid items selected',
+                'errors' => ['selected_items' => 'Some selected items do not belong to this document'],
+            ], 422);
+        }
+
+        // Store selected items in document metadata or create a temporary selection record
+        $document->update([
+            'correlation_metadata' => array_merge($document->correlation_metadata ?? [], [
+                'selected_tos_items' => $validated['selected_items'],
+                'selection_confirmed_at' => now(),
+            ]),
+            'processing_status' => Document::PROCESSING_IN_PROGRESS,
+        ]);
+
+        // Dispatch quiz generation job with selected items
+        \App\Jobs\GenerateQuizQuestionsJob::dispatch($document->id, $validated['selected_items']);
+
+        return response()->json([
+            'message' => 'Quiz generation started for selected items',
+            'data' => [
+                'document_id' => $document->id,
+                'selected_items_count' => count($validated['selected_items']),
+                'status' => 'processing',
+            ],
+        ]);
     }
 }

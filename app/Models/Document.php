@@ -14,6 +14,7 @@ class Document extends Model
 
     public const PROCESSING_PENDING = 'pending';
     public const PROCESSING_IN_PROGRESS = 'processing';
+    public const PROCESSING_WAITING_SELECTION = 'waiting_selection';
     public const PROCESSING_COMPLETED = 'completed';
     public const PROCESSING_FAILED = 'failed';
 
@@ -35,6 +36,7 @@ class Document extends Model
         'correlation_threshold',
         'correlation_metadata',
         'correlation_evaluated_at',
+        'num_quiz_items',
     ];
 
     protected $casts = [

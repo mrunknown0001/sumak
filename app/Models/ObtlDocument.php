@@ -13,6 +13,7 @@ class ObtlDocument extends Model
 
     public const PROCESSING_PENDING = 'pending';
     public const PROCESSING_IN_PROGRESS = 'processing';
+    public const PROCESSING_EXTRACTED = 'extracted';
     public const PROCESSING_COMPLETED = 'completed';
     public const PROCESSING_FAILED = 'failed';
 

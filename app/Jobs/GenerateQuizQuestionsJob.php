@@ -21,10 +21,12 @@ class GenerateQuizQuestionsJob implements ShouldQueue
     public $timeout = 900; // 15 minutes
 
     protected int $documentId;
+    protected ?array $selectedTosItemIds = null;
 
-    public function __construct(int $documentId)
+    public function __construct(int $documentId, ?array $selectedTosItemIds = null)
     {
         $this->documentId = $documentId;
+        $this->selectedTosItemIds = $selectedTosItemIds;
     }
 
     public function handle(OpenAiService $openAiService, IrtService $irtService): void
@@ -39,6 +41,29 @@ class GenerateQuizQuestionsJob implements ShouldQueue
                 Log::warning("Topic has no ToS or ToS Items — skipping AI generation", [
                     'document_id' => $document->id,
                     'topic_id' => $document->topic->id
+                ]);
+                return;
+            }
+
+            // Filter ToS items if specific selection was made
+            $tosItemsToProcess = $tos->tosItems;
+            if ($this->selectedTosItemIds) {
+                $tosItemsToProcess = $tosItemsToProcess->filter(function ($tosItem) {
+                    return in_array($tosItem->id, $this->selectedTosItemIds);
+                });
+            }
+
+            Log::info('GenerateQuizQuestionsJob: Processing ToS items', [
+                'document_id' => $document->id,
+                'total_tos_items' => $tos->tosItems->count(),
+                'selected_tos_items' => $this->selectedTosItemIds,
+                'filtered_count' => $tosItemsToProcess->count(),
+            ]);
+
+            if ($tosItemsToProcess->isEmpty()) {
+                Log::warning("No matching ToS items found for generation", [
+                    'document_id' => $document->id,
+                    'selected_items' => $this->selectedTosItemIds
                 ]);
                 return;
             }
@@ -68,24 +93,44 @@ class GenerateQuizQuestionsJob implements ShouldQueue
             Log::info("Starting STRICT AI question generation", [
                 'document_id' => $document->id,
                 'topic_id' => $document->topic->id,
-                'tos_items' => $tos->tosItems->count(),
+                'tos_items' => $tosItemsToProcess->count(),
+                'selected_items' => $this->selectedTosItemIds,
             ]);
 
-            foreach ($tos->tosItems as $tosItem) {
+            foreach ($tosItemsToProcess as $tosItem) {
                 $this->processTosItem($tosItem, $materialContent, $openAiService);
             }
 
             Log::info("STRICT AI question generation completed successfully", [
                 'document_id' => $document->id,
                 'topic_id' => $document->topic->id,
+                'selected_items' => $this->selectedTosItemIds,
+            ]);
+
+            // Update document status to completed
+            $document->update([
+                'processing_status' => \App\Models\Document::PROCESSING_COMPLETED,
+                'processed_at' => now(),
+                'processing_error' => null,
             ]);
 
         } catch (\Exception $e) {
             Log::error("GenerateQuizQuestionsJob failed", [
                 'document_id' => $this->documentId,
+                'selected_items' => $this->selectedTosItemIds,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+
+            // Update document status on failure
+            $document = \App\Models\Document::find($this->documentId);
+            if ($document) {
+                $document->update([
+                    'processing_status' => \App\Models\Document::PROCESSING_FAILED,
+                    'processing_error' => $e->getMessage(),
+                ]);
+            }
+
             throw $e;
         }
     }

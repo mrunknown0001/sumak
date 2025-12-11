@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Course;
+use App\Models\ObtlDocument;
 use App\Models\TableOfSpecification;
 use App\Models\TosItem;
 use App\Services\OpenAiService;
@@ -21,17 +22,17 @@ class GenerateObtlTosJob implements ShouldQueue
     public $timeout = 600; // 10 minutes
 
     protected int $courseId;
-    protected int $midtermTotalItems;
-    protected int $finalTotalItems;
+    protected int $midTermItems;
+    protected int $finalTermItems;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(int $courseId, int $midtermTotalItems = 20, int $finalTotalItems = 30)
+    public function __construct(int $courseId, int $midTermItems, int $finalTermItems)
     {
         $this->courseId = $courseId;
-        $this->midtermTotalItems = $midtermTotalItems;
-        $this->finalTotalItems = $finalTotalItems;
+        $this->midTermItems = $midTermItems;
+        $this->finalTermItems = $finalTermItems;
     }
 
     /**
@@ -54,11 +55,11 @@ class GenerateObtlTosJob implements ShouldQueue
             $topics = $course->topics->toArray();
 
             // Generate midterm ToS
-            $midtermTos = $openAiService->generateObtlTos($learningOutcomes, $topics, $this->midtermTotalItems, 'midterm');
+            $midtermTos = $openAiService->generateObtlTos($learningOutcomes, $topics, $this->midTermItems, 'midterm');
             $this->createTos($course, $midtermTos, 'midterm');
 
             // Generate final ToS
-            $finalTos = $openAiService->generateObtlTos($learningOutcomes, $topics, $this->finalTotalItems, 'final');
+            $finalTos = $openAiService->generateObtlTos($learningOutcomes, $topics, $this->finalTermItems, 'final');
             $this->createTos($course, $finalTos, 'final');
 
             DB::commit();
@@ -66,6 +67,11 @@ class GenerateObtlTosJob implements ShouldQueue
             // Update course workflow stage
             $course->update([
                 'workflow_stage' => Course::WORKFLOW_STAGE_TOS_GENERATED,
+            ]);
+
+            // update OBTL Document
+            $course->obtlDocument->update([
+                'processing_status' => ObtlDocument::PROCESSING_COMPLETED,
             ]);
 
         } catch (\Exception $e) {

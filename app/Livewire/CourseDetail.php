@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\Document;
 use App\Models\ObtlDocument;
 use App\Jobs\ExtractObtlDocumentJob;
+use App\Jobs\GenerateObtlTosJob;
 use App\Jobs\ProcessDocumentJob;
 use App\Services\DocumentQuizBatchService;
 use Illuminate\Http\RedirectResponse;
@@ -15,6 +16,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Features\SupportRedirects\Redirector;
 use Illuminate\Support\Facades\Log;
 
@@ -55,6 +57,14 @@ class CourseDetail extends Component
     ];
 
     public bool $materialProcessing = false;
+
+    public bool $showTosModal = false;
+    public int $midTermItems = 0;
+    public int $finalTermItems = 0;
+
+    public bool $showQuizCountModal = false;
+    public string $selectedQuizCount = '';
+    public ?int $processingDocumentId = null;
 
 
     public function boot(DocumentQuizBatchService $documentQuizBatchService): void
@@ -235,11 +245,9 @@ class CourseDetail extends Component
             return;
         }
 
-        ProcessDocumentJob::dispatch($document->id, [
-            'lecture_number' => $this->newMaterial['lecture_number'] ?: null,
-            'hours_taught' => $this->newMaterial['hours_taught'] ?: null,
-            'has_obtl' => true,
-        ]);
+        // Set document for modal selection instead of dispatching job immediately
+        $this->processingDocumentId = $document->id;
+        $this->openQuizCountModal($document->id);
 
         $this->reset('newMaterialUpload');
         $this->resetNewMaterialForm();
@@ -248,7 +256,7 @@ class CourseDetail extends Component
         $this->materialProcessing = true;
         $this->dispatch('materialUploaded');
 
-        session()->flash('message', 'Learning material uploaded successfully. Processing has started.');
+        session()->flash('message', 'Learning material uploaded successfully. Please select the number of quiz questions.');
     }
 
     public function pollObtlStatus()
@@ -270,6 +278,8 @@ class CourseDetail extends Component
                 $this->pollingStartedAt = null;
                 $this->isPolling = false;
                 session()->flash('message', '✅ OBTL processing completed successfully! You can now upload learning materials.');
+            } elseif ($status === ObtlDocument::PROCESSING_EXTRACTED) {
+                $this->showTosModal = true;
             } elseif ($status === ObtlDocument::PROCESSING_FAILED) {
                 $this->pollingActive = false;
                 $this->isPolling = false;
@@ -599,9 +609,71 @@ class CourseDetail extends Component
         ];
     }
 
+    public function submitTosItems(): void
+    {
+        $this->validate([
+            'midTermItems' => 'required|integer|min:1|max:100',
+            'finalTermItems' => 'required|integer|min:1|max:100',
+        ]);
+
+        $this->course->obtlDocument->update([
+            'processing_status' => ObtlDocument::PROCESSING_IN_PROGRESS,
+        ]);
+
+        GenerateObtlTosJob::dispatch($this->course->id, $this->midTermItems, $this->finalTermItems);
+
+        $this->showTosModal = false;
+        $this->midTermItems = 0;
+        $this->finalTermItems = 0;
+
+        session()->flash('message', 'Table of Specifications generation started. This may take a few minutes.');
+    }
+
     public function getCanManageCourseProperty(): bool
     {
         return $this->course->user_id === auth()->id();
+    }
+
+    public function openQuizCountModal(int $documentId): void
+    {
+        $this->processingDocumentId = $documentId;
+        $this->showQuizCountModal = true;
+        $this->selectedQuizCount = ''; // Reset selection to empty string
+    }
+
+    public function selectQuizCount(): void
+    {
+        $this->validate([
+            'selectedQuizCount' => 'required|in:10,15,20,30,automatic',
+        ]);
+
+        $document = Document::find($this->processingDocumentId);
+
+        if (!$document) {
+            session()->flash('error', 'Document not found.');
+            return;
+        }
+
+        // Update document with selected quiz count
+        $document->update([
+            'num_quiz_items' => $this->selectedQuizCount,
+        ]);
+
+        // Dispatch ProcessDocumentJob with the selected num_quiz_items
+        ProcessDocumentJob::dispatch($document->id, [
+            'num_quiz_items' => $this->selectedQuizCount,
+        ]);
+
+        // Close modal and reset
+        $this->showQuizCountModal = false;
+        $this->processingDocumentId = null;
+        $this->selectedQuizCount = '';
+
+        // Start polling for processing status
+        $this->materialProcessing = true;
+        $this->dispatch('materialUploaded');
+
+        session()->flash('message', 'Quiz generation started with ' . ($this->selectedQuizCount === 'automatic' ? 'automatic' : $this->selectedQuizCount) . ' questions.');
     }
 
 
