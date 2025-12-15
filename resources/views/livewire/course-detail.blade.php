@@ -68,6 +68,13 @@
         </div>
     </div>
 
+    @if($course->tableOfSpecifications->isNotEmpty())
+        <div class="flex justify-center gap-3">
+            <a href="{{ route('student.course.tos', ['courseId' => $course->id, 'term' => 'midterm']) }}" class="btn btn-primary">Midterm ToS</a>
+            <a href="{{ route('student.course.tos', ['courseId' => $course->id, 'term' => 'final']) }}" class="btn btn-primary">Final ToS</a>
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md dark:border-slate-800/70 dark:bg-slate-900/70">
             <header class="mb-4 flex items-center justify-between">

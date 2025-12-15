@@ -13,6 +13,7 @@ use App\Livewire\CourseDetail;
 use App\Livewire\QuizLearningContext;
 use App\Livewire\TakeQuiz;
 use App\Livewire\QuizResult;
+use App\Livewire\CourseToS;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -60,7 +61,8 @@ Route::middleware(['auth', 'student', 'verified'])->prefix('student')->name('stu
     Route::post('/course/{course}/enroll', [EnrollmentController::class, 'enroll'])->name('course.enroll');
     Route::post('/course/{course}/unenroll', [EnrollmentController::class, 'unenroll'])->name('course.unenroll');
     Route::get('/course/{course}', CourseDetail::class)->name('course.show');
-    
+    Route::get('/course/{courseId}/tos/{term}', CourseToS::class)->name('course.tos');
+
     // Learning materials
     Route::get('/document/{document}/download', [DocumentController::class, 'download'])
         ->name('document.download');
