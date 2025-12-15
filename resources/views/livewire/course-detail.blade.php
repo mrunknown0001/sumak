@@ -68,6 +68,17 @@
         </div>
     </div>
 
+    @if($course->tableOfSpecifications->isNotEmpty())
+        <div class="flex justify-center gap-3">
+            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-600 dark:bg-emerald-500/30 dark:text-emerald-200">
+                <a href="{{ route('student.course.tos', ['courseId' => $course->id, 'term' => 'midterm']) }}">Midterm ToS</a>
+            </span>
+            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-600 dark:bg-emerald-500/30 dark:text-emerald-200">
+                <a href="{{ route('student.course.tos', ['courseId' => $course->id, 'term' => 'final']) }}">Final ToS</a>
+            </span>
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md dark:border-slate-800/70 dark:bg-slate-900/70">
             <header class="mb-4 flex items-center justify-between">
@@ -555,7 +566,7 @@
                             <p class="mt-1 text-xs font-semibold text-red-500 dark:text-red-300">{{ $message }}</p>
                         @enderror
                     </div>
-
+                    |
                     <div>
                         <label for="finalTermItems" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Final Term Items</label>
                         <input
