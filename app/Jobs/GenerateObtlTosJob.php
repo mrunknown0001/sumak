@@ -50,16 +50,26 @@ class GenerateObtlTosJob implements ShouldQueue
 
         DB::beginTransaction();
         try {
-            // Get learning outcomes and topics
+            // Get learning outcomes
             $learningOutcomes = $course->obtlDocument->learningOutcomes->toArray();
-            $topics = $course->topics->toArray();
+
+            // Get all topics sorted by order_index
+            $allTopics = $course->topics->sortBy('order_index');
+
+            // Split into midterm and final
+            $half = floor($allTopics->count() / 2);
+            $midtermTopics = $allTopics->take($half)->toArray();
+            $finalTopics = $allTopics->skip($half)->toArray();
+
+            Log::info("Midterm topics count: " . count($midtermTopics) . ", names: " . collect($midtermTopics)->pluck('name')->implode(', '));
+            Log::info("Final topics count: " . count($finalTopics) . ", names: " . collect($finalTopics)->pluck('name')->implode(', '));
 
             // Generate midterm ToS
-            $midtermTos = $openAiService->generateObtlTos($learningOutcomes, $topics, $this->midTermItems, 'midterm');
+            $midtermTos = $openAiService->generateObtlTos($learningOutcomes, $midtermTopics, $this->midTermItems, 'midterm');
             $this->createTos($course, $midtermTos, 'midterm');
 
             // Generate final ToS
-            $finalTos = $openAiService->generateObtlTos($learningOutcomes, $topics, $this->finalTermItems, 'final');
+            $finalTos = $openAiService->generateObtlTos($learningOutcomes, $finalTopics, $this->finalTermItems, 'final');
             $this->createTos($course, $finalTos, 'final');
 
             DB::commit();

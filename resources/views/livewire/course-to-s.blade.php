@@ -1,52 +1,74 @@
-<div class="mx-auto max-w-5xl space-y-8 px-4 py-8 text-slate-900 dark:text-slate-100">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Table of Specification for {{ $course->course_title }}</h1>
-                {{-- <div>
-                    <button wire:click="exportPdf" class="btn btn-primary me-2" aria-label="Export Table of Specifications as PDF">
-                        <i class="fas fa-file-pdf"></i> Export PDF
-                    </button>
-                    <button wire:click="exportCsv" class="btn btn-success me-2" aria-label="Export Table of Specifications as CSV">
-                        <i class="fas fa-file-csv"></i> Export CSV
-                    </button>
-                    <a href="{{ route('student.course.show', $course->id) }}" class="btn btn-secondary" aria-label="Back to Course Detail">
-                        <i class="fas fa-arrow-left"></i> Back to Course Detail
-                    </a>
-                </div> --}}
-            </div>
-
-            @if($course->tosItems && $course->tosItems->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Topic/Objective</th>
-                                <th>Learning Outcomes</th>
-                                <th>Assessment Type</th>
-                                <th>Weightage</th>
-                                <th>Difficulty Level</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($course->tosItems as $tosItem)
-                                <tr>
-                                    <td>{{ $tosItem->topic ? $tosItem->topic->name : 'N/A' }}</td>
-                                    <td>{{ $tosItem->learningOutcome ? $tosItem->learningOutcome->description : 'N/A' }}</td>
-                                    <td>{{ $tosItem->bloom_category ?: 'N/A' }}</td>
-                                    <td>{{ $tosItem->weight_percentage }}%</td>
-                                    <td>{{ $tosItem->cognitive_level ?: 'N/A' }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="alert alert-info">
-                    <h4>No Table of Specifications Available</h4>
-                    <p>The Table of Specifications for this course has not been generated yet or is unavailable.</p>
-                </div>
-            @endif
-        </div>
+<div class="mx-auto max-w-6xl px-4 py-8 text-slate-900 dark:text-slate-100">
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+        <h1 class="text-xl font-semibold tracking-tight">
+            Table of Specification
+            <span class="block text-sm font-normal text-slate-500 dark:text-slate-400">
+                {{ $course->course_title }}
+            </span>
+        </h1>
     </div>
+
+    @if($course->tosItems && $course->tosItems->count() > 0)
+        <!-- Table Wrapper -->
+        <div class="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                    <!-- Table Head -->
+                    <thead class="bg-slate-50 dark:bg-slate-800">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                Topic / Objective
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                Learning Outcomes
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                Assessment Type
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                Weight
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                Difficulty
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <!-- Table Body -->
+                    <tbody class="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900">
+                        @foreach($course->tosItems as $tosItem)
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                                <td class="px-4 py-3 text-sm">
+                                    {{ $tosItem->topic->name ?? 'N/A' }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                                    {{ $tosItem->learningOutcome->description ?? 'N/A' }}
+                                </td>
+                                <td class="px-4 py-3 text-sm">
+                                    {{ $tosItem->bloom_category ?? 'N/A' }}
+                                </td>
+                                <td class="px-4 py-3 text-sm font-medium">
+                                    {{ $tosItem->weight_percentage }}%
+                                </td>
+                                <td class="px-4 py-3 text-sm">
+                                    {{ $tosItem->cognitive_level ?? 'N/A' }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @else
+        <!-- Empty State -->
+        <div class="rounded-lg border border-dashed border-slate-300 p-6 text-center dark:border-slate-700">
+            <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                No Table of Specifications Available
+            </h4>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                The Table of Specifications for this course has not been generated yet or is unavailable.
+            </p>
+        </div>
+    @endif
 </div>
