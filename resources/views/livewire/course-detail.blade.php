@@ -43,7 +43,7 @@
                 @endif
                 <div class="flex flex-wrap items-center gap-3 pt-1 text-sm font-semibold">
                     <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-600 dark:bg-emerald-500/30 dark:text-emerald-200">
-                        ✓ Enrolled
+                        ✓ Created
                     </span>
 
                     <span class="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-3 py-1 text-blue-600 dark:bg-blue-500/25 dark:text-blue-200">
@@ -408,10 +408,10 @@
                 $nextBatchTopicId = $activeBatchQueue->first();
                 $eligibleQuizCount = $meta['eligible_quiz_count'] ?? 0;
             @endphp
-            <article class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl dark	border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
+            <article class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl dark:border-slate-800/70 dark:bg-slate-900/70 dark:hover:border-emerald-500/40">
                 <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div class="space-y-2">
-                        <h3 class="text-xl font-semibold text-slate-100 dark:text-slate-900">{{ $document->title }}</h3>
+                        <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100">{{ $document->title }}</h3>
                         <p class="text-sm text-slate-500 dark:text-slate-400">
                             Uploaded {{ $document->uploaded_at->diffForHumans() }} • {{ $document->formatted_file_size }}
                         </p>
@@ -435,7 +435,7 @@
 
 
                 @if($document->short_content_summary)
-                    <div class="mt-4 rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 text-sm text-blue-100 dark:border-blue-500/40 dark:bg-blue-900/20 dark:text-blue-900">
+                    <div class="mt-4 rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 text-sm text-blue-700 dark:border-blue-500/40 dark:bg-blue-900/20 dark:text-blue-200">
                         <h4 class="mb-2 flex items-center gap-2 text-sm font-semibold">
                             <svg class="h-4 w-4 text-blue-300 dark:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c1.657 0 3-1.343 3-3S13.657 2 12 2 9 3.343 9 5s1.343 3 3 3zm0 0v13m-7-6a4 4 0 018 0" />
@@ -448,7 +448,7 @@
 
                 @if($document->hasTos() && $document->topics->isNotEmpty())
                     <div class="mt-6 space-y-4">
-                        <h4 class="flex items-center gap-2 text-lg font-semibold text-slate-100 dark:text-slate-900">
+                        <h4 class="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
                             <svg class="h-5 w-5 text-emerald-500 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                             </svg>
@@ -456,7 +456,7 @@
                         </h4>
                         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                             @if($materialProcessing)
-                                <div class="col-span-2 text-blue-500 text-sm font-medium">
+                                <div class="col-span-2 text-blue-500 dark:text-blue-300 text-sm font-medium">
                                     ⏳ Processing learning material... extracting topics...
                                 </div>
                             @endif
@@ -480,7 +480,7 @@
 
                                     <a href="{{ route('student.quiz.context', $topic->id) }}" class="flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-100/80 to-blue-100/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:from-emerald-100 hover:to-blue-100 hover:shadow-lg dark:border-emerald-500/40 dark:from-emerald-900/30 dark:to-blue-900/30 dark:hover:border-emerald-400/70">
                                         <div>
-                                            <p class="text-sm font-semibold text-slate-100 dark:text-slate-900">{{ $topic->name }}</p>
+                                            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $topic->name }}</p>
                                         </div>
                                     </a>
                                 @endif

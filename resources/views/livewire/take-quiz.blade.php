@@ -42,7 +42,7 @@
 
                 <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Customize Your Pomodoro</h2>
                 <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-                    Set focus and break durations that match your workflow. Minimum duration is 1 minute per interval.
+                    Set focus and break durations that match your workflow. Minimum duration is 1 minute per interval
                 </p>
 
                 <form wire:submit.prevent="confirmCustomPomodoro" class="mt-6 space-y-6">
@@ -476,7 +476,7 @@
                             <button
                                 wire:click="nextQuestion"
                                 @disabled($currentQuestionIndex + 1 >= $items->count())
-                                class="flex-1 rounded-xl bg-slate-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-500 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-slate-500 dark:hover:bg-slate-400 dark:disabled:bg-slate-700"
+                                class="flex-1 rounded-xl bg-slate-600 px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-500 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:bg-slate-500 dark:hover:bg-slate-400 dark:disabled:bg-slate-700 dark:disabled:text-slate-300 dark:text-slate-300"
                             >
                                 Next Question
                             </button>

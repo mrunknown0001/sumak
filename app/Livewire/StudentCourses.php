@@ -233,7 +233,7 @@ class StudentCourses extends Component
                 'title' => 'SumakQuiz | Courses',
                 'pageTitle' => 'Courses',
                 'pageSubtitle' => $this->activeTab === 'enrolled'
-                    ? 'Access and manage courses you are currently enrolled in.'
+                    ? 'Access and manage courses you created.'
                     : 'Discover new courses and expand your learning journey.',
             ]);
     }

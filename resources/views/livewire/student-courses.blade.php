@@ -3,7 +3,7 @@
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">Courses</h1>
-                <p class="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">Browse, create, and enroll in courses tailored to your learning goals.</p>
+                <p class="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">Begin building your courses now.</p>
             </div>
             <button
                 wire:click="openCreateCourseModal"
@@ -185,7 +185,7 @@
                                 <button
                                     wire:click="deleteCourse({{ $course->id }})"
                                     wire:confirm="Are you sure you want to delete this course? This action cannot be undone."
-                                    class="mt-auto w-full rounded-xl bg-gradient-to-r from-red-600 to-red-700 px-4 py-3 text-center text-sm font-semibold text-red-600 hover:cursor-pointer shadow transition hover:from-red-500 hover:to-red-600 dark:from-red-500 dark:to-red-600 dark:hover:from-red-400 dark:hover:to-red-500"
+                                    class="mt-auto w-full rounded-xl bg-gradient-to-r from-red-600 to-red-700 px-4 py-3 text-center text-sm font-semibold text-white hover:cursor-pointer shadow transition hover:from-red-500 hover:to-red-600 dark:from-red-500 dark:to-red-600 dark:hover:from-red-400 dark:hover:to-red-500"
                                 >
                                     Delete Course
                                 </button>
