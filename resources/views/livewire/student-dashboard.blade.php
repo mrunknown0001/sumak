@@ -208,7 +208,7 @@
                 <div class="rounded-xl border border-purple-200/40 bg-purple-50/70 p-3 text-center dark:border-purple-400/30 dark:bg-purple-900/20">
                     <p class="mb-1 text-sm font-medium text-purple-600 dark:text-purple-200">Active Courses</p>
                     <p class="text-xl md:text-2xl font-bold text-purple-700 dark:text-purple-100">{{ count(array_filter($courses, fn($c) => $c['status'] === 'active')) }}</p>
-                    <p class="mt-1 text-xs text-purple-500 dark:text-purple-200/80">Currently enrolled</p>
+                    <p class="mt-1 text-xs text-purple-500 dark:text-purple-200/80">Currently created</p>
                 </div>
             </div>
 
