@@ -10,6 +10,10 @@
     </div>
 
     @if($course->tosItems && $course->tosItems->count() > 0)
+        @php
+            $totalPercentage = $course->tosItems->sum('weight_percentage');
+            $totalItems = $course->tosItems->sum('num_items');
+        @endphp
         <!-- Table Wrapper -->
         <div class="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
             <div class="overflow-x-auto">
@@ -62,6 +66,13 @@
                                 </td>
                             </tr>
                         @endforeach
+                        <tr class="font-bold bg-slate-100 dark:bg-slate-700">
+                            <td class="px-4 py-3 text-sm">Total</td>
+                            <td class="px-4 py-3 text-sm">{{ $totalPercentage }}%</td>
+                            <td class="px-4 py-3 text-sm">{{ $totalItems }}</td>
+                            <td class="px-4 py-3 text-sm">-</td>
+                            <td class="px-4 py-3 text-sm">-</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
