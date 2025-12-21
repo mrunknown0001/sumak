@@ -21,16 +21,19 @@
                                 Topic / Objective
                             </th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                % Distribution
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                No. of Items
+                            </th>
+                            {{-- <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                                 Learning Outcomes
+                            </th> --}}
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                Cognitive Level
                             </th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                                Assessment Type
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                                Weight
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                                Difficulty
+                                Bloom Level
                             </th>
                         </tr>
                     </thead>
@@ -38,21 +41,24 @@
                     <!-- Table Body -->
                     <tbody class="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900">
                         @foreach($course->tosItems as $tosItem)
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
                                 <td class="px-4 py-3 text-sm">
                                     {{ $tosItem->topic->name ?? 'N/A' }}
-                                </td>
-                                <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
-                                    {{ $tosItem->learningOutcome->description ?? 'N/A' }}
-                                </td>
-                                <td class="px-4 py-3 text-sm">
-                                    {{ $tosItem->bloom_category ?? 'N/A' }}
                                 </td>
                                 <td class="px-4 py-3 text-sm font-medium">
                                     {{ $tosItem->weight_percentage }}%
                                 </td>
+                                <td class="px-4 py-3 text-sm font-medium">
+                                    {{ $tosItem->num_items }}
+                                </td>
+                                {{-- <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                                    {{ $tosItem->learningOutcome->description ?? 'N/A' }}
+                                </td> --}}
                                 <td class="px-4 py-3 text-sm">
                                     {{ $tosItem->cognitive_level ?? 'N/A' }}
+                                </td>
+                                <td class="px-4 py-3 text-sm">
+                                    {{ $tosItem->bloom_category ?? 'N/A' }}
                                 </td>
                             </tr>
                         @endforeach
